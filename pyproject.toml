@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "feilunqiege"
+version = "0.1.0"
+description = "砂轮切除铸件飞边的可行区域与路径规划研究骨架"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.26",
+  "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+mesh = [
+  "trimesh>=4.0",
+  "open3d>=0.18",
+]
+dev = [
+  "pytest>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

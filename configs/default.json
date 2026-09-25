@@ -1,0 +1,32 @@
+{
+  "data_root": "../flash_pipeline_12_models_20260924",
+  "case_name": "leaf",
+  "inputs": {
+    "root_line": "root_line.ply",
+    "workpiece_mesh": "mesh_without_flash.obj",
+    "surface_mesh": "surface.obj"
+  },
+  "units": "normalized",
+  "tool_model": "zero_thickness_disk",
+  "wheel": {
+    "radius": 0.02,
+    "delta": 0.001,
+    "width": null,
+    "axis_mode": "free_about_curve_tangent"
+  },
+  "sampling": {
+    "curve_points": 100,
+    "candidate_angles": 720,
+    "radial_samples": 3
+  },
+  "collision": {
+    "clearance": 0.0,
+    "allow_target_contact": true,
+    "check_flash_mesh": false
+  },
+  "outputs": {
+    "directory": "results",
+    "overview_image": "feasible_centers_overview.png",
+    "summary_json": "feasible_centers_summary.json"
+  }
+}

@@ -1,0 +1,23 @@
+# Python 运行缓存
+__pycache__/
+*.py[cod]
+*.pyd
+
+# 虚拟环境和本地配置
+.venv/
+venv/
+.env
+.env.*
+
+# 工具缓存和临时结果
+__cache__/
+*.log
+*.tmp
+
+# 本地大模型和数据目录；正式仓库只保存配置和说明
+flash_pipeline_12_models_20260924/
+*.obj
+*.ply
+
+# 生成的图和表默认不进入 Git，审核后可显式强制添加
+results/generated/
