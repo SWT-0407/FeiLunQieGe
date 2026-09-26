@@ -7,6 +7,14 @@
 from __future__ import annotations
 
 import argparse
+import sys
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from feilunqiege.pipeline import run_from_config
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,10 +26,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    """预留程序入口；算法尚未实现。"""
+    """执行最小几何闭环。"""
 
-    _ = build_parser().parse_args()
-    raise NotImplementedError("TODO: 算法实现完成后再启用实验入口")
+    arguments = build_parser().parse_args()
+    summary = run_from_config(REPO_ROOT / arguments.config)
+    print(f"status=completed case={summary['case_name']}")
+    print(f"candidate_count={summary['candidate_count']}")
+    print(f"feasible_candidate_count={summary['feasible_candidate_count']}")
+    print(f"overview_image={summary['overview_image']}")
+    return 0
 
 
 if __name__ == "__main__":

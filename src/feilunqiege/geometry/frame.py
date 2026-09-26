@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
+
 
 @dataclass(frozen=True)
 class LocalFrame:
@@ -19,9 +21,22 @@ class LocalFrame:
 def build_frames(points: Any, tangents: Any, surface_normals: Any | None = None) -> list[LocalFrame]:
     """建立满足砂轮半径方向垂直于曲线切线的局部标架。
 
-    TODO: 优先使用工件表面法向构造稳定标架；法向缺失时再定义明确的退化策略。
-    TODO: 逐点检查单位长度、正交性和相邻标架翻转，不能静默接受 NaN。
-    TODO: 明确自由轴向与固定轴向两种模式的输入输出差异。
+    TODO: 后续可用表面法向替换全局参考向量，以减少复杂曲面上的标架翻转。
     """
 
-    raise NotImplementedError("TODO: 尚未实现局部标架构造")
+    _ = points
+    _ = surface_normals
+    frames: list[LocalFrame] = []
+    for tangent in np.asarray(tangents, dtype=float):
+        norm = np.linalg.norm(tangent)
+        if norm <= 1e-12:
+            raise ValueError("存在无法归一化的曲线切线")
+        t = tangent / norm
+        references = np.eye(3)
+        reference = references[int(np.argmin(np.abs(references @ t)))]
+        basis_1 = np.cross(t, reference)
+        basis_1 /= np.linalg.norm(basis_1)
+        basis_2 = np.cross(t, basis_1)
+        basis_2 /= np.linalg.norm(basis_2)
+        frames.append(LocalFrame(tangent=t, radial_basis_1=basis_1, radial_basis_2=basis_2))
+    return frames

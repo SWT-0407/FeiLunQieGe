@@ -1,13 +1,34 @@
-"""项目骨架阶段的测试占位。
+"""最小闭环的几何单元测试。"""
 
-真正的几何测试必须先确定单位、分支策略、砂轮轴向和碰撞豁免规则。
-"""
+import numpy as np
 
-import pytest
+from feilunqiege.geometry.curve import split_and_resample
+from feilunqiege.geometry.frame import build_frames
+from feilunqiege.io.root_line import RootLineData
+from feilunqiege.tooling.grinding_wheel import generate_disk_candidates
 
 
-@pytest.mark.skip(reason="TODO: 等待几何约束和碰撞规则确认后补充")
-def test_geometry_pipeline_placeholder() -> None:
-    """预留合成直线/圆弧和候选正交性测试。"""
+def test_candidate_radius_direction_is_orthogonal_to_tangent() -> None:
+    """候选中心生成必须满足砂轮半径方向与曲线切线正交。"""
 
-    assert False
+    root_line = RootLineData(
+        vertices=np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.5, 0.0]]),
+        edges=np.array([[0, 1], [1, 2]], dtype=np.int64),
+    )
+    curve = split_and_resample(root_line, point_count=0)
+    frames = build_frames(curve.points, curve.tangents)
+    candidates = generate_disk_candidates(curve.points, frames, 0.2, 0.01, 12, 2)
+    dot_products = np.einsum("ij,ij->i", candidates.radius_directions, candidates.tangent_directions)
+    assert np.max(np.abs(dot_products)) < 1e-10
+
+
+def test_curve_loader_keeps_all_vertices_in_all_points_mode() -> None:
+    """point_count=0 时不丢弃输入顶点。"""
+
+    root_line = RootLineData(
+        vertices=np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]]),
+        edges=np.array([[0, 1], [1, 2]], dtype=np.int64),
+    )
+    curve = split_and_resample(root_line, point_count=0)
+    assert len(curve.points) == len(root_line.vertices)
+    assert np.allclose(curve.points[[0, -1]], root_line.vertices[[0, -1]])

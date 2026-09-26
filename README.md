@@ -1,8 +1,8 @@
 # FeiLunQieGe
 
-砂轮切除铸件飞边的可行区域与路径规划研究骨架。
+砂轮切除铸件飞边的可行区域与路径规划研究。
 
-本仓库目前只包含项目结构、数据契约和带中文说明的 `TODO` 接口，不包含尚未确认的算法实现，也不生成科研结论。远程仓库原先为空，本地已从 `https://github.com/SWT-0407/FeiLunQieGe` 克隆。
+本仓库现在包含一个可运行的最小几何闭环。它用于验证数据读取、曲线切线、无厚度砂轮候选中心生成、保守碰撞筛选和总览图输出；结果仍属于 preliminary geometry run，不是实际加工结论。远程仓库原先为空，本地已从 `https://github.com/SWT-0407/FeiLunQieGe` 克隆。
 
 ## 研究目标
 
@@ -30,17 +30,17 @@
 FeiLunQieGe/
 ├─ configs/
 │  └─ default.json                  # 初版参数和外部数据目录配置
-├─ results/                         # 正式结果目录；当前只有说明文件
+├─ results/                         # 正式结果目录；保存本地运行结果，不默认提交生成图
 ├─ scripts/
-│  └─ run_pipeline.py               # 后续命令行入口占位
+│  └─ run_pipeline.py               # 最小闭环命令行入口
 ├─ src/feilunqiege/
 │  ├─ io/                           # OBJ/PLY 和数据契约
 │  ├─ geometry/                     # 根部线、切线和局部标架
 │  ├─ tooling/                     # 无厚度圆盘及未来厚度砂轮模型
-│  ├─ collision/                    # 工件碰撞检测接口
-│  ├─ visualization/                # 可行中心和总览图接口
-│  └─ pipeline.py                   # 流程编排接口
-├─ tests/                           # 后续单元测试和合成几何测试
+│  ├─ collision/                    # 工件碰撞检测和近似筛选
+│  ├─ visualization/                # 可行中心和总览图
+│  └─ pipeline.py                   # 流程编排
+├─ tests/                           # 几何单元测试
 ├─ .gitignore
 ├─ AGENTS.md                        # Git 仓库内的简要协作规范
 └─ pyproject.toml                   # Python 包元数据
@@ -50,7 +50,15 @@ FeiLunQieGe/
 
 ## 目前如何使用
 
-当前所有入口均为占位，运行会明确提示尚未实现；本阶段不应把它当作可运行程序。后续实现前需要确认：
+运行最小闭环：
+
+```powershell
+python scripts/run_pipeline.py --config configs/default.json
+```
+
+输出写入 `results/feasible_centers_overview.png` 和 `results/feasible_centers_summary.json`。当前碰撞筛选方法是工件表面采样点的近似球形包络，可能误判可行；结果摘要会明确记录这一限制。
+
+后续精化前仍需要确认：
 
 - 多分支 `root_line` 的输出组织方式；
 - 工件本体网格是否是唯一不可碰撞对象；

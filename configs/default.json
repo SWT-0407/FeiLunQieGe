@@ -1,5 +1,5 @@
 {
-  "data_root": "../flash_pipeline_12_models_20260924",
+  "data_root": "../../flash_pipeline_12_models_20260924",
   "case_name": "leaf",
   "inputs": {
     "root_line": "root_line.ply",
@@ -15,8 +15,8 @@
     "axis_mode": "free_about_curve_tangent"
   },
   "sampling": {
-    "curve_points": 100,
-    "candidate_angles": 720,
+    "curve_points": 0,
+    "candidate_angles": 180,
     "radial_samples": 3
   },
   "collision": {
