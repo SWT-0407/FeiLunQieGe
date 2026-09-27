@@ -25,8 +25,11 @@ def split_and_resample(root_line: Any, point_count: int) -> SampledCurve:
     正数表示在所有分支之间按长度分配的总采样点数。
     """
 
+    # PLY 的原始顶点索引保留到这里，edge 只用于恢复分支拓扑。
     vertices = np.asarray(root_line.vertices, dtype=float)
     edges = np.asarray(root_line.edges, dtype=np.int64).reshape((-1, 2))
+
+    # 先建立无向邻接表，再通过连通分量和端点顺序恢复每条曲线分支。
     adjacency = [[] for _ in range(len(vertices))]
     for a, b in edges:
         adjacency[int(a)].append(int(b))
@@ -34,6 +37,8 @@ def split_and_resample(root_line: Any, point_count: int) -> SampledCurve:
 
     components = _connected_components(adjacency)
     ordered_components = [_order_component(component, adjacency) for component in components]
+
+    # point_count=0 是当前默认模式：不丢弃原始点；正数才触发按弧长重采样。
     if point_count > 0:
         ordered_components = _resample_components(vertices, ordered_components, point_count)
 
@@ -42,6 +47,7 @@ def split_and_resample(root_line: Any, point_count: int) -> SampledCurve:
     branch_ids: list[int] = []
     arc_lengths: list[float] = []
     for branch_id, order in enumerate(ordered_components):
+        # 每条分支独立估计切线，避免把分支末端错误连接成一条曲线。
         points = vertices[order] if point_count <= 0 else np.asarray(order, dtype=float)
         tangents = _estimate_tangents(points)
         distances = np.linalg.norm(np.diff(points, axis=0), axis=1) if len(points) > 1 else np.empty(0)

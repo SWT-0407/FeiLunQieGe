@@ -40,9 +40,12 @@ class CollisionIndex:
 def build_collision_index(workpiece_mesh: Any) -> CollisionIndex:
     """用顶点、三角形重心和三角形边中点建立表面点索引。"""
 
+    # 将输入网格转换为连续浮点数组，后续只建立只读式查询索引。
     vertices = np.asarray(workpiece_mesh.vertices, dtype=float)
     faces = np.asarray(workpiece_mesh.faces, dtype=np.int64)
     triangles = vertices[faces]
+
+    # 顶点、三角形重心和三条边中点共同构成表面采样点，提升近似包络覆盖率。
     centroids = triangles.mean(axis=1)
     midpoints = np.vstack(
         (
@@ -65,10 +68,15 @@ def check_candidates(candidates: Any, workpiece_mesh: Any, clearance: float) -> 
 
     if clearance < 0:
         raise ValueError("碰撞 clearance 不能为负")
+    # KDTree 只回答“候选中心到采样表面的最近距离”，不等价于精确三角形相交。
     index = build_collision_index(workpiece_mesh)
     nearest_distance, _ = index.tree.query(np.asarray(candidates.centers), workers=-1)
+
+    # 用候选实际 rho 作为球形保守包络半径，再减去它得到剩余安全间隙。
     effective_radius = np.asarray(candidates.radial_values, dtype=float)
     clearance_values = nearest_distance - effective_radius
+
+    # 只有剩余间隙不小于用户给定容差的候选才标为可行。
     feasible = clearance_values >= float(clearance)
     return CollisionResult(
         feasible=feasible,

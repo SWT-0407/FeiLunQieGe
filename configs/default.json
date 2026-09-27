@@ -27,6 +27,7 @@
   "outputs": {
     "directory": "results",
     "overview_image": "feasible_centers_overview.png",
-    "summary_json": "feasible_centers_summary.json"
+    "summary_json": "feasible_centers_summary.json",
+    "feasible_centers_obj": "feasible_centers.obj"
   }
 }

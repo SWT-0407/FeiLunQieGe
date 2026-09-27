@@ -30,6 +30,7 @@ def load_root_line(path: str | Path) -> RootLineData:
     坐标按输入原值读取，单位保持为 normalized units。
     """
 
+    # 读取 ASCII 文本头，暂不支持二进制 PLY，避免把格式误判成可读数据。
     source = Path(path)
     lines = source.read_text(encoding="ascii").splitlines()
     if not lines or lines[0].strip() != "ply":
@@ -37,6 +38,7 @@ def load_root_line(path: str | Path) -> RootLineData:
     if "format ascii 1.0" not in lines[:12]:
         raise ValueError("最小实现只支持 ASCII PLY root_line 文件")
 
+    # 头部给出顶点和 edge 数量；后续数据行按这两个数量切分。
     vertex_count = _element_count(lines, "vertex")
     edge_count = _element_count(lines, "edge")
     end_header = _header_end(lines)
@@ -44,6 +46,7 @@ def load_root_line(path: str | Path) -> RootLineData:
     if len(data_lines) < vertex_count + edge_count:
         raise ValueError("PLY 数据行数少于 header 声明的数量")
 
+    # 顶点前三列始终作为坐标；若有 RGB 列则保留，但不参与几何判定。
     vertices = []
     colors = []
     for line in data_lines[:vertex_count]:
@@ -54,6 +57,7 @@ def load_root_line(path: str | Path) -> RootLineData:
         if len(fields) >= 6:
             colors.append([int(value) for value in fields[3:6]])
 
+    # edge 索引使用 PLY 的零基编号，读取时检查范围以防损坏拓扑。
     edges = []
     for line in data_lines[vertex_count : vertex_count + edge_count]:
         fields = line.split()

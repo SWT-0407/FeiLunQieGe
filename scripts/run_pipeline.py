@@ -1,7 +1,7 @@
-"""后续实验命令行入口占位。
+"""最小几何闭环的命令行入口。
 
-当前不执行任何算法。正式实现后应从命令行接收配置路径，并将参数快照
-和输出位置写入正式结果目录，而不是写入缓存目录。
+脚本只负责解析配置并调用 ``pipeline``；几何计算和文件输出均由源代码包
+完成，便于后续测试和复用。
 """
 
 from __future__ import annotations
@@ -28,12 +28,16 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     """执行最小几何闭环。"""
 
+    # 解析用户指定的配置路径；默认配置使用 leaf 小案例和 normalized units。
     arguments = build_parser().parse_args()
     summary = run_from_config(REPO_ROOT / arguments.config)
+
+    # 控制台只打印最重要的计数，完整参数和输出文件写在 JSON 摘要中。
     print(f"status=completed case={summary['case_name']}")
     print(f"candidate_count={summary['candidate_count']}")
     print(f"feasible_candidate_count={summary['feasible_candidate_count']}")
     print(f"overview_image={summary['overview_image']}")
+    print(f"feasible_centers_obj={summary['feasible_centers_obj']}")
     return 0
 
 

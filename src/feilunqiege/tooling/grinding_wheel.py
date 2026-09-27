@@ -50,12 +50,17 @@ def generate_disk_candidates(
     轴向为 `tangent_direction × radius_direction`。
     """
 
+    # 先校验半径区间，保证 rho 不会变成负数且确实落在 [r-delta, r]。
     if radius <= 0 or delta < 0 or delta >= radius:
         raise ValueError("必须满足 radius > 0 且 0 <= delta < radius")
+
+    # 角度和径向采样都是离散近似；角度不重复采样 2π 端点。
     if angle_count < 4 or radial_samples < 1:
         raise ValueError("候选角度至少需要 4 个，径向采样数至少为 1")
     angles = np.linspace(0.0, 2.0 * np.pi, angle_count, endpoint=False)
     radial_values = np.linspace(radius - delta, radius, radial_samples)
+
+    # 以下列表按批次收集数组，最后一次性拼接，避免为每个候选创建 Python 对象。
     all_points = []
     all_centers = []
     all_radials = []
@@ -65,15 +70,19 @@ def generate_disk_candidates(
     all_rhos = []
     all_angles = []
     for point_index, (point, frame) in enumerate(zip(points, frames, strict=True)):
+        # 用局部法平面的两个基向量参数化半径方向，保证其与切线正交。
         e = (
             np.cos(angles)[:, None] * np.asarray(frame.radial_basis_1)
             + np.sin(angles)[:, None] * np.asarray(frame.radial_basis_2)
         )
         e /= np.linalg.norm(e, axis=1)[:, None]
         t = np.repeat(np.asarray(frame.tangent)[None, :], angle_count, axis=0)
+
+        # t×e 给出圆盘轴向；这里只表达姿态，不生成有厚度的实体网格。
         axis = np.cross(t, e)
         axis /= np.linalg.norm(axis, axis=1)[:, None]
         for rho in radial_values:
+            # 每个 rho 都保留同一组角度，便于后续按角度统计可行弧区间。
             all_points.append(np.repeat(np.asarray(point)[None, :], angle_count, axis=0))
             all_centers.append(np.asarray(point)[None, :] + rho * e)
             all_radials.append(e)
@@ -93,6 +102,7 @@ def generate_disk_candidates(
         angles=np.concatenate(all_angles),
         radius=float(radius),
     )
+    # 生成后再次检查 e·t=0，避免局部标架或数值误差破坏工艺几何约束。
     orthogonality = np.abs(np.einsum("ij,ij->i", candidate_set.radius_directions, candidate_set.tangent_directions))
     if float(orthogonality.max(initial=0.0)) > 1e-10:
         raise ValueError("候选砂轮半径方向未满足 e·t=0")

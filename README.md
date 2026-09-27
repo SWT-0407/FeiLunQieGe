@@ -38,7 +38,7 @@ FeiLunQieGe/
 │  ├─ geometry/                     # 根部线、切线和局部标架
 │  ├─ tooling/                     # 无厚度圆盘及未来厚度砂轮模型
 │  ├─ collision/                    # 工件碰撞检测和近似筛选
-│  ├─ visualization/                # 可行中心和总览图
+│  ├─ visualization/                # 可行中心总览图和 OBJ 导出
 │  └─ pipeline.py                   # 流程编排
 ├─ tests/                           # 几何单元测试
 ├─ .gitignore
@@ -56,7 +56,13 @@ FeiLunQieGe/
 python scripts/run_pipeline.py --config configs/default.json
 ```
 
-输出写入 `results/feasible_centers_overview.png` 和 `results/feasible_centers_summary.json`。当前碰撞筛选方法是工件表面采样点的近似球形包络，可能误判可行；结果摘要会明确记录这一限制。
+输出写入以下三个文件：
+
+- `results/feasible_centers_overview.png`：带工件采样点、根部线、目标点和可行中心的三维总览图；
+- `results/feasible_centers.obj`：MeshLab 可直接打开的 OBJ 点/线文件，其中 `l` 是采样根部线，`p` 是按目标点分组的可行砂轮中心；
+- `results/feasible_centers_summary.json`：参数、计数、角区间、输入和限制的审计摘要。
+
+OBJ 文件使用 normalized units，不是砂轮实体网格，也不代表厚度碰撞结果。打开后可在 MeshLab 中启用顶点/点显示并调整点大小；若只想查看工件本体，仍应单独打开外部的 `mesh_without_flash.obj`。当前碰撞筛选方法是工件表面采样点的近似球形包络，可能误判可行；结果摘要会明确记录这一限制。
 
 后续精化前仍需要确认：
 

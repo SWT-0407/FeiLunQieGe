@@ -13,6 +13,7 @@ from feilunqiege.geometry.frame import build_frames
 from feilunqiege.io.mesh import load_mesh
 from feilunqiege.io.root_line import load_root_line
 from feilunqiege.tooling.grinding_wheel import generate_disk_candidates
+from feilunqiege.visualization.export_obj import export_feasible_centers_obj
 from feilunqiege.visualization.plot import plot_feasible_centers
 
 
@@ -22,15 +23,22 @@ def run_from_config(config_path: str | Path) -> Any:
     这里保留输入原坐标值，不进行毫米换算。
     """
 
+    # 配置文件位于仓库的 configs/ 目录；所有外部原始数据都通过相对路径引用。
     config_path = Path(config_path).resolve()
     config = json.loads(config_path.read_text(encoding="utf-8"))
     repo_root = config_path.parent.parent
     data_root = (config_path.parent / config["data_root"]).resolve()
     case_root = data_root / config["case_name"]
+
+    # 读取根部线和工件本体，保留输入坐标，不在这里做毫米换算或缩放。
     root_line = load_root_line(case_root / config["inputs"]["root_line"])
     workpiece = load_mesh(case_root / config["inputs"]["workpiece_mesh"])
+
+    # 先按 PLY edge 拆分分支，再按弧长规则获得目标采样点和切线。
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
     frames = build_frames(sampled.points, sampled.tangents)
+
+    # 在每个目标点的切线法平面内生成候选中心，半径方向天然满足 e·t=0。
     wheel = config["wheel"]
     candidates = generate_disk_candidates(
         sampled.points,
@@ -40,8 +48,12 @@ def run_from_config(config_path: str | Path) -> Any:
         int(config["sampling"]["candidate_angles"]),
         int(config["sampling"]["radial_samples"]),
     )
+
+    # 当前使用表面采样点的保守球形包络做快速碰撞筛选，结果必须标注为近似。
     collisions = check_candidates(candidates, workpiece, float(config["collision"]["clearance"]))
     output_root = repo_root / config["outputs"]["directory"]
+
+    # 输出一张用于快速核验的三维总览图。
     image_path = output_root / config["outputs"]["overview_image"]
     plot_feasible_centers(
         sampled,
@@ -51,18 +63,40 @@ def run_from_config(config_path: str | Path) -> Any:
         delta=float(wheel["delta"]),
         workpiece_mesh=workpiece,
     )
-    summary = _build_summary(config, root_line, sampled, candidates, collisions, image_path)
+
+    # 输出 MeshLab 可直接打开的 OBJ：l 是根部线，p 是可行砂轮中心点。
+    obj_path = output_root / config["outputs"]["feasible_centers_obj"]
+    export_feasible_centers_obj(
+        sampled,
+        collisions,
+        obj_path,
+        radius=candidates.radius,
+        delta=float(wheel["delta"]),
+        units=str(config["units"]),
+    )
+
+    # 最后写入 JSON 审计摘要，记录参数、计数、输出文件和当前方法边界。
+    summary = _build_summary(config, root_line, sampled, candidates, collisions, image_path, obj_path)
     summary_path = output_root / config["outputs"]["summary_json"]
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     return summary
 
 
-def _build_summary(config: dict[str, Any], root_line: Any, sampled: Any, candidates: Any, collisions: Any, image_path: Path) -> dict[str, Any]:
+def _build_summary(
+    config: dict[str, Any],
+    root_line: Any,
+    sampled: Any,
+    candidates: Any,
+    collisions: Any,
+    image_path: Path,
+    obj_path: Path,
+) -> dict[str, Any]:
     """生成可审计的 JSON 摘要。"""
 
     import numpy as np
 
+    # 每个目标点单独统计可行候选数量和离散角度区间，便于检查局部无解点。
     per_point = []
     angle_count = int(config["sampling"]["candidate_angles"])
     for point_index in range(len(sampled.points)):
@@ -84,6 +118,7 @@ def _build_summary(config: dict[str, Any], root_line: Any, sampled: Any, candida
                 "feasible_angle_intervals_degree": _angle_intervals(angle_mask),
             }
         )
+    # 汇总全局计数，并保留 OBJ 顶点语义，避免把点云误解为砂轮实体。
     feasible_count = int(np.asarray(collisions.feasible).sum())
     return {
         "status": "preliminary_geometry_run",
@@ -107,6 +142,11 @@ def _build_summary(config: dict[str, Any], root_line: Any, sampled: Any, candida
         "feasible_candidate_count": feasible_count,
         "feasible_ratio": feasible_count / len(candidates.centers) if len(candidates.centers) else 0.0,
         "overview_image": str(Path(config["outputs"]["directory"]) / image_path.name),
+        "feasible_centers_obj": str(Path(config["outputs"]["directory"]) / obj_path.name),
+        "obj_contents": [
+            "sampled root-line vertices and l line primitives",
+            "feasible wheel-center vertices and p point primitives grouped by target point",
+        ],
         "per_point": per_point,
         "limitations": [
             "碰撞筛选使用工件表面采样点的近似球形包络，可能误判可行；不是精确的圆盘-三角面相交计算。",

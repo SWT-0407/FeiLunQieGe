@@ -27,10 +27,12 @@ def load_mesh(path: str | Path) -> MeshData:
     顶点坐标不做缩放，保留 normalized units。
     """
 
+    # OBJ 是逐行文本格式；保留原始坐标，避免改变 normalized units 的尺度。
     source = Path(path)
     vertices: list[list[float]] = []
     faces: list[list[int]] = []
     normals: list[list[float]] = []
+    # 当前解析器只抽取 v/vn/f，忽略材质、纹理和点云 p 原语。
     with source.open("r", encoding="ascii", errors="replace") as handle:
         for raw_line in handle:
             line = raw_line.strip()
@@ -46,6 +48,7 @@ def load_mesh(path: str | Path) -> MeshData:
                 for index in range(1, len(indices) - 1):
                     faces.append([indices[0], indices[index], indices[index + 1]])
 
+    # 碰撞近似需要三角面；只有点云 OBJ 不能作为本体网格输入。
     if not vertices:
         raise ValueError(f"OBJ 没有顶点：{source}")
     if not faces:
