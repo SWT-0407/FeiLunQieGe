@@ -188,6 +188,7 @@ def _build_summary(
         "obj_contents": [
             "sampled root-line vertices and l line primitives",
             "feasible wheel-center vertices and p point primitives grouped by target point",
+            "outer-radius feasible-center arcs as l line primitives",
         ],
         "per_point": per_point,
         "limitations": [

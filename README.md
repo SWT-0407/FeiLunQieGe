@@ -56,10 +56,11 @@ FeiLunQieGe/
 python scripts/run_pipeline.py --config configs/default.json
 ```
 
-每次运行都会在 `results/run_YYYYMMDD_HHMMSS/` 下创建一个新的结果目录，不覆盖旧运行结果。输出写入以下四个文件：
+每次运行都会在 `results/run_YYYYMMDD_HHMMSS/` 下创建一个新的结果目录，不覆盖旧运行结果。输出写入以下五个文件：
 
 - `results/run_.../feasible_centers_overview.png`：带工件表面、根部线、目标点和可行中心的三维总览图；
 - `results/run_.../local_feasibility_explanation.png`：自动放大的局部法平面图，显示 `r`、`delta`、不可行候选、可行中心和可行圆弧；
+- `results/run_.../workpiece_orientation_guide.png`：同一工件的三维透视与 X-Z 正投影对照图，用于解释 T 形外观差异；
 - `results/run_.../feasible_centers.obj`：MeshLab 可直接打开的 OBJ 点/线文件，其中 `l` 是采样根部线或离散可行弧，`p` 是按目标点分组的可行砂轮中心；
 - `results/run_.../feasible_centers_summary.json`：参数、计数、角区间、输入和限制的审计摘要。
 

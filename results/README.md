@@ -4,6 +4,7 @@
 
 - `feasible_centers_overview.png`：三维总览图；
 - `local_feasibility_explanation.png`：单个代表性目标点的局部候选圆和可行弧解释图；
+- `workpiece_orientation_guide.png`：三维透视和 X-Z 正投影的工件视角对照图；
 - `feasible_centers.obj`：可由 MeshLab 直接打开的 OBJ，包含采样根部线（`l`）和可行中心点（`p`）；
 - `feasible_centers_summary.json`：参数与每个目标点的可行性统计。
 

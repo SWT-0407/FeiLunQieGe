@@ -13,6 +13,7 @@ matplotlib.use("Agg", force=True)
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.collections import PolyCollection
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
@@ -115,23 +116,32 @@ def plot_workpiece_orientation_guide(
     # 两个面板使用完全相同的网格和根部线，只改变相机角度。
     fig = plt.figure(figsize=(13, 6), dpi=150, layout="constrained")
     perspective = fig.add_subplot(121, projection="3d")
-    front = fig.add_subplot(122, projection="3d")
-    for axis in (perspective, front):
-        _add_workpiece_surface(axis, workpiece_mesh)
-        _plot_root_branches(axis, points, branch_ids, linewidth=2.4)
-        _set_equal_axes(axis, vertices)
-        axis.set_xlabel("X")
-        axis.set_ylabel("Y")
-        axis.set_zlabel("Z")
-        axis.set_proj_type("ortho")
+    front = fig.add_subplot(122)
+
+    # 左图是三维透视，右图把同一网格投影到 X-Z 平面，便于识别 T 形轮廓。
+    _add_workpiece_surface(perspective, workpiece_mesh)
+    _plot_root_branches(perspective, points, branch_ids, linewidth=2.4)
+    _set_equal_axes(perspective, vertices)
+    perspective.set_xlabel("X")
+    perspective.set_ylabel("Y")
+    perspective.set_zlabel("Z")
+    perspective.set_proj_type("ortho")
+
+    triangles_xz = vertices[np.asarray(workpiece_mesh.faces)][:, :, (0, 2)]
+    front.add_collection(PolyCollection(triangles_xz, facecolor="#B8BDC5", edgecolor="none", alpha=0.75))
+    _plot_root_projection(front, points, branch_ids)
+    front.set_xlim(vertices[:, 0].min(), vertices[:, 0].max())
+    front.set_ylim(vertices[:, 2].min(), vertices[:, 2].max())
+    front.set_aspect("equal")
+    front.set_xlabel("X (normalized units)")
+    front.set_ylabel("Z (normalized units)")
+    front.grid(True, linewidth=0.5, alpha=0.35)
 
     perspective.view_init(elev=22, azim=-62)
     perspective.set_title("[A] 3D perspective used by the overview")
     perspective.legend(loc="upper left", fontsize=8)
 
-    # elev=0, azim=0 沿 Y 方向观察，工件本体呈现熟悉的 T 形投影。
-    front.view_init(elev=0, azim=0)
-    front.set_title("[B] Front projection: the same workpiece appears T-shaped")
+    front.set_title("[B] X-Z front projection: same mesh, clearer T-like outline")
     front.legend(loc="upper left", fontsize=8)
     fig.suptitle("Same mesh, different camera direction (mesh_without_flash.obj)")
     _save_figure(fig, output)
@@ -254,6 +264,16 @@ def _plot_root_branches(axis: Any, points: np.ndarray, branch_ids: np.ndarray, *
         mask = branch_ids == branch_id
         label = "[2] flash root line" if int(branch_id) == int(unique_branches[0]) else None
         axis.plot(points[mask, 0], points[mask, 1], points[mask, 2], color="#0072B2", linewidth=linewidth, label=label)
+
+
+def _plot_root_projection(axis: Any, points: np.ndarray, branch_ids: np.ndarray) -> None:
+    """把根部线投影到 X-Z 平面，颜色与三维图保持一致。"""
+
+    unique_branches = np.unique(branch_ids)
+    for branch_id in unique_branches:
+        mask = branch_ids == branch_id
+        label = "[2] flash root line" if int(branch_id) == int(unique_branches[0]) else None
+        axis.plot(points[mask, 0], points[mask, 2], color="#0072B2", linewidth=2.4, label=label)
 
 
 def _draw_radius_band(axis: Any, radius: float, delta: float) -> None:
