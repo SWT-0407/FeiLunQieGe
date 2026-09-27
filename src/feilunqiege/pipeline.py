@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import json
+from datetime import datetime
 
 from feilunqiege.collision.checker import check_candidates
 from feilunqiege.geometry.curve import split_and_resample
@@ -14,7 +15,11 @@ from feilunqiege.io.mesh import load_mesh
 from feilunqiege.io.root_line import load_root_line
 from feilunqiege.tooling.grinding_wheel import generate_disk_candidates
 from feilunqiege.visualization.export_obj import export_feasible_centers_obj
-from feilunqiege.visualization.plot import plot_feasible_centers
+from feilunqiege.visualization.plot import (
+    plot_feasible_centers,
+    plot_local_feasibility_explanation,
+    plot_workpiece_orientation_guide,
+)
 
 
 def run_from_config(config_path: str | Path) -> Any:
@@ -51,7 +56,9 @@ def run_from_config(config_path: str | Path) -> Any:
 
     # 当前使用表面采样点的保守球形包络做快速碰撞筛选，结果必须标注为近似。
     collisions = check_candidates(candidates, workpiece, float(config["collision"]["clearance"]))
-    output_root = repo_root / config["outputs"]["directory"]
+    # 每次运行建立独立目录，避免用户正在 MeshLab/图片查看器中打开旧文件时
+    # Windows 锁住目标文件，也避免新的实验覆盖旧结果；旧目录绝不删除。
+    output_root = _create_run_output_root(repo_root / config["outputs"]["directory"])
 
     # 输出一张用于快速核验的三维总览图。
     image_path = output_root / config["outputs"]["overview_image"]
@@ -63,6 +70,20 @@ def run_from_config(config_path: str | Path) -> Any:
         delta=float(wheel["delta"]),
         workpiece_mesh=workpiece,
     )
+
+    # 局部解释图放大一个代表性目标点，专门展示 r、delta 和可行圆弧。
+    local_explanation_path = output_root / config["outputs"]["local_explanation_image"]
+    plot_local_feasibility_explanation(
+        sampled,
+        collisions,
+        local_explanation_path,
+        radius=candidates.radius,
+        delta=float(wheel["delta"]),
+    )
+
+    # 输出同一工件在透视视角和正视投影下的对照图，帮助理解 T 形外观差异。
+    orientation_path = output_root / config["outputs"]["orientation_guide_image"]
+    plot_workpiece_orientation_guide(sampled, workpiece, orientation_path)
 
     # 输出 MeshLab 可直接打开的 OBJ：l 是根部线，p 是可行砂轮中心点。
     obj_path = output_root / config["outputs"]["feasible_centers_obj"]
@@ -76,7 +97,19 @@ def run_from_config(config_path: str | Path) -> Any:
     )
 
     # 最后写入 JSON 审计摘要，记录参数、计数、输出文件和当前方法边界。
-    summary = _build_summary(config, root_line, sampled, candidates, collisions, image_path, obj_path)
+    summary = _build_summary(
+        config,
+        root_line,
+        sampled,
+        candidates,
+        collisions,
+        image_path,
+        local_explanation_path,
+        orientation_path,
+        obj_path,
+        output_root,
+        repo_root,
+    )
     summary_path = output_root / config["outputs"]["summary_json"]
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -90,7 +123,11 @@ def _build_summary(
     candidates: Any,
     collisions: Any,
     image_path: Path,
+    local_explanation_path: Path,
+    orientation_path: Path,
     obj_path: Path,
+    output_root: Path,
+    repo_root: Path,
 ) -> dict[str, Any]:
     """生成可审计的 JSON 摘要。"""
 
@@ -120,6 +157,8 @@ def _build_summary(
         )
     # 汇总全局计数，并保留 OBJ 顶点语义，避免把点云误解为砂轮实体。
     feasible_count = int(np.asarray(collisions.feasible).sum())
+    # 统一把输出路径写成相对仓库根目录的路径，便于复制摘要或跨机器查看。
+    relative_output_root = output_root.relative_to(repo_root)
     return {
         "status": "preliminary_geometry_run",
         "units": config["units"],
@@ -141,8 +180,11 @@ def _build_summary(
         "candidate_count": int(len(candidates.centers)),
         "feasible_candidate_count": feasible_count,
         "feasible_ratio": feasible_count / len(candidates.centers) if len(candidates.centers) else 0.0,
-        "overview_image": str(Path(config["outputs"]["directory"]) / image_path.name),
-        "feasible_centers_obj": str(Path(config["outputs"]["directory"]) / obj_path.name),
+        "output_directory": str(relative_output_root),
+        "overview_image": str(relative_output_root / image_path.name),
+        "local_explanation_image": str(relative_output_root / local_explanation_path.name),
+        "orientation_guide_image": str(relative_output_root / orientation_path.name),
+        "feasible_centers_obj": str(relative_output_root / obj_path.name),
         "obj_contents": [
             "sampled root-line vertices and l line primitives",
             "feasible wheel-center vertices and p point primitives grouped by target point",
@@ -154,6 +196,20 @@ def _build_summary(
             "结果使用 normalized units，不能直接解释为毫米加工公差。",
         ],
     }
+
+
+def _create_run_output_root(base_root: Path) -> Path:
+    """创建不覆盖旧结果的时间戳目录；同秒重复运行时追加序号。"""
+
+    base_root.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("run_%Y%m%d_%H%M%S")
+    candidate = base_root / stamp
+    suffix = 1
+    while candidate.exists():
+        candidate = base_root / f"{stamp}_{suffix:02d}"
+        suffix += 1
+    candidate.mkdir(parents=True)
+    return candidate
 
 
 def _angle_intervals(mask: Any) -> list[list[float]]:

@@ -42,19 +42,25 @@ def export_feasible_centers_obj(
         raise ValueError("CollisionResult 缺少 candidates，无法导出可行中心")
     centers = np.asarray(candidates.centers, dtype=float)
     point_indices = np.asarray(candidates.point_indices, dtype=np.int64)
+    angles = np.asarray(candidates.angles, dtype=float)
+    radial_values = np.asarray(candidates.radial_values, dtype=float)
     if len(centers) != len(feasible) or len(centers) != len(point_indices):
         raise ValueError("候选中心、可行性标记和目标点索引长度不一致")
+    if len(centers) != len(angles) or len(centers) != len(radial_values):
+        raise ValueError("候选中心、角度和径向距离长度不一致")
     if len(branch_ids) != len(curve_points):
         raise ValueError("根部线点和分支编号长度不一致")
 
     # 先按目标点收集可行中心的 OBJ 全局编号，随后再写 p 原语。
     feasible_indices = np.flatnonzero(feasible)
     point_to_obj_indices: dict[int, list[int]] = {}
+    candidate_to_obj_index = np.full(len(centers), -1, dtype=np.int64)
     first_center_index = len(curve_points) + 1
     for local_index, candidate_index in enumerate(feasible_indices):
         point_index = int(point_indices[candidate_index])
         obj_index = first_center_index + local_index
         point_to_obj_indices.setdefault(point_index, []).append(obj_index)
+        candidate_to_obj_index[candidate_index] = obj_index
 
     # 使用流式文本写入，避免额外复制几十万级候选数组。
     with output.open("w", encoding="utf-8", newline="\n") as handle:
@@ -85,6 +91,26 @@ def export_feasible_centers_obj(
             handle.write(f"g feasible_centers_point_{point_index:06d}\n")
             indices = point_to_obj_indices[point_index]
             handle.write("p " + " ".join(str(index) for index in indices) + "\n")
+
+        # 额外写出 rho=r 外圈的相邻可行中心连线，避免 MeshLab 默认不显示 p 点时
+        # 只能看见根部线；这些 l 线段是“可行圆弧”的离散化，并非砂轮实体边界。
+        handle.write("o feasible_center_arcs\n")
+        handle.write("g feasible_center_arcs\n")
+        for point_index in range(len(curve_points)):
+            local = np.flatnonzero((point_indices == point_index) & np.isclose(radial_values, radius))
+            if len(local) < 2:
+                continue
+            local = local[np.argsort(angles[local])]
+            angle_step = 2.0 * np.pi / max(len(local), 1)
+            for local_index, current in enumerate(local):
+                following = local[(local_index + 1) % len(local)]
+                angle_gap = (angles[following] - angles[current]) % (2.0 * np.pi)
+                if angle_gap > angle_step * 1.1:
+                    continue
+                first = int(candidate_to_obj_index[current])
+                second = int(candidate_to_obj_index[following])
+                if first > 0 and second > 0:
+                    handle.write(f"l {first} {second}\n")
 
     return output
 

@@ -48,20 +48,20 @@ def test_obj_export_contains_root_line_and_feasible_points() -> None:
         point_count=0,
     )
     candidates = CandidateSet(
-        contact_points=np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-        centers=np.array([[0.0, 1.0, 0.0], [1.0, 1.0, 0.0]]),
-        radius_directions=np.array([[0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]),
-        tangent_directions=np.array([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-        axis_directions=np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]]),
-        point_indices=np.array([0, 1], dtype=np.int64),
-        radial_values=np.array([1.0, 1.0]),
-        angles=np.array([0.0, 0.0]),
+        contact_points=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        centers=np.array([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, 0.0]]),
+        radius_directions=np.array([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]),
+        tangent_directions=np.array([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        axis_directions=np.array([[0.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]]),
+        point_indices=np.array([0, 0, 1], dtype=np.int64),
+        radial_values=np.array([1.0, 1.0, 1.0]),
+        angles=np.array([0.0, np.pi / 2.0, 0.0]),
         radius=1.0,
     )
     decisions = CollisionResult(
-        feasible=np.array([True, False]),
-        nearest_distance=np.array([2.0, 0.5]),
-        clearance=np.array([1.0, -0.5]),
+        feasible=np.array([True, True, False]),
+        nearest_distance=np.array([2.0, 2.0, 0.5]),
+        clearance=np.array([1.0, 1.0, -0.5]),
         method="test",
         candidates=candidates,
     )
@@ -77,4 +77,6 @@ def test_obj_export_contains_root_line_and_feasible_points() -> None:
     text = output.read_text(encoding="utf-8")
     assert "g root_line" in text
     assert "l 1 2" in text
-    assert "p 3" in text
+    assert "p 3 4" in text
+    assert "g feasible_center_arcs" in text
+    assert "l 3 4" in text

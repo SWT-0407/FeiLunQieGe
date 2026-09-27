@@ -36,7 +36,10 @@ def main() -> int:
     print(f"status=completed case={summary['case_name']}")
     print(f"candidate_count={summary['candidate_count']}")
     print(f"feasible_candidate_count={summary['feasible_candidate_count']}")
+    print(f"output_directory={summary['output_directory']}")
     print(f"overview_image={summary['overview_image']}")
+    print(f"local_explanation_image={summary['local_explanation_image']}")
+    print(f"orientation_guide_image={summary['orientation_guide_image']}")
     print(f"feasible_centers_obj={summary['feasible_centers_obj']}")
     return 0
 

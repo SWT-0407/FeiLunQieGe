@@ -27,6 +27,8 @@
   "outputs": {
     "directory": "results",
     "overview_image": "feasible_centers_overview.png",
+    "local_explanation_image": "local_feasibility_explanation.png",
+    "orientation_guide_image": "workpiece_orientation_guide.png",
     "summary_json": "feasible_centers_summary.json",
     "feasible_centers_obj": "feasible_centers.obj"
   }
