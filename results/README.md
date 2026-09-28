@@ -10,4 +10,6 @@
 
 另外，`feasible_centers_display.obj` 是带红色三角面标记的全局显示代理，`local_feasible_centers.obj` 是便于 Fit View 的局部放大显示；同目录的 `.mtl` 文件提供颜色。精确点线数据仍以 `feasible_centers.obj` 为准。
 
+`interactive_demo.html` 是少量采样点的离线点击演示：点击左侧橙色根部采样点，右侧显示该点的局部放大法平面。它只用于交互验收，不替代精确 OBJ 或 JSON。
+
 这些文件来自 `configs/default.json` 指定的外部案例和归一化参数。OBJ 中的点是候选砂轮中心，不是带厚度的砂轮实体；OBJ 还包含外圈可行中心之间的 `l` 线段，方便 MeshLab 默认显示。PNG/OBJ/JSON 均需结合输入、参数和人工检查解释。临时文件必须放入 `__cache__` 或 `__pycache__`。

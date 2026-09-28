@@ -12,6 +12,7 @@ from feilunqiege.visualization.export_obj import (
     export_feasible_centers_obj,
     export_local_feasible_centers_obj,
 )
+from feilunqiege.visualization.interactive import export_interactive_demo_html
 
 
 def test_candidate_radius_direction_is_orthogonal_to_tangent() -> None:
@@ -126,3 +127,41 @@ def test_display_and_local_obj_exports_contain_visible_faces() -> None:
     assert "f " in display_text
     assert "o feasible_candidates" in local_text
     assert "o rejected_candidates" in local_text
+
+
+def test_interactive_demo_contains_selected_points_and_local_script() -> None:
+    """交互演示应包含少量点数据，并保留点击后重绘局部图的脚本。"""
+
+    sampled = split_and_resample(
+        RootLineData(
+            vertices=np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+            edges=np.array([[0, 1]], dtype=np.int64),
+        ),
+        point_count=0,
+    )
+    candidates = CandidateSet(
+        contact_points=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        centers=np.array([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, 0.0]]),
+        radius_directions=np.array([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]),
+        tangent_directions=np.array([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        axis_directions=np.array([[0.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]]),
+        point_indices=np.array([0, 0, 1], dtype=np.int64),
+        radial_values=np.array([1.0, 1.0, 1.0]),
+        angles=np.array([0.0, np.pi / 2.0, 0.0]),
+        radius=1.0,
+    )
+    decisions = CollisionResult(
+        feasible=np.array([True, True, False]),
+        nearest_distance=np.array([2.0, 2.0, 0.5]),
+        clearance=np.array([1.0, 1.0, -0.5]),
+        method="test",
+        candidates=candidates,
+    )
+    output = export_interactive_demo_html(
+        sampled, decisions, "__cache__/test_interactive_demo.html", radius=1.0, delta=0.1, max_demo_points=2
+    )
+    html = output.read_text(encoding="utf-8")
+    assert "砂轮可行中心交互演示" in html
+    assert "selectPoint" in html
+    assert "selected_points" in html
+    assert "${point.index}" in html

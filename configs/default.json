@@ -19,6 +19,9 @@
     "candidate_angles": 180,
     "radial_samples": 3
   },
+  "interactive_demo": {
+    "max_points": 8
+  },
   "collision": {
     "clearance": 0.0,
     "allow_target_contact": true,
@@ -32,6 +35,7 @@
     "summary_json": "feasible_centers_summary.json",
     "feasible_centers_obj": "feasible_centers.obj",
     "feasible_centers_display_obj": "feasible_centers_display.obj",
-    "local_feasible_centers_obj": "local_feasible_centers.obj"
+    "local_feasible_centers_obj": "local_feasible_centers.obj",
+    "interactive_demo_html": "interactive_demo.html"
   }
 }

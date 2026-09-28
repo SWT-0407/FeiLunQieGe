@@ -102,4 +102,6 @@ git push origin main
 
 每次运行还会生成两个专门用于查看的 OBJ：`feasible_centers_display.obj` 把均匀抽样的可行中心绘制成红色八面体面片，`local_feasible_centers.obj` 只保留一个代表性目标点及其局部候选（红色为可行、灰色为不可行、黑色为目标点）。八面体是显示代理，不是砂轮实体；精确数据仍以 `feasible_centers.obj` 为准。
 
+同时会生成 `interactive_demo.html`。当前仅选取少量代表性采样点：点击左侧根部线投影中的橙色点，右侧会自动放大并显示该点的候选半径区域、可行/不可行中心和外半径可行弧。该页面可直接双击离线打开；当前点击位置对应最近的离散采样点，不是连续曲线上的重新计算点。
+
 建议先单独打开 `local_feasible_centers.obj`，再使用 MeshLab 的 Fit View；查看全局关系时打开 `feasible_centers_display.obj`。如果双指缩放后线段消失，先 Fit View，再调整 Near/Far clipping；底部的 `Clipping Near/Far` 是视图裁剪状态，不代表 OBJ 数据被删除。

@@ -25,4 +25,5 @@ results/*.png
 results/*.json
 results/*.obj
 results/*.mtl
+results/*.html
 results/run_*/

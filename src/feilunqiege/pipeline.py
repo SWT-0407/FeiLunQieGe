@@ -19,6 +19,7 @@ from feilunqiege.visualization.export_obj import (
     export_feasible_centers_obj,
     export_local_feasible_centers_obj,
 )
+from feilunqiege.visualization.interactive import export_interactive_demo_html
 from feilunqiege.visualization.plot import (
     plot_feasible_centers,
     plot_local_feasibility_explanation,
@@ -122,6 +123,18 @@ def run_from_config(config_path: str | Path) -> Any:
         units=str(config["units"]),
     )
 
+    # 生成少量采样点可点击的离线 HTML，先用于人工验收交互方式。
+    interactive_demo_path = output_root / config["outputs"]["interactive_demo_html"]
+    export_interactive_demo_html(
+        sampled,
+        collisions,
+        interactive_demo_path,
+        radius=candidates.radius,
+        delta=float(wheel["delta"]),
+        units=str(config["units"]),
+        max_demo_points=int(config["interactive_demo"]["max_points"]),
+    )
+
     # 最后写入 JSON 审计摘要，记录参数、计数、输出文件和当前方法边界。
     summary = _build_summary(
         config,
@@ -135,6 +148,7 @@ def run_from_config(config_path: str | Path) -> Any:
         obj_path,
         display_obj_path,
         local_obj_path,
+        interactive_demo_path,
         output_root,
         repo_root,
     )
@@ -156,6 +170,7 @@ def _build_summary(
     obj_path: Path,
     display_obj_path: Path,
     local_obj_path: Path,
+    interactive_demo_path: Path,
     output_root: Path,
     repo_root: Path,
 ) -> dict[str, Any]:
@@ -217,6 +232,7 @@ def _build_summary(
         "feasible_centers_obj": str(relative_output_root / obj_path.name),
         "feasible_centers_display_obj": str(relative_output_root / display_obj_path.name),
         "local_feasible_centers_obj": str(relative_output_root / local_obj_path.name),
+        "interactive_demo_html": str(relative_output_root / interactive_demo_path.name),
         "obj_contents": [
             "sampled root-line vertices and l line primitives",
             "feasible wheel-center vertices and p point primitives grouped by target point",
