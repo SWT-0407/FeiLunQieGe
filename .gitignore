@@ -24,4 +24,5 @@ results/generated/
 results/*.png
 results/*.json
 results/*.obj
+results/*.mtl
 results/run_*/

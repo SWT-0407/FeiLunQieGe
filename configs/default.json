@@ -30,6 +30,8 @@
     "local_explanation_image": "local_feasibility_explanation.png",
     "orientation_guide_image": "workpiece_orientation_guide.png",
     "summary_json": "feasible_centers_summary.json",
-    "feasible_centers_obj": "feasible_centers.obj"
+    "feasible_centers_obj": "feasible_centers.obj",
+    "feasible_centers_display_obj": "feasible_centers_display.obj",
+    "local_feasible_centers_obj": "local_feasible_centers.obj"
   }
 }

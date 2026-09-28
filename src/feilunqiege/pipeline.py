@@ -14,7 +14,11 @@ from feilunqiege.geometry.frame import build_frames
 from feilunqiege.io.mesh import load_mesh
 from feilunqiege.io.root_line import load_root_line
 from feilunqiege.tooling.grinding_wheel import generate_disk_candidates
-from feilunqiege.visualization.export_obj import export_feasible_centers_obj
+from feilunqiege.visualization.export_obj import (
+    export_feasible_centers_display_obj,
+    export_feasible_centers_obj,
+    export_local_feasible_centers_obj,
+)
 from feilunqiege.visualization.plot import (
     plot_feasible_centers,
     plot_local_feasibility_explanation,
@@ -96,6 +100,28 @@ def run_from_config(config_path: str | Path) -> Any:
         units=str(config["units"]),
     )
 
+    # 额外导出带三角标记的全局显示代理，避免 MeshLab 中 p 点过小而难以辨认。
+    display_obj_path = output_root / config["outputs"]["feasible_centers_display_obj"]
+    export_feasible_centers_display_obj(
+        sampled,
+        collisions,
+        display_obj_path,
+        radius=candidates.radius,
+        delta=float(wheel["delta"]),
+        units=str(config["units"]),
+    )
+
+    # 额外导出单个目标点的局部 OBJ；单独打开后 Fit View 即可查看放大结果。
+    local_obj_path = output_root / config["outputs"]["local_feasible_centers_obj"]
+    export_local_feasible_centers_obj(
+        sampled,
+        collisions,
+        local_obj_path,
+        radius=candidates.radius,
+        delta=float(wheel["delta"]),
+        units=str(config["units"]),
+    )
+
     # 最后写入 JSON 审计摘要，记录参数、计数、输出文件和当前方法边界。
     summary = _build_summary(
         config,
@@ -107,6 +133,8 @@ def run_from_config(config_path: str | Path) -> Any:
         local_explanation_path,
         orientation_path,
         obj_path,
+        display_obj_path,
+        local_obj_path,
         output_root,
         repo_root,
     )
@@ -126,6 +154,8 @@ def _build_summary(
     local_explanation_path: Path,
     orientation_path: Path,
     obj_path: Path,
+    display_obj_path: Path,
+    local_obj_path: Path,
     output_root: Path,
     repo_root: Path,
 ) -> dict[str, Any]:
@@ -185,10 +215,14 @@ def _build_summary(
         "local_explanation_image": str(relative_output_root / local_explanation_path.name),
         "orientation_guide_image": str(relative_output_root / orientation_path.name),
         "feasible_centers_obj": str(relative_output_root / obj_path.name),
+        "feasible_centers_display_obj": str(relative_output_root / display_obj_path.name),
+        "local_feasible_centers_obj": str(relative_output_root / local_obj_path.name),
         "obj_contents": [
             "sampled root-line vertices and l line primitives",
             "feasible wheel-center vertices and p point primitives grouped by target point",
             "outer-radius feasible-center arcs as l line primitives",
+            "display OBJ: sampled feasible centers as red octahedron face proxies",
+            "local OBJ: one target point with feasible red and rejected gray face proxies",
         ],
         "per_point": per_point,
         "limitations": [

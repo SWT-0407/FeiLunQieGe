@@ -97,3 +97,9 @@ git push origin main
 ```
 
 禁止提交大体积原始模型、临时缓存、虚拟环境和未审查的科研结果。每次算法、依赖、输入或参数发生变化，都要重新检查受影响的图和数据，并在提交说明中记录。
+
+## MeshLab 放大与可行中心显示
+
+每次运行还会生成两个专门用于查看的 OBJ：`feasible_centers_display.obj` 把均匀抽样的可行中心绘制成红色八面体面片，`local_feasible_centers.obj` 只保留一个代表性目标点及其局部候选（红色为可行、灰色为不可行、黑色为目标点）。八面体是显示代理，不是砂轮实体；精确数据仍以 `feasible_centers.obj` 为准。
+
+建议先单独打开 `local_feasible_centers.obj`，再使用 MeshLab 的 Fit View；查看全局关系时打开 `feasible_centers_display.obj`。如果双指缩放后线段消失，先 Fit View，再调整 Near/Far clipping；底部的 `Clipping Near/Far` 是视图裁剪状态，不代表 OBJ 数据被删除。
