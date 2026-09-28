@@ -20,7 +20,7 @@
     "radial_samples": 3
   },
   "interactive_demo": {
-    "max_points": 8
+    "max_points": 0
   },
   "collision": {
     "clearance": 0.0,
@@ -28,7 +28,7 @@
     "check_flash_mesh": false
   },
   "outputs": {
-    "directory": "results",
+    "directory": "results/cases",
     "overview_image": "feasible_centers_overview.png",
     "local_explanation_image": "local_feasibility_explanation.png",
     "orientation_guide_image": "workpiece_orientation_guide.png",

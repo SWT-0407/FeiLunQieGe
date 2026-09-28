@@ -21,7 +21,7 @@ def export_interactive_demo_html(
     radius: float,
     delta: float,
     units: str = "normalized",
-    max_demo_points: int = 8,
+    max_demo_points: int = 0,
 ) -> Path:
     """导出少量可点击采样点的离线 HTML。
 
@@ -30,8 +30,8 @@ def export_interactive_demo_html(
     所有局部坐标都由 Python 计算结果提供，网页只负责显示和交互。
     """
 
-    if max_demo_points < 1:
-        raise ValueError("max_demo_points 必须至少为 1")
+    if max_demo_points < 0:
+        raise ValueError("max_demo_points 不能为负数")
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -47,6 +47,9 @@ def export_interactive_demo_html(
     radial_values = np.asarray(candidates.radial_values, dtype=float)
     angles = np.asarray(candidates.angles, dtype=float)
     clearance = np.asarray(decisions.clearance, dtype=float)
+    # 所有目标点共享同一组 rho/theta 网格，页面只保存一份，避免全点模式重复膨胀。
+    candidate_rho = np.unique(radial_values)
+    candidate_theta = np.unique(angles)
 
     # 均匀选取少量点，并优先保留一个可行率接近 50% 的解释点。
     selected_indices = _choose_demo_points(point_indices, feasible, len(points), max_demo_points)
@@ -56,13 +59,13 @@ def export_interactive_demo_html(
         point_payload.append(
             {
                 "index": int(point_index),
+                "branch_id": int(branch_ids[point_index]),
                 "position": [float(value) for value in points[point_index]],
                 "arc_length": float(arc_lengths[point_index]),
                 "candidates": {
-                    "rho": [float(value) for value in radial_values[mask]],
-                    "theta": [float(value) for value in angles[mask]],
-                    "feasible": [bool(value) for value in feasible[mask]],
-                    "clearance": [float(value) for value in clearance[mask]],
+                    # 按生成顺序压缩成 0/1 字符串，1 表示可行，0 表示不可行。
+                    "feasible": "".join("1" if value else "0" for value in feasible[mask]),
+                    "minimum_clearance": float(clearance[mask].min()) if mask.any() else None,
                 },
             }
         )
@@ -72,6 +75,8 @@ def export_interactive_demo_html(
         "units": units,
         "radius": float(radius),
         "delta": float(delta),
+        "candidate_rho": [float(value) for value in candidate_rho],
+        "candidate_theta": [float(value) for value in candidate_theta],
         "root_line_xz": [[float(point[0]), float(point[2])] for point in points],
         "root_line_branch_ids": [int(value) for value in branch_ids],
         "selected_points": point_payload,
@@ -90,7 +95,7 @@ def _choose_demo_points(
     """均匀抽样并加入一个部分可行点，确保演示同时展示红灰两类候选。"""
 
     available = np.arange(point_count, dtype=np.int64)
-    if point_count <= limit:
+    if limit <= 0 or point_count <= limit:
         return available
 
     # 先从各位置均匀选点，避免演示只集中在根部线的一小段。
@@ -137,8 +142,8 @@ def _render_html(payload: dict[str, Any]) -> str:
     svg {{ width: 100%; height: auto; display: block; background: #ffffff; }}
     .axis {{ stroke: #94a3b8; stroke-width: 1; }}
     .root-line {{ fill: none; stroke: #2563eb; stroke-width: 2.2; }}
-    .demo-point {{ fill: #f97316; stroke: #7c2d12; stroke-width: 1.5; cursor: pointer; }}
-    .demo-point.selected {{ fill: #dc2626; stroke: #111827; stroke-width: 2.5; }}
+    .root-point {{ fill: #f97316; opacity: 0.48; stroke: #9a3412; stroke-width: 0.7; pointer-events: none; }}
+    .root-point.selected {{ fill: #dc2626; opacity: 1; stroke: #111827; stroke-width: 2.5; }}
     .candidate-feasible {{ fill: #dc2626; }}
     .candidate-rejected {{ stroke: #6b7280; stroke-width: 1.1; }}
     .band-outer {{ fill: none; stroke: #111827; stroke-width: 1.5; }}
@@ -154,13 +159,13 @@ def _render_html(payload: dict[str, Any]) -> str:
 </head>
 <body>
   <h1>砂轮可行中心交互演示</h1>
-  <p class="subtitle">本页只导出少量代表性采样点。单位：<span id="units"></span>。红色候选为可行中心，灰色候选为碰撞筛除中心。</p>
+  <p class="subtitle">根部线上的离散采样点均可点击。单位：<span id="units"></span>。红色候选为可行中心，灰色候选为碰撞筛除中心。</p>
   <div class="layout">
     <section class="panel">
       <h2>根部线投影：点击橙色采样点</h2>
       <svg id="rootSvg" viewBox="0 0 640 420" role="img" aria-label="根部线 X-Z 投影和可点击采样点"></svg>
       <div id="pointButtons" class="point-list" aria-label="采样点选择"></div>
-      <div class="legend">蓝线：root_line；橙色点：本次演示可点击的采样点；红色点：当前选中点。</div>
+      <div class="legend">蓝线：root_line；橙色点：可点击采样点；红色点：当前选中点。编号从 0 开始，按分支顺序拼接。</div>
     </section>
     <section class="panel">
       <h2>当前点的局部法平面放大图</h2>
@@ -213,17 +218,41 @@ def _render_html(payload: dict[str, Any]) -> str:
         run.push(point);
       }});
       flush();
-      DATA.selected_points.forEach((point, i) => {{
-        const [x, z] = point.position;
-        const circle = svg("circle", {{cx:scale(x, xDomain, left, right), cy:scale(z, zDomain, bottom, top), r: i === selected ? 8 : 6, class:"demo-point" + (i === selected ? " selected" : "")}});
+      // selected_points 可以包含全部采样点；通过索引表把根部线上的每个点连接到局部数据。
+      const pointLookup = new Map(DATA.selected_points.map((point, i) => [point.index, i]));
+      // 点很密集时不让后绘制的圆遮挡前面的圆，而是按鼠标位置选择最近采样点。
+      root.onclick = event => {{
+        const rect = root.getBoundingClientRect();
+        const px = (event.clientX - rect.left) * 640 / rect.width;
+        const py = (event.clientY - rect.top) * 420 / rect.height;
+        let nearest = -1, nearestDistance = Infinity;
+        DATA.root_line_xz.forEach((point, pointIndex) => {{
+          const screenX = scale(point[0], xDomain, left, right);
+          const screenY = scale(point[1], zDomain, bottom, top);
+          const distance = Math.hypot(screenX - px, screenY - py);
+          if (distance < nearestDistance) {{ nearestDistance = distance; nearest = pointIndex; }}
+        }});
+        const selectionIndex = pointLookup.get(nearest);
+        if (selectionIndex !== undefined && nearestDistance <= 24) selectPoint(selectionIndex);
+      }};
+      DATA.root_line_xz.forEach((point, pointIndex) => {{
+        const selectionIndex = pointLookup.get(pointIndex);
+        const isSelected = selectionIndex === selected;
+        const [x, z] = point;
+        const circle = svg("circle", {{cx:scale(x, xDomain, left, right), cy:scale(z, zDomain, bottom, top), r: isSelected ? 8 : 3.5, class:"root-point" + (isSelected ? " selected" : "")}});
         circle.setAttribute("tabindex", "0");
-        circle.setAttribute("aria-label", "采样点 " + point.index);
-        circle.addEventListener("click", () => selectPoint(i));
-        circle.addEventListener("keydown", event => {{ if (event.key === "Enter" || event.key === " ") selectPoint(i); }});
+        circle.setAttribute("aria-label", "采样点 " + pointIndex);
+        if (selectionIndex !== undefined) {{
+          circle.addEventListener("click", () => selectPoint(selectionIndex));
+          circle.addEventListener("keydown", event => {{ if (event.key === "Enter" || event.key === " ") selectPoint(selectionIndex); }});
+        }}
         root.appendChild(circle);
-        const label = svg("text", {{x:scale(x, xDomain, left, right) + 8, y:scale(z, zDomain, bottom, top) - 8, "font-size":"12", fill:"#7c2d12"}});
-        label.textContent = String(point.index);
-        root.appendChild(label);
+        // 只给当前选中点写文字，避免所有编号重叠；完整编号仍可由下拉框选择。
+        if (isSelected) {{
+          const label = svg("text", {{x:scale(x, xDomain, left, right) + 8, y:scale(z, zDomain, bottom, top) - 8, "font-size":"12", fill:"#7c2d12"}});
+          label.textContent = String(pointIndex);
+          root.appendChild(label);
+        }}
       }});
       const xlabel = svg("text", {{x:300, y:405, "font-size":"12", fill:"#334155"}}); xlabel.textContent = "X (normalized units)"; root.appendChild(xlabel);
       const zlabel = svg("text", {{x:12, y:205, "font-size":"12", fill:"#334155", transform:"rotate(-90 12 205)"}}); zlabel.textContent = "Z (normalized units)"; root.appendChild(zlabel);
@@ -255,11 +284,17 @@ def _render_html(payload: dict[str, Any]) -> str:
       circle(DATA.radius, "band-outer");
       circle(DATA.radius - DATA.delta, "band-inner");
       const outer = [];
-      for (let i = 0; i < local.rho.length; i++) {{
-        const x = local.rho[i] * Math.cos(local.theta[i]);
-        const y = local.rho[i] * Math.sin(local.theta[i]);
-        if (Math.abs(local.rho[i] - DATA.radius) < 1e-10 && local.feasible[i]) outer.push([x, y, local.theta[i]]);
-        if (local.feasible[i]) root.appendChild(svg("circle", {{cx:sx(x), cy:sy(y), r:3.2, class:"candidate-feasible"}}));
+      const angleCount = DATA.candidate_theta.length;
+      const candidateCount = DATA.candidate_rho.length * angleCount;
+      for (let i = 0; i < candidateCount; i++) {{
+        // 候选生成顺序是 rho 外层、theta 内层，因此可由两个公共数组还原坐标。
+        const rho = DATA.candidate_rho[Math.floor(i / angleCount)];
+        const theta = DATA.candidate_theta[i % angleCount];
+        const isFeasible = local.feasible[i] === "1";
+        const x = rho * Math.cos(theta);
+        const y = rho * Math.sin(theta);
+        if (Math.abs(rho - DATA.radius) < 1e-10 && isFeasible) outer.push([x, y, theta]);
+        if (isFeasible) root.appendChild(svg("circle", {{cx:sx(x), cy:sy(y), r:3.2, class:"candidate-feasible"}}));
         else {{
           root.appendChild(svg("line", {{x1:sx(x)-3, y1:sy(y)-3, x2:sx(x)+3, y2:sy(y)+3, class:"candidate-rejected"}}));
           root.appendChild(svg("line", {{x1:sx(x)-3, y1:sy(y)+3, x2:sx(x)+3, y2:sy(y)-3, class:"candidate-rejected"}}));
@@ -274,20 +309,40 @@ def _render_html(payload: dict[str, Any]) -> str:
       }});
       root.appendChild(svg("circle", {{cx:sx(0), cy:sy(0), r:6, fill:"#111827"}}));
       const details = document.getElementById("details");
-      const feasibleCount = local.feasible.filter(Boolean).length;
-      const minimum = Math.min(...local.clearance);
-      details.textContent = `采样点 ${{point.index}}；弧长位置 ${{point.arc_length.toFixed(5)}}；可行候选 ${{feasibleCount}}/${{local.feasible.length}}；最小候选余量 ${{minimum.toFixed(6)}} ${{DATA.units}}`;
+      const feasibleCount = [...local.feasible].filter(value => value === "1").length;
+      const minimum = local.minimum_clearance;
+      details.textContent = `采样点 ${{point.index}}；分支 ${{point.branch_id}}；弧长位置 ${{point.arc_length.toFixed(5)}}；可行候选 ${{feasibleCount}}/${{local.feasible.length}}；最小候选余量 ${{minimum.toFixed(6)}} ${{DATA.units}}`;
     }}
 
     function selectPoint(index) {{
       selected = index;
       document.querySelectorAll("#pointButtons button").forEach((button, i) => button.setAttribute("aria-pressed", String(i === selected)));
+      const selector = document.getElementById("pointSelector");
+      if (selector) selector.value = String(selected);
       drawRoot();
       drawLocal();
     }}
 
     function buildPointButtons() {{
       const container = document.getElementById("pointButtons");
+      // 全部点模式使用下拉框作为键盘辅助入口；根部线上的圆点仍可直接点击。
+      if (DATA.selected_points.length > 40) {{
+        const label = document.createElement("label");
+        label.textContent = "选择采样点编号：";
+        const selector = document.createElement("select");
+        selector.id = "pointSelector";
+        selector.setAttribute("aria-label", "选择采样点编号");
+        DATA.selected_points.forEach((point, i) => {{
+          const option = document.createElement("option");
+          option.value = String(i);
+          option.textContent = `点 ${{point.index}}（分支 ${{point.branch_id}}）`;
+          selector.appendChild(option);
+        }});
+        selector.addEventListener("change", () => selectPoint(Number(selector.value)));
+        label.appendChild(selector);
+        container.appendChild(label);
+        return;
+      }}
       DATA.selected_points.forEach((point, i) => {{
         const button = document.createElement("button");
         button.type = "button";

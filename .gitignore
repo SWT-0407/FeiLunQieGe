@@ -27,3 +27,4 @@ results/*.obj
 results/*.mtl
 results/*.html
 results/run_*/
+results/cases/*/run_*/

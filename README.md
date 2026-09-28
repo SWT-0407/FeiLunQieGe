@@ -30,7 +30,8 @@
 FeiLunQieGe/
 ├─ configs/
 │  └─ default.json                  # 初版参数和外部数据目录配置
-├─ results/                         # 正式结果目录；保存本地运行结果，不默认提交生成图
+├─ results/
+│  └─ cases/                         # 按 12 个工件案例分目录保存独立运行结果
 ├─ scripts/
 │  └─ run_pipeline.py               # 最小闭环命令行入口
 ├─ src/feilunqiege/
@@ -56,13 +57,14 @@ FeiLunQieGe/
 python scripts/run_pipeline.py --config configs/default.json
 ```
 
-每次运行都会在 `results/run_YYYYMMDD_HHMMSS/` 下创建一个新的结果目录，不覆盖旧运行结果。输出写入以下五个文件：
+每次运行都会在 `results/cases/<case_name>/run_YYYYMMDD_HHMMSS/` 下创建一个新的结果目录，不覆盖旧运行结果。输出写入以下文件：
 
 - `results/run_.../feasible_centers_overview.png`：带工件表面、根部线、目标点和可行中心的三维总览图；
 - `results/run_.../local_feasibility_explanation.png`：自动放大的局部法平面图，显示 `r`、`delta`、不可行候选、可行中心和可行圆弧；
 - `results/run_.../workpiece_orientation_guide.png`：同一工件的三维透视与 X-Z 正投影对照图，用于解释 T 形外观差异；
 - `results/run_.../feasible_centers.obj`：MeshLab 可直接打开的 OBJ 点/线文件，其中 `l` 是采样根部线或离散可行弧，`p` 是按目标点分组的可行砂轮中心；
-- `results/run_.../feasible_centers_summary.json`：参数、计数、角区间、输入和限制的审计摘要。
+- `results/cases/<case_name>/run_.../feasible_centers_summary.json`：参数、计数、角区间、输入和限制的审计摘要；
+- `results/cases/<case_name>/run_.../interactive_demo.html`：全部离散采样点可点击的离线交互页面。
 
 OBJ 文件使用 normalized units，不是砂轮实体网格，也不代表厚度碰撞结果。文件中除了 `p` 点以外，还会把外圈相邻可行中心写成 `l` 线段，因此 MeshLab 即使没有打开顶点显示，也能看到可行圆弧。若要查看密集的中心点，选中图层后在右侧渲染面板把 `Vert` 从 `None` 改成点显示并适当增大点尺寸。若只想查看工件本体，仍应单独打开外部的 `mesh_without_flash.obj`。当前碰撞筛选方法是工件表面采样点的近似球形包络，可能误判可行；结果摘要会明确记录这一限制。
 
@@ -102,6 +104,10 @@ git push origin main
 
 每次运行还会生成两个专门用于查看的 OBJ：`feasible_centers_display.obj` 把均匀抽样的可行中心绘制成红色八面体面片，`local_feasible_centers.obj` 只保留一个代表性目标点及其局部候选（红色为可行、灰色为不可行、黑色为目标点）。八面体是显示代理，不是砂轮实体；精确数据仍以 `feasible_centers.obj` 为准。
 
-同时会生成 `interactive_demo.html`。当前仅选取少量代表性采样点：点击左侧根部线投影中的橙色点，右侧会自动放大并显示该点的候选半径区域、可行/不可行中心和外半径可行弧。该页面可直接双击离线打开；当前点击位置对应最近的离散采样点，不是连续曲线上的重新计算点。
+同时会生成 `interactive_demo.html`。当前配置导出全部离散采样点：点击左侧根部线投影中的橙色点，右侧会自动放大并显示该点的候选半径区域、可行/不可行中心和外半径可行弧。该页面可直接双击离线打开；当前点击位置对应离散采样点，不是连续曲线上的重新计算点。若将 `interactive_demo.max_points` 设置为正数，则可退回少量演示点模式；设置为 `0` 表示全部点。
+
+### 采样点编号规则
+
+点编号是程序内部的全局离散索引，从 `0` 开始。程序先根据 `root_line.ply` 的 edge 连通关系拆分分支，再在每个分支内沿连接顺序排列点；最终按分支编号依次拼接，因此先出现的分支点编号较小。每个点同时保留 `branch_id` 和分支内弧长位置。编号用于定位和复现实验，不代表工件上的物理编号或某个固定全局坐标轴方向。
 
 建议先单独打开 `local_feasible_centers.obj`，再使用 MeshLab 的 Fit View；查看全局关系时打开 `feasible_centers_display.obj`。如果双指缩放后线段消失，先 Fit View，再调整 Near/Far clipping；底部的 `Clipping Near/Far` 是视图裁剪状态，不代表 OBJ 数据被删除。

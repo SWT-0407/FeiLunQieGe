@@ -63,7 +63,8 @@ def run_from_config(config_path: str | Path) -> Any:
     collisions = check_candidates(candidates, workpiece, float(config["collision"]["clearance"]))
     # 每次运行建立独立目录，避免用户正在 MeshLab/图片查看器中打开旧文件时
     # Windows 锁住目标文件，也避免新的实验覆盖旧结果；旧目录绝不删除。
-    output_root = _create_run_output_root(repo_root / config["outputs"]["directory"])
+    # 结果先按工件案例分目录，再按时间戳建立独立运行目录，便于后续批量处理 12 个案例。
+    output_root = _create_run_output_root(repo_root / config["outputs"]["directory"] / config["case_name"])
 
     # 输出一张用于快速核验的三维总览图。
     image_path = output_root / config["outputs"]["overview_image"]
