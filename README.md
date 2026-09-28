@@ -59,14 +59,22 @@ python scripts/run_pipeline.py --config configs/default.json
 
 每次运行都会在 `results/cases/<case_name>/run_YYYYMMDD_HHMMSS/` 下创建一个新的结果目录，不覆盖旧运行结果。输出写入以下文件：
 
-- `results/run_.../feasible_centers_overview.png`：带工件表面、根部线、目标点和可行中心的三维总览图；
-- `results/run_.../local_feasibility_explanation.png`：自动放大的局部法平面图，显示 `r`、`delta`、不可行候选、可行中心和可行圆弧；
-- `results/run_.../workpiece_orientation_guide.png`：同一工件的三维透视与 X-Z 正投影对照图，用于解释 T 形外观差异；
-- `results/run_.../feasible_centers.obj`：MeshLab 可直接打开的 OBJ 点/线文件，其中 `l` 是采样根部线或离散可行弧，`p` 是按目标点分组的可行砂轮中心；
+- `results/cases/<case_name>/run_.../feasible_centers_overview.png`：带工件表面、根部线、目标点和可行中心的三维总览图；
+- `results/cases/<case_name>/run_.../local_feasibility_explanation.png`：自动放大的局部法平面图，显示 `r`、`delta`、不可行候选、可行中心和可行圆弧；
+- `results/cases/<case_name>/run_.../workpiece_orientation_guide.png`：同一工件的三维透视与 X-Z 正投影对照图，用于解释 T 形外观差异；
+- `results/cases/<case_name>/run_.../feasible_centers.obj`：精确结果 OBJ 点/线文件，MeshLab 可直接打开；其中 `l` 是采样根部线或离散可行弧，`p` 是按目标点分组的可行砂轮中心；
+- `results/cases/<case_name>/run_.../feasible_centers_display.obj`：用于 MeshLab 放大的八面体显示代理；
+- `results/cases/<case_name>/run_.../local_feasible_centers.obj`：单个代表性目标点的局部显示代理，区分可行、不可行候选和目标点；
 - `results/cases/<case_name>/run_.../feasible_centers_summary.json`：参数、计数、角区间、输入和限制的审计摘要；
 - `results/cases/<case_name>/run_.../interactive_demo.html`：全部离散采样点可点击的离线交互页面。
 
-OBJ 文件使用 normalized units，不是砂轮实体网格，也不代表厚度碰撞结果。文件中除了 `p` 点以外，还会把外圈相邻可行中心写成 `l` 线段，因此 MeshLab 即使没有打开顶点显示，也能看到可行圆弧。若要查看密集的中心点，选中图层后在右侧渲染面板把 `Vert` 从 `None` 改成点显示并适当增大点尺寸。若只想查看工件本体，仍应单独打开外部的 `mesh_without_flash.obj`。当前碰撞筛选方法是工件表面采样点的近似球形包络，可能误判可行；结果摘要会明确记录这一限制。
+OBJ 文件使用 normalized units，不是砂轮实体网格，也不代表厚度碰撞结果。文件中除了 `p` 点以外，还会把外圈相邻可行中心写成 `l` 线段，因此 MeshLab 即使没有打开顶点显示，也能看到可行圆弧。若要查看密集的中心点，选中图层后在右侧渲染面板把 `Vert` 从 `None` 改成点显示并适当增大点尺寸。若只想查看工件本体，仍应单独打开外部的 `mesh_without_flash.obj`。当前碰撞筛选方法是工件表面顶点、三角形质心和边中点构成的离散采样近似，并用球形包络估计安全距离，可能误判可行；结果摘要会明确记录这一限制。
+
+### 当前碰撞判定的阅读边界
+
+交互页面中的红色候选表示“在当前离散半径/角度采样和近似表面检查下通过”，灰色叉号表示该候选未通过当前检查。某个采样点出现整圈红色，只能说明本次抽样的候选均未发现碰撞，不能证明连续角度范围内、精确三角面距离意义下或真实砂轮厚度模型下都安全。当前 `leaf` 演示中，点 165 的可行数为 `371/540`，点 217 为 `540/540`；这种差异可能来自局部几何，也可能暴露离散表面采样对大三角面内部的漏检风险。
+
+因此，现阶段结果应作为几何算法演示和问题定位依据。若要形成加工安全结论，后续需要升级为精确点到三角形/网格距离或更密集、可收敛的表面采样，明确接触容差 `epsilon`，并重新人工抽查所有全红点。
 
 ## 如何阅读结果
 
