@@ -167,6 +167,7 @@ def _render_html(payload: dict[str, Any]) -> str:
       <svg id="localSvg" viewBox="0 0 640 420" role="img" aria-label="当前采样点的可行半径区域"></svg>
       <div id="details" class="detail" aria-live="polite"></div>
       <div class="legend">黑线：rho=r；蓝色虚线：rho=r-delta；红点：可行中心；灰色叉号：不可行中心；橙色粗线：外半径可行圆弧。</div>
+      <div class="legend">局部坐标：横向正方向为 +b1，纵向正方向为 +b2。生成逻辑：先取根部线切线 t 和与 t 最不平行的参考轴 q，计算 b1=normalize(t×q)，再计算 b2=normalize(t×b1)。候选径向方向为 e(theta)=cos(theta)b1+sin(theta)b2。</div>
     </section>
   </div>
   <script>
@@ -243,6 +244,13 @@ def _render_html(payload: dict[str, Any]) -> str:
       const sy = value => centerY - value * unitScale;
       root.appendChild(svg("line", {{x1:left, y1:sy(0), x2:right, y2:sy(0), class:"axis"}}));
       root.appendChild(svg("line", {{x1:sx(0), y1:top, x2:sx(0), y2:bottom, class:"axis"}}));
+      // 直接标出局部坐标系的正方向；这两个方向不是固定的全局 X/Y/Z 方向。
+      const b1Label = svg("text", {{x:right - 8, y:sy(0) - 9, "font-size":"13", "font-weight":"600", "text-anchor":"end", fill:"#1f2937"}});
+      b1Label.textContent = "+b1";
+      root.appendChild(b1Label);
+      const b2Label = svg("text", {{x:sx(0) + 8, y:top + 16, "font-size":"13", "font-weight":"600", fill:"#1f2937"}});
+      b2Label.textContent = "+b2";
+      root.appendChild(b2Label);
       function circle(radius, className) {{ root.appendChild(svg("circle", {{cx:sx(0), cy:sy(0), r:radius * unitScale, class:className}})); }}
       circle(DATA.radius, "band-outer");
       circle(DATA.radius - DATA.delta, "band-inner");
