@@ -235,11 +235,15 @@ def _render_html(payload: dict[str, Any]) -> str:
       root.replaceChildren();
       const left = 54, right = 600, top = 20, bottom = 370;
       const limit = DATA.radius * 1.35;
-      const sx = value => scale(value, [-limit, limit], left, right);
-      const sy = value => scale(value, [-limit, limit], bottom, top);
+      // 局部法平面必须使用相同的 x/y 像素比例，否则数学圆会被显示成椭圆。
+      const centerX = (left + right) / 2;
+      const centerY = (top + bottom) / 2;
+      const unitScale = Math.min(right - left, bottom - top) / (2 * limit);
+      const sx = value => centerX + value * unitScale;
+      const sy = value => centerY - value * unitScale;
       root.appendChild(svg("line", {{x1:left, y1:sy(0), x2:right, y2:sy(0), class:"axis"}}));
       root.appendChild(svg("line", {{x1:sx(0), y1:top, x2:sx(0), y2:bottom, class:"axis"}}));
-      function circle(radius, className) {{ root.appendChild(svg("circle", {{cx:sx(0), cy:sy(0), r:(right-left) * radius / (2*limit), class:className}})); }}
+      function circle(radius, className) {{ root.appendChild(svg("circle", {{cx:sx(0), cy:sy(0), r:radius * unitScale, class:className}})); }}
       circle(DATA.radius, "band-outer");
       circle(DATA.radius - DATA.delta, "band-inner");
       const outer = [];
