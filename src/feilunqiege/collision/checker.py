@@ -58,7 +58,13 @@ def build_collision_index(workpiece_mesh: Any) -> CollisionIndex:
     return CollisionIndex(samples=samples, tree=cKDTree(samples))
 
 
-def check_candidates(candidates: Any, workpiece_mesh: Any, clearance: float) -> CollisionResult:
+def check_candidates(
+    candidates: Any,
+    workpiece_mesh: Any,
+    clearance: float,
+    *,
+    collision_index: CollisionIndex | None = None,
+) -> CollisionResult:
     """筛选不与工件本体碰撞的候选。
 
     最小闭环使用“候选中心到工件表面采样点的最近距离 >= rho + clearance”
@@ -69,7 +75,7 @@ def check_candidates(candidates: Any, workpiece_mesh: Any, clearance: float) -> 
     if clearance < 0:
         raise ValueError("碰撞 clearance 不能为负")
     # KDTree 只回答“候选中心到采样表面的最近距离”，不等价于精确三角形相交。
-    index = build_collision_index(workpiece_mesh)
+    index = collision_index if collision_index is not None else build_collision_index(workpiece_mesh)
     nearest_distance, _ = index.tree.query(np.asarray(candidates.centers), workers=-1)
 
     # 用候选实际 rho 作为球形保守包络半径，再减去它得到剩余安全间隙。

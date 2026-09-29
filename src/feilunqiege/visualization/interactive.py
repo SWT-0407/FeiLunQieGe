@@ -301,7 +301,8 @@ def _render_html(payload: dict[str, Any]) -> str:
         }}
       }}
       outer.sort((a,b) => a[2] - b[2]);
-      const angleStep = 2 * Math.PI / Math.max(outer.length, 1);
+      // 使用完整候选角度网格的步长，不能因不可行点被过滤而跨越缺口连线。
+      const angleStep = 2 * Math.PI / Math.max(angleCount, 1);
       outer.forEach((current, i) => {{
         const next = outer[(i + 1) % outer.length];
         const gap = (next[2] - current[2] + 2*Math.PI) % (2*Math.PI);

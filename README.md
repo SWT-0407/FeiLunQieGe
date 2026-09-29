@@ -19,7 +19,7 @@
 ## 当前约定
 
 - `root_line.ply` 暂按飞边与工件本体的根部交线处理，而不是把它当作完整飞边实体。所有有效顶点都应参与分析；多个连通分支应分别保留，不能静默丢弃。
-- 坐标统一使用输入数据已经归一化后的单位，代码中标注为 `normalized units`。不在初版中换算成毫米；以后若获得比例，只允许整体等比放缩。
+- 坐标统一使用 normalized units。批量运行时在内存中将每个工件和对应 `root_line` 共同变换为“工件包围盒中心为原点、最长边为 1”；原始 OBJ/PLY 不修改，具体中心、尺度和源包围盒写入每个案例的 JSON 摘要。
 - 初版砂轮采用**无厚度圆盘**模型，以减少实现量并验证中心候选和碰撞筛选流程。厚度 `w`、有限圆柱和圆角砂轮只预留接口。
 - `delta` 是归一化单位下的径向候选区间参数，不直接解释为毫米加工公差。
 - `mesh_without_flash.obj` 是默认碰撞对象，但仍需用小案例人工核对其含义和坐标范围。
@@ -47,7 +47,7 @@ FeiLunQieGe/
 └─ pyproject.toml                   # Python 包元数据
 ```
 
-原始论文和约 930 MB 的 `flash_pipeline_12_models_20260924` 数据仍位于本地项目父目录，没有复制进本仓库。`configs/default.json` 通过 `data_root` 引用外部目录，避免把原始材料误上传 GitHub。
+原始论文和约 930 MB 的 `flash_pipeline_12_models_20260924` 数据仍位于本地项目父目录，没有复制进本仓库。`configs/default.json` 通过 `data_root` 引用外部目录，避免把原始材料误上传 GitHub。12 个案例的最新批处理结果已在本机 `results/cases/<case_name>/run_20260929_113.../` 生成；运行目录、OBJ、HTML 和 PNG 按 `.gitignore` 保留在本地，不随普通 Git 提交上传。
 
 ## 目前如何使用
 
@@ -57,7 +57,21 @@ FeiLunQieGe/
 python scripts/run_pipeline.py --config configs/default.json
 ```
 
-每次运行都会在 `results/cases/<case_name>/run_YYYYMMDD_HHMMSS/` 下创建一个新的结果目录，不覆盖旧运行结果。输出写入以下文件：
+批量运行 12 个工件：
+
+```powershell
+python scripts/run_all_cases.py --config configs/default.json --continue-on-error
+```
+
+脚本会按顺序处理 `1041432`、`226633`、`252632`、`439142`、`5head`、`5pipe`、`719790`、`804299`、`804301`、`circle`、`gear`、`leaf`。每个案例使用同一份基础配置，但在内存中切换 `case_name`，不会改写 `configs/default.json`。单案例失败时，默认立即停止；加上 `--continue-on-error` 后会继续其余案例并以非零退出码报告失败案例。
+
+`r` 支持按案例自动选择或人工指定。默认 `radius_selection.mode=scan_largest_usable` 会扫描配置中的归一化候选半径，选择同时满足根部采样点覆盖率和候选可行率下限的最大值；`delta` 按所选半径的 `delta_ratio` 计算。若需要固定某个案例，例如把 `leaf` 的归一化半径设为 `0.04`，可在 `radius_selection.case_overrides` 中写入 `"leaf": 0.04`。每个案例的扫描表、选择规则、最终 `r/delta` 和源坐标等效值都会记录在 JSON 摘要中。
+
+批量命令结束后还会创建 `results/batches/batch_YYYYMMDD_HHMMSS/`，其中 `batch_summary.json` 用于程序审计，`batch_summary.csv` 可直接用 Excel 比较 12 个案例。批次清单包含每个案例的半径、可行率、无解点数和 OBJ/HTML 路径。
+
+全局 PNG 和工件视角 PNG 默认只抽样最多 20,000 个三角面用于显示，以避免 Matplotlib 对百万级网格排序造成内存爆炸；碰撞筛选仍使用完整 `mesh_without_flash.obj` 网格采样。该抽样只影响图片，不改变 OBJ、HTML、JSON 或碰撞数组。
+
+每次运行都会在 `results/cases/<case_name>/run_YYYYMMDD_HHMMSS/` 下创建一个新的结果目录，不覆盖旧运行结果。当前 12 个案例均已成功生成一套最新结果。输出写入以下文件：
 
 - `results/cases/<case_name>/run_.../feasible_centers_overview.png`：带工件表面、根部线、目标点和可行中心的三维总览图；
 - `results/cases/<case_name>/run_.../local_feasibility_explanation.png`：自动放大的局部法平面图，显示 `r`、`delta`、不可行候选、可行中心和可行圆弧；
@@ -96,6 +110,8 @@ MeshLab 中直接打开 OBJ 时，先按 `Ctrl+Shift+A` 或工具栏的适合视
 - 砂轮轴向方向是否自由变化；
 - `r`、`delta`、候选角采样数、曲线采样数和碰撞容差；
 - “接触”是否视为碰撞，以及目标根部允许的接触规则。
+
+当前批处理只实际检查 `mesh_without_flash.obj`；配置中的 `surface_mesh`、`allow_target_contact` 和 `check_flash_mesh` 仍是预留字段，尚未改变碰撞判定。结果仍是基于离散表面采样球形包络的 preliminary geometry run。
 
 ## Git 约定
 

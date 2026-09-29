@@ -28,3 +28,4 @@ results/*.mtl
 results/*.html
 results/run_*/
 results/cases/*/run_*/
+results/batches/batch_*/

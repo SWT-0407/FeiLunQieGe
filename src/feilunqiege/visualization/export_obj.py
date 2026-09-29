@@ -101,7 +101,7 @@ def export_feasible_centers_obj(
             if len(local) < 2:
                 continue
             local = local[np.argsort(angles[local])]
-            angle_step = 2.0 * np.pi / max(len(local), 1)
+            angle_step = _angle_step(angles[local])
             for local_index, current in enumerate(local):
                 following = local[(local_index + 1) % len(local)]
                 angle_gap = (angles[following] - angles[current]) % (2.0 * np.pi)
@@ -202,7 +202,7 @@ def export_feasible_centers_display_obj(
             if len(local) < 2:
                 continue
             local = local[np.argsort(angles[local])]
-            angle_step = 2.0 * np.pi / max(len(local), 1)
+            angle_step = _angle_step(angles[local])
             for local_index, current in enumerate(local):
                 following = local[(local_index + 1) % len(local)]
                 angle_gap = (angles[following] - angles[current]) % (2.0 * np.pi)
@@ -311,7 +311,7 @@ def export_local_feasible_centers_obj(
             handle.write(_vertex_line(centers[candidate_index]))
             next_vertex += 1
         if len(outer) > 1:
-            angle_step = 2.0 * np.pi / len(local_indices)
+            angle_step = _angle_step(angles[local_indices])
             for local_index, current in enumerate(outer):
                 following = outer[(local_index + 1) % len(outer)]
                 angle_gap = (angles[following] - angles[current]) % (2.0 * np.pi)
@@ -337,6 +337,16 @@ def _export_arrays(sampled_curve: Any, decisions: Any) -> tuple[Any, Any, Any, A
     if len(branch_ids) != len(curve_points):
         raise ValueError("根部线点和分支编号长度不一致")
     return curve_points, branch_ids, feasible, candidates
+
+
+def _angle_step(angles: np.ndarray) -> float:
+    """根据原始角度网格估计步长，而不是按剩余可行点数量重算。"""
+
+    unique = np.unique(np.asarray(angles, dtype=float))
+    if len(unique) < 2:
+        return 2.0 * np.pi
+    gaps = np.diff(np.r_[unique, unique[0] + 2.0 * np.pi])
+    return float(np.min(gaps))
 
 
 def _evenly_spaced_indices(indices: np.ndarray, limit: int) -> np.ndarray:

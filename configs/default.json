@@ -7,12 +7,24 @@
     "surface_mesh": "surface.obj"
   },
   "units": "normalized",
+  "normalization": {
+    "mode": "bbox_longest_side_centered"
+  },
   "tool_model": "zero_thickness_disk",
   "wheel": {
     "radius": 0.02,
     "delta": 0.001,
     "width": null,
     "axis_mode": "free_about_curve_tangent"
+  },
+  "radius_selection": {
+    "mode": "scan_largest_usable",
+    "candidate_radii": [0.01, 0.02, 0.04, 0.06, 0.08, 0.1],
+    "minimum_point_coverage": 0.95,
+    "minimum_candidate_ratio": 0.2,
+    "scan_angles": 72,
+    "delta_ratio": 0.05,
+    "case_overrides": {}
   },
   "sampling": {
     "curve_points": 0,
@@ -21,6 +33,9 @@
   },
   "interactive_demo": {
     "max_points": 0
+  },
+  "visualization": {
+    "max_surface_faces": 20000
   },
   "collision": {
     "clearance": 0.0,

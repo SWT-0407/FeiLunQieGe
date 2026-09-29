@@ -25,6 +25,7 @@ def plot_feasible_centers(
     radius: float,
     delta: float,
     workpiece_mesh: Any | None = None,
+    max_surface_faces: int = 20000,
 ) -> Path:
     """绘制全部目标采样点对应的可行中心总览图。
 
@@ -45,7 +46,7 @@ def plot_feasible_centers(
 
     # 使用半透明三角面显示工件轮廓；这比稀疏顶点更接近 MeshLab 中的 T 形工件。
     if workpiece_mesh is not None:
-        _add_workpiece_surface(axis, workpiece_mesh)
+        _add_workpiece_surface(axis, workpiece_mesh, max_faces=max_surface_faces)
 
     # 可行中心点可按上限抽样绘制，但 OBJ 导出会保留全部可行点。
     feasible_centers = centers[feasible]
@@ -104,6 +105,8 @@ def plot_workpiece_orientation_guide(
     sampled_curve: Any,
     workpiece_mesh: Any,
     output_path: str | Path,
+    *,
+    max_surface_faces: int = 20000,
 ) -> Path:
     """用同一工件的透视图和正视图解释“T 形看起来不同”的原因。"""
 
@@ -119,7 +122,8 @@ def plot_workpiece_orientation_guide(
     front = fig.add_subplot(122)
 
     # 左图是三维透视，右图把同一网格投影到 X-Z 平面，便于识别 T 形轮廓。
-    _add_workpiece_surface(perspective, workpiece_mesh)
+    display_faces = _sample_faces(workpiece_mesh, max_surface_faces)
+    _add_workpiece_surface(perspective, workpiece_mesh, max_faces=max_surface_faces)
     _plot_root_branches(perspective, points, branch_ids, linewidth=2.4)
     _set_equal_axes(perspective, vertices)
     perspective.set_xlabel("X")
@@ -127,7 +131,7 @@ def plot_workpiece_orientation_guide(
     perspective.set_zlabel("Z")
     perspective.set_proj_type("ortho")
 
-    triangles_xz = vertices[np.asarray(workpiece_mesh.faces)][:, :, (0, 2)]
+    triangles_xz = vertices[display_faces][:, :, (0, 2)]
     front.add_collection(PolyCollection(triangles_xz, facecolor="#B8BDC5", edgecolor="none", alpha=0.75))
     _plot_root_projection(front, points, branch_ids)
     front.set_xlim(vertices[:, 0].min(), vertices[:, 0].max())
@@ -245,15 +249,27 @@ def plot_local_feasibility_explanation(
     return output, point_index
 
 
-def _add_workpiece_surface(axis: Any, workpiece_mesh: Any) -> None:
+def _add_workpiece_surface(axis: Any, workpiece_mesh: Any, *, max_faces: int = 20000) -> None:
     """以半透明三角面绘制工件，并给图例添加一个同色代理图形。"""
 
     vertices = np.asarray(workpiece_mesh.vertices, dtype=float)
-    faces = np.asarray(workpiece_mesh.faces, dtype=np.int64)
+    faces = _sample_faces(workpiece_mesh, max_faces)
     triangles = vertices[faces]
     surface = Poly3DCollection(triangles, facecolor="#B8BDC5", edgecolor="none", alpha=0.30)
     axis.add_collection3d(surface)
     axis.scatter([], [], [], s=30, c="#B8BDC5", marker="s", label="[1] workpiece body")
+
+
+def _sample_faces(workpiece_mesh: Any, max_faces: int) -> np.ndarray:
+    """确定性抽样绘图面片；碰撞检测和 OBJ 输入仍保留完整网格。"""
+
+    faces = np.asarray(workpiece_mesh.faces, dtype=np.int64)
+    if max_faces < 1:
+        raise ValueError("max_surface_faces 必须为正数")
+    if len(faces) <= max_faces:
+        return faces
+    indices = np.linspace(0, len(faces) - 1, max_faces, dtype=np.int64)
+    return faces[indices]
 
 
 def _plot_root_branches(axis: Any, points: np.ndarray, branch_ids: np.ndarray, *, linewidth: float) -> None:
