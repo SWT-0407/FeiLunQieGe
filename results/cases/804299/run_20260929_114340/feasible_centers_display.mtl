@@ -1,0 +1,11 @@
+# FeiLunQieGe display materials
+newmtl root_line
+Kd 0.05 0.40 0.90
+newmtl feasible_arc
+Kd 1.00 0.55 0.00
+newmtl feasible_marker
+Kd 0.90 0.05 0.05
+newmtl rejected_marker
+Kd 0.55 0.55 0.55
+newmtl target_point
+Kd 0.05 0.05 0.05

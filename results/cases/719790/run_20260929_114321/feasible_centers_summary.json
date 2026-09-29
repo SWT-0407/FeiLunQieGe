@@ -1,0 +1,8335 @@
+{
+  "status": "preliminary_geometry_run",
+  "units": "normalized",
+  "tool_model": "zero_thickness_disk",
+  "collision_method": "approximate_surface_samples_spherical_envelope",
+  "case_name": "719790",
+  "inputs": {
+    "root_line": "..\\..\\flash_pipeline_12_models_20260924\\719790\\root_line.ply",
+    "root_line_vertex_count": 554
+  },
+  "parameters": {
+    "radius": 0.1,
+    "delta": 0.005000000000000001,
+    "curve_points": 554,
+    "candidate_angles": 180,
+    "radial_samples": 3,
+    "collision_clearance": 0.0,
+    "normalization": {
+      "mode": "bbox_longest_side_centered",
+      "scale": 1.0,
+      "center": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_bbox_min": [
+        -0.5,
+        -0.11666665,
+        -0.5
+      ],
+      "source_bbox_max": [
+        0.5,
+        0.11666665,
+        0.5
+      ]
+    },
+    "radius_selection": {
+      "mode": "scan_largest_usable",
+      "selected_radius": 0.1,
+      "selected_delta": 0.005000000000000001,
+      "selection_reason": "largest radius meeting point coverage and feasible-candidate thresholds",
+      "minimum_point_coverage": 0.95,
+      "minimum_candidate_ratio": 0.2,
+      "scan_angles": 72,
+      "scan_results": [
+        {
+          "radius": 0.01,
+          "point_coverage": 0.9981949458483754,
+          "feasible_candidate_ratio": 0.5755365022061772,
+          "qualifies": true
+        },
+        {
+          "radius": 0.02,
+          "point_coverage": 0.9981949458483754,
+          "feasible_candidate_ratio": 0.4113517849979944,
+          "qualifies": true
+        },
+        {
+          "radius": 0.04,
+          "point_coverage": 0.9981949458483754,
+          "feasible_candidate_ratio": 0.3309015242679503,
+          "qualifies": true
+        },
+        {
+          "radius": 0.06,
+          "point_coverage": 0.9981949458483754,
+          "feasible_candidate_ratio": 0.2849478539911753,
+          "qualifies": true
+        },
+        {
+          "radius": 0.08,
+          "point_coverage": 0.9981949458483754,
+          "feasible_candidate_ratio": 0.2449107501002808,
+          "qualifies": true
+        },
+        {
+          "radius": 0.1,
+          "point_coverage": 0.9981949458483754,
+          "feasible_candidate_ratio": 0.22570697954271962,
+          "qualifies": true
+        }
+      ]
+    },
+    "source_coordinate_equivalent_radius": 0.1,
+    "source_coordinate_equivalent_delta": 0.005000000000000001
+  },
+  "candidate_count": 299160,
+  "feasible_candidate_count": 67861,
+  "feasible_ratio": 0.22683848108035834,
+  "output_directory": "results\\cases\\719790\\run_20260929_114321",
+  "overview_image": "results\\cases\\719790\\run_20260929_114321\\feasible_centers_overview.png",
+  "local_explanation_image": "results\\cases\\719790\\run_20260929_114321\\local_feasibility_explanation.png",
+  "orientation_guide_image": "results\\cases\\719790\\run_20260929_114321\\workpiece_orientation_guide.png",
+  "feasible_centers_obj": "results\\cases\\719790\\run_20260929_114321\\feasible_centers.obj",
+  "feasible_centers_display_obj": "results\\cases\\719790\\run_20260929_114321\\feasible_centers_display.obj",
+  "local_feasible_centers_obj": "results\\cases\\719790\\run_20260929_114321\\local_feasible_centers.obj",
+  "interactive_demo_html": "results\\cases\\719790\\run_20260929_114321\\interactive_demo.html",
+  "obj_contents": [
+    "sampled root-line vertices and l line primitives",
+    "feasible wheel-center vertices and p point primitives grouped by target point",
+    "outer-radius feasible-center arcs as l line primitives",
+    "display OBJ: sampled feasible centers as red octahedron face proxies",
+    "local OBJ: one target point with feasible red and rejected gray face proxies"
+  ],
+  "per_point": [
+    {
+      "point_index": 0,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09809754402883017,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          310.0
+        ]
+      ]
+    },
+    {
+      "point_index": 1,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809809582310297,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 2,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804307726727841,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 3,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808390856165798,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 4,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807837092331152,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 5,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808280369032217,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 6,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808714634231529,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 7,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09803551938693585,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 8,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809956653642954,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 9,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809936128511157,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 10,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09802172139268456,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 11,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809277212221917,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 12,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808825719992582,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 13,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980701844966213,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 14,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807705391600194,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 15,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805371401906797,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 16,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809591419887821,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 17,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809757904452579,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 18,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09799720032977047,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 19,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809821823734677,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 20,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809505445611495,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 21,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805424771065835,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 22,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807702592531474,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 23,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806894621768364,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 24,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808877343822804,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 25,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809276854438384,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 26,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09802008979001646,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 27,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09810013740983434,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 28,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809863674929623,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 29,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09803480227084371,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 30,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808790077087873,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 31,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808116804341697,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 32,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807820207618183,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 33,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808494396653304,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 34,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804041562429297,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 35,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809856983620882,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 36,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809915354808904,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 37,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09801212215321894,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 38,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809544063330675,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 39,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809026345227752,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 40,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806426167550714,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 41,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807416560743717,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 42,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.098057850290352,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 43,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980935000058427,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 44,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809665844421028,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 45,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09800307963922138,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 46,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.098099479112143,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 47,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809617405528356,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 48,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804675347772071,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 49,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808185354333743,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 50,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807237402402232,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 51,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808504374317759,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 52,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980911178560731,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 53,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980255400400102,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 54,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809997053528625,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 55,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809899408001317,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 56,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09802597322812438,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 57,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809139578819769,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 58,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808373160034964,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 59,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980730311260487,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 60,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808260501922142,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 61,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804509759943267,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 62,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809702188147133,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 63,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980987952864631,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 64,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09810008033891174,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 65,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809747388962924,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 66,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980919983720302,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 67,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805790607260569,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 68,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807418686497094,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 69,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806225091327347,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 70,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809088310181362,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 71,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809536801296322,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 72,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09801015173856538,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 73,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09810009580655961,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 74,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809730396556587,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 75,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804010543176978,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 76,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980854081736678,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 77,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807652063030564,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 78,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808171854423872,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 79,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980886213649602,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 80,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09803279674263086,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 81,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809958062091245,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 82,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809928987430167,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 83,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09801936390825673,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 84,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809356131861519,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 85,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808711193581615,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 86,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806908895786813,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 87,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980783385588899,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 88,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805220810033004,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 89,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980958387921543,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 90,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809790322085891,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 91,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09799582718495674,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 92,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809852784925112,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 93,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809448027086279,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 94,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805349464570451,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 95,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807743289630891,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 96,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.098068414809813,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 97,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808894958600443,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 98,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980931585974429,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 99,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09801962158671379,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 100,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0981003636742315,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 101,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809848698007856,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 102,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980349106543561,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 103,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808789763994821,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 104,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808104076569472,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 105,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.098078647680317,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 106,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808494676170355,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 107,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804098365340418,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 108,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809900895336908,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 109,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809918096592786,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 110,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980134720316166,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 111,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809523711648299,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 112,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809040794171905,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 113,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806526361466929,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 114,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807328303220995,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 115,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805911702370466,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 116,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809445556044373,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 117,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980964815275534,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 118,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09800538474736067,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          360.0
+        ],
+        [
+          0.0,
+          26.0
+        ]
+      ]
+    },
+    {
+      "point_index": 119,
+      "branch_id": 0,
+      "candidate_count": 540,
+      "feasible_candidate_count": 35,
+      "feasible_angle_count": 12,
+      "minimum_candidate_clearance": -0.09810030016289045,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          294.0
+        ]
+      ]
+    },
+    {
+      "point_index": 120,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 26,
+      "feasible_angle_count": 9,
+      "minimum_candidate_clearance": -0.09809089878351597,
+      "feasible_angle_intervals_degree": [
+        [
+          254.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 121,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804278348364194,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 122,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809678047810111,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 123,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809993849965538,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 124,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09800688866220293,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 125,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809604181262607,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 126,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809196882568952,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 127,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806010038289013,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 128,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807239382944459,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 129,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806020279100296,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 130,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809102927491128,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 131,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980968539633857,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 132,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809990767439697,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 133,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980990093617197,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 134,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809763829026633,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 135,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804253790925958,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 136,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808399030282552,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 137,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807488026486032,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 138,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808231561778206,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 139,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809031672803353,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 140,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09802897337687837,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 141,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809877974504581,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 142,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09810012407994738,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 143,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09802251224064898,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 144,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809209535708022,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 145,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808636322602281,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 146,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807047064060809,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 147,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808028489250586,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 148,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804930072228003,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 149,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809549653362237,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 150,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980991200300987,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 151,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09799967046432906,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 152,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809719925074767,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 153,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809441269411129,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 154,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805557335358249,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 155,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807587614008717,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 156,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806633515086914,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 157,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808916073343939,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 158,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809461534306278,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 159,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09801538261073535,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 160,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809926811736325,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 161,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809898975147804,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 162,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09803770725109222,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 163,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808624879653757,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 164,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807984312453058,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 165,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807961674561717,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 166,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808664034752704,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 167,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980376088906014,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 168,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809830923681799,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 169,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09810008181116382,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 170,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09801695013481068,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 171,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809363580573123,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 172,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980899405144564,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 173,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806695671046184,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 174,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807531325696948,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 175,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805660631382665,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 176,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809428173560351,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 177,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809767820328046,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 178,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09800070267620845,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 179,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809801893173345,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 180,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809661252226254,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 181,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805130218009163,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 182,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807868088489606,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 183,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807209959385739,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 184,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808705378561641,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 185,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980917763621625,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 186,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09802479199384304,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 187,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809936652470962,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 188,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809980011055554,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 189,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09803270683581113,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 190,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808833756412398,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 191,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980842486193559,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 192,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980767201061688,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 193,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808247550688591,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 194,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804569646134574,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 195,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809765906289804,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 196,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809949019491555,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 197,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09801121865465835,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 198,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809501564475379,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 199,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809298600222942,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 200,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806329460509644,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 201,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807006112885136,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 202,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806316235026986,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 203,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809276363459385,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 204,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809567776949588,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 205,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09801084920366707,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 206,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809867593199931,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 207,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809826310910733,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 208,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804685865380618,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 209,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808131305779333,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 210,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807733379962204,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 211,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980847444010101,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 212,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808843515664772,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 213,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09803364313148272,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 214,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809929346254806,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 215,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09810005071728625,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 216,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980275039931164,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 217,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809026909888341,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 218,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.098088118263928,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 219,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807360525995117,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 220,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807799540747943,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 221,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805304494220826,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 222,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809676872228165,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 223,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809832235634294,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 224,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09800529025252586,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 225,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809622888615878,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 226,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809547792619909,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 227,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09805940701790705,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 228,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09807260114172958,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 229,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09806920760635253,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 230,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809106692966404,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 231,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980931698629776,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 232,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09802043595928059,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 233,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09809916652112674,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 234,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.0980993498347268,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 235,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09804221059752756,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 236,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808381220935147,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 237,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808202067564362,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 238,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09808223985255066,
+      "feasible_angle_intervals_degree": [
+        [
+          156.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 239,
+      "branch_id": 1,
+      "candidate_count": 540,
+      "feasible_candidate_count": 81,
+      "feasible_angle_count": 28,
+      "minimum_candidate_clearance": -0.09807653348724314,
+      "feasible_angle_intervals_degree": [
+        [
+          216.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 240,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 21,
+      "feasible_angle_count": 7,
+      "minimum_candidate_clearance": -0.08635282683849077,
+      "feasible_angle_intervals_degree": [
+        [
+          264.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 241,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 65,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.08859645581287139,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          282.0
+        ]
+      ]
+    },
+    {
+      "point_index": 242,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09112742125531886,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 243,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 64,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.09354331258801785,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          280.0
+        ]
+      ]
+    },
+    {
+      "point_index": 244,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 60,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09341164882588615,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          280.0
+        ]
+      ]
+    },
+    {
+      "point_index": 245,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.08990067189852192,
+      "feasible_angle_intervals_degree": [
+        [
+          240.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 246,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 60,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.08525662781215379,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 247,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 61,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.08026443445466197,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 248,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 61,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.0771447310879336,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 249,
+      "branch_id": 2,
+      "candidate_count": 540,
+      "feasible_candidate_count": 13,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.08098796064865292,
+      "feasible_angle_intervals_degree": [
+        [
+          262.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 250,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 38,
+      "feasible_angle_count": 13,
+      "minimum_candidate_clearance": -0.0931005435252892,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          112.0
+        ]
+      ]
+    },
+    {
+      "point_index": 251,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09590856267292099,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 252,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09952627985885205,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 253,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09688221625753231,
+      "feasible_angle_intervals_degree": [
+        [
+          90.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 254,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09328770303137722,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 255,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 176,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09309501133419748,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 256,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310483518455079,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 257,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310869622193389,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 258,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310632282453526,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 259,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09309756159375192,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 260,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310085492161119,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 261,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310779772366881,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 262,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310828130544224,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 263,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 184,
+      "feasible_angle_count": 62,
+      "minimum_candidate_clearance": -0.09310234374339439,
+      "feasible_angle_intervals_degree": [
+        [
+          82.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 264,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.09309412203437828,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 265,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.09310508177880546,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 266,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310902887464795,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 267,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.09310618977516794,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 268,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.09309663690736238,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 269,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.09310045371203134,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 270,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.09310767102589178,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 271,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310847020171811,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 272,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 184,
+      "feasible_angle_count": 62,
+      "minimum_candidate_clearance": -0.09310226652062309,
+      "feasible_angle_intervals_degree": [
+        [
+          82.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 273,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09309455730479646,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 274,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310505801327647,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 275,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310867059455072,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 276,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310613240270679,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 277,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09309647697834142,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 278,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310053184954335,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 279,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310791880967104,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 280,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310811534368438,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 281,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 179,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310208586209806,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 282,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09309448721860568,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 283,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 184,
+      "feasible_angle_count": 62,
+      "minimum_candidate_clearance": -0.09310509431619439,
+      "feasible_angle_intervals_degree": [
+        [
+          82.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 284,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09310906253250292,
+      "feasible_angle_intervals_degree": [
+        [
+          90.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 285,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.09310600465845943,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 286,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.09309629632154474,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 287,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.09310073770416304,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 288,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.0931077799997065,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 289,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 184,
+      "feasible_angle_count": 62,
+      "minimum_candidate_clearance": -0.09310837440349444,
+      "feasible_angle_intervals_degree": [
+        [
+          82.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 290,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 187,
+      "feasible_angle_count": 63,
+      "minimum_candidate_clearance": -0.0931022451095864,
+      "feasible_angle_intervals_degree": [
+        [
+          80.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 291,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 184,
+      "feasible_angle_count": 62,
+      "minimum_candidate_clearance": -0.09309531146903188,
+      "feasible_angle_intervals_degree": [
+        [
+          82.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 292,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310525724389937,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 293,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310868502552672,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 294,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310595399736207,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 295,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09309687057491395,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 296,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310141420923537,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 297,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310804507179571,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 298,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310822653778084,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 299,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09310179982393495,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 300,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 176,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09309488869552933,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 301,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 177,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.0931959568021653,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 302,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09677981955694344,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 303,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09962310069313994,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 304,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09601218040026435,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 305,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310104355351474,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 306,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310804638039702,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 307,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310827082034225,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 308,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310255754397509,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 309,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09642126509141963,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 310,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09925204398577075,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 311,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09772870845109576,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 312,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09548831227806506,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 313,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09901054651445557,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 314,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09853436068497669,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 315,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 172,
+      "feasible_angle_count": 58,
+      "minimum_candidate_clearance": -0.09493866779214116,
+      "feasible_angle_intervals_degree": [
+        [
+          90.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 316,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 179,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310832881189893,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 317,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 179,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.0931015111365964,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 318,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 180,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09309528422114921,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 319,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 180,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310615478026839,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 320,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 180,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310903501269525,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 321,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310640900542204,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 322,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09309553809051305,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 323,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310134560864967,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 324,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310826674294415,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 325,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310816053537026,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 326,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310286414304042,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 327,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09309754236053297,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 328,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 178,
+      "feasible_angle_count": 60,
+      "minimum_candidate_clearance": -0.09310568366182148,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 329,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.0931087050595195,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 330,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09310555578180371,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 331,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09402556929358914,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 332,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 181,
+      "feasible_angle_count": 61,
+      "minimum_candidate_clearance": -0.09422638075989674,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 333,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 175,
+      "feasible_angle_count": 59,
+      "minimum_candidate_clearance": -0.09680891735065518,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          206.0
+        ]
+      ]
+    },
+    {
+      "point_index": 334,
+      "branch_id": 3,
+      "candidate_count": 540,
+      "feasible_candidate_count": 26,
+      "feasible_angle_count": 9,
+      "minimum_candidate_clearance": -0.0988997168932049,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 335,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 15,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.09215607133491827,
+      "feasible_angle_intervals_degree": [
+        [
+          268.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 336,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 65,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.09432319981758483,
+      "feasible_angle_intervals_degree": [
+        [
+          258.0,
+          302.0
+        ]
+      ]
+    },
+    {
+      "point_index": 337,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 67,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.09712338074554305,
+      "feasible_angle_intervals_degree": [
+        [
+          258.0,
+          304.0
+        ]
+      ]
+    },
+    {
+      "point_index": 338,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.09478366957584684,
+      "feasible_angle_intervals_degree": [
+        [
+          268.0,
+          306.0
+        ]
+      ]
+    },
+    {
+      "point_index": 339,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 71,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.0902010879716812,
+      "feasible_angle_intervals_degree": [
+        [
+          256.0,
+          304.0
+        ]
+      ]
+    },
+    {
+      "point_index": 340,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 78,
+      "feasible_angle_count": 27,
+      "minimum_candidate_clearance": -0.08538642301897192,
+      "feasible_angle_intervals_degree": [
+        [
+          256.0,
+          310.0
+        ]
+      ]
+    },
+    {
+      "point_index": 341,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 70,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.08049972291212035,
+      "feasible_angle_intervals_degree": [
+        [
+          256.0,
+          304.0
+        ]
+      ]
+    },
+    {
+      "point_index": 342,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.07555422539685061,
+      "feasible_angle_intervals_degree": [
+        [
+          266.0,
+          306.0
+        ]
+      ]
+    },
+    {
+      "point_index": 343,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 67,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.071160083363606,
+      "feasible_angle_intervals_degree": [
+        [
+          256.0,
+          302.0
+        ]
+      ]
+    },
+    {
+      "point_index": 344,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 67,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.07389542063658208,
+      "feasible_angle_intervals_degree": [
+        [
+          256.0,
+          302.0
+        ]
+      ]
+    },
+    {
+      "point_index": 345,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 64,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.07872060550549569,
+      "feasible_angle_intervals_degree": [
+        [
+          262.0,
+          306.0
+        ]
+      ]
+    },
+    {
+      "point_index": 346,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 68,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.08349361273184935,
+      "feasible_angle_intervals_degree": [
+        [
+          258.0,
+          304.0
+        ]
+      ]
+    },
+    {
+      "point_index": 347,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 66,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.08808030330214574,
+      "feasible_angle_intervals_degree": [
+        [
+          256.0,
+          302.0
+        ]
+      ]
+    },
+    {
+      "point_index": 348,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 67,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.09219748743369122,
+      "feasible_angle_intervals_degree": [
+        [
+          256.0,
+          302.0
+        ]
+      ]
+    },
+    {
+      "point_index": 349,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09468320219097714,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          306.0
+        ]
+      ]
+    },
+    {
+      "point_index": 350,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 70,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.09328074317414005,
+      "feasible_angle_intervals_degree": [
+        [
+          256.0,
+          304.0
+        ]
+      ]
+    },
+    {
+      "point_index": 351,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 68,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.09134652016393345,
+      "feasible_angle_intervals_degree": [
+        [
+          254.0,
+          300.0
+        ]
+      ]
+    },
+    {
+      "point_index": 352,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 71,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.08871013873480557,
+      "feasible_angle_intervals_degree": [
+        [
+          256.0,
+          304.0
+        ]
+      ]
+    },
+    {
+      "point_index": 353,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.08698557281344244,
+      "feasible_angle_intervals_degree": [
+        [
+          264.0,
+          306.0
+        ]
+      ]
+    },
+    {
+      "point_index": 354,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 64,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.09041551507407088,
+      "feasible_angle_intervals_degree": [
+        [
+          260.0,
+          304.0
+        ]
+      ]
+    },
+    {
+      "point_index": 355,
+      "branch_id": 4,
+      "candidate_count": 540,
+      "feasible_candidate_count": 16,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.09174827969809955,
+      "feasible_angle_intervals_degree": [
+        [
+          262.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 356,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 12,
+      "feasible_angle_count": 4,
+      "minimum_candidate_clearance": -0.08706146577929352,
+      "feasible_angle_intervals_degree": [
+        [
+          266.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 357,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 70,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.08324519181007542,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          286.0
+        ]
+      ]
+    },
+    {
+      "point_index": 358,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 69,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.07819905409215688,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          286.0
+        ]
+      ]
+    },
+    {
+      "point_index": 359,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 69,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.0731266040925336,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          286.0
+        ]
+      ]
+    },
+    {
+      "point_index": 360,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 57,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.07151981198816054,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 361,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 67,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.07653509472693865,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          282.0
+        ]
+      ]
+    },
+    {
+      "point_index": 362,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 68,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.08147558784493572,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          284.0
+        ]
+      ]
+    },
+    {
+      "point_index": 363,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 73,
+      "feasible_angle_count": 25,
+      "minimum_candidate_clearance": -0.08628968400205428,
+      "feasible_angle_intervals_degree": [
+        [
+          234.0,
+          284.0
+        ]
+      ]
+    },
+    {
+      "point_index": 364,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 71,
+      "feasible_angle_count": 25,
+      "minimum_candidate_clearance": -0.09079157187603058,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          286.0
+        ]
+      ]
+    },
+    {
+      "point_index": 365,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 64,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.094201698102721,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          280.0
+        ]
+      ]
+    },
+    {
+      "point_index": 366,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09409574429356637,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 367,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 72,
+      "feasible_angle_count": 25,
+      "minimum_candidate_clearance": -0.09169356104917657,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          288.0
+        ]
+      ]
+    },
+    {
+      "point_index": 368,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 71,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.08947114318231619,
+      "feasible_angle_intervals_degree": [
+        [
+          240.0,
+          288.0
+        ]
+      ]
+    },
+    {
+      "point_index": 369,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 69,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.0861792105356152,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          286.0
+        ]
+      ]
+    },
+    {
+      "point_index": 370,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 66,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.08984708055418204,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          284.0
+        ]
+      ]
+    },
+    {
+      "point_index": 371,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09158991641650711,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 372,
+      "branch_id": 5,
+      "candidate_count": 540,
+      "feasible_candidate_count": 24,
+      "feasible_angle_count": 8,
+      "minimum_candidate_clearance": -0.09372569228037164,
+      "feasible_angle_intervals_degree": [
+        [
+          264.0,
+          280.0
+        ]
+      ]
+    },
+    {
+      "point_index": 373,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 18,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.043438697862942716,
+      "feasible_angle_intervals_degree": [
+        [
+          262.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 374,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.0443835936285882,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 375,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.04568572423236289,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 376,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 49,
+      "feasible_angle_count": 17,
+      "minimum_candidate_clearance": -0.047056884965451524,
+      "feasible_angle_intervals_degree": [
+        [
+          240.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 377,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 45,
+      "feasible_angle_count": 15,
+      "minimum_candidate_clearance": -0.048496356811473226,
+      "feasible_angle_intervals_degree": [
+        [
+          244.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 378,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.05002049421598666,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 379,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.05162861868157519,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 380,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.05330919515701871,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 381,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.055053388285361396,
+      "feasible_angle_intervals_degree": [
+        [
+          240.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 382,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.05686840947107456,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 383,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.05876775434497858,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 384,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.0607406459651658,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 385,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.0627703964868957,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 386,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.06486997694758731,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 387,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.06705874978379375,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 388,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.06933208073008204,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 389,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.07166467039451187,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 390,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.07406116325566503,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 391,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.07653449958424893,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 392,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.07908515142680252,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 393,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.08169618177671036,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 394,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.08436097466946965,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 395,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.08708792439010175,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 396,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.0898950286957095,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 397,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09278265009395556,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          280.0
+        ]
+      ]
+    },
+    {
+      "point_index": 398,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 37,
+      "feasible_angle_count": 13,
+      "minimum_candidate_clearance": -0.09571054958993824,
+      "feasible_angle_intervals_degree": [
+        [
+          254.0,
+          280.0
+        ]
+      ]
+    },
+    {
+      "point_index": 399,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 60,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09866413562613204,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          280.0
+        ]
+      ]
+    },
+    {
+      "point_index": 400,
+      "branch_id": 6,
+      "candidate_count": 540,
+      "feasible_candidate_count": 15,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.09941352159038293,
+      "feasible_angle_intervals_degree": [
+        [
+          262.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 401,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 15,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.09544378551817101,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 402,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 47,
+      "feasible_angle_count": 16,
+      "minimum_candidate_clearance": -0.09534259122744296,
+      "feasible_angle_intervals_degree": [
+        [
+          66.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 403,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09525038624491375,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 404,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 54,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09518056769439726,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 405,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 49,
+      "feasible_angle_count": 17,
+      "minimum_candidate_clearance": -0.09513893069748487,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 406,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.0951396444713016,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 407,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 52,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09521419768995266,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 408,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09530977652002913,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 409,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09541332614545256,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          92.0
+        ]
+      ]
+    },
+    {
+      "point_index": 410,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.09549669433150686,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 411,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.0955462125774408,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 412,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09561487491974073,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 413,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 61,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09606879616728649,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 414,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 65,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.09638959159495829,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 415,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 67,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.09644785855280254,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 416,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 39,
+      "feasible_angle_count": 14,
+      "minimum_candidate_clearance": -0.09704983285184757,
+      "feasible_angle_intervals_degree": [
+        [
+          76.0,
+          104.0
+        ]
+      ]
+    },
+    {
+      "point_index": 417,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 68,
+      "feasible_angle_count": 24,
+      "minimum_candidate_clearance": -0.09745774642722693,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          104.0
+        ]
+      ]
+    },
+    {
+      "point_index": 418,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 67,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.09791227247483973,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 419,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09860713335418402,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 420,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 60,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09926266027513238,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 421,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09970583266949852,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 422,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09959930021927993,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 423,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09975971558985967,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          92.0
+        ]
+      ]
+    },
+    {
+      "point_index": 424,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09926377645611702,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 425,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.09972981758876248,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 426,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09947426464160194,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 427,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 52,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.0988202434676169,
+      "feasible_angle_intervals_degree": [
+        [
+          62.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 428,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 61,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09886286395550539,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 429,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09866015800574733,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 430,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 64,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.09953195307090335,
+      "feasible_angle_intervals_degree": [
+        [
+          54.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 431,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 61,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09900706302629601,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 432,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 61,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09969537379409521,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 433,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09976129159359372,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 434,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09979194847829503,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 435,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 60,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.0987922335810816,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 436,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 57,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.0992724026670237,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 437,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09907068964754302,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          92.0
+        ]
+      ]
+    },
+    {
+      "point_index": 438,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.0943085539716007,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 439,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 61,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09870809015962562,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 440,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.09617543018734365,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 441,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 60,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09881341111961645,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 442,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09415430807709327,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 443,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 64,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.08930235041775965,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 444,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.08864820722116282,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 445,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 64,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.08989575191440202,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 446,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 63,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.08885027732808601,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 447,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 57,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.08953947370302684,
+      "feasible_angle_intervals_degree": [
+        [
+          62.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 448,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 63,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.08993421547113518,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 449,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09255359722405167,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 450,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 60,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09245965158110032,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 451,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.08975628101355973,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 452,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 57,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.08578112508697591,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 453,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.08137831771654264,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 454,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.08212245150117375,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 455,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.08671197357034499,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 456,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09102321871911502,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 457,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 63,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.09450064447887535,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 458,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09574991856632992,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 459,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 64,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.09747989317987148,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 460,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 66,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.09899937608445142,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 461,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 60,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09913329766912575,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 462,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 64,
+      "feasible_angle_count": 22,
+      "minimum_candidate_clearance": -0.09673368707079152,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 463,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 67,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.09397786717282533,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 464,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09097076782478222,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 465,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 57,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.08921399033361832,
+      "feasible_angle_intervals_degree": [
+        [
+          54.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 466,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 61,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.09287940224492625,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 467,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09674119152271143,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 468,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 54,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.09931218529761107,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 469,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 52,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.09499207320266342,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 470,
+      "branch_id": 7,
+      "candidate_count": 540,
+      "feasible_candidate_count": 14,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.0916295587571983,
+      "feasible_angle_intervals_degree": [
+        [
+          86.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 471,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 0,
+      "feasible_angle_count": 0,
+      "minimum_candidate_clearance": -0.09879604169126467,
+      "feasible_angle_intervals_degree": []
+    },
+    {
+      "point_index": 472,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 9,
+      "feasible_angle_count": 3,
+      "minimum_candidate_clearance": -0.09848283349036413,
+      "feasible_angle_intervals_degree": [
+        [
+          266.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 473,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 21,
+      "feasible_angle_count": 7,
+      "minimum_candidate_clearance": -0.09517073546173961,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          188.0
+        ]
+      ]
+    },
+    {
+      "point_index": 474,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 24,
+      "feasible_angle_count": 8,
+      "minimum_candidate_clearance": -0.09235887968257983,
+      "feasible_angle_intervals_degree": [
+        [
+          262.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 475,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 24,
+      "feasible_angle_count": 8,
+      "minimum_candidate_clearance": -0.09069398709093239,
+      "feasible_angle_intervals_degree": [
+        [
+          172.0,
+          188.0
+        ]
+      ]
+    },
+    {
+      "point_index": 476,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 21,
+      "feasible_angle_count": 7,
+      "minimum_candidate_clearance": -0.09350791450875326,
+      "feasible_angle_intervals_degree": [
+        [
+          264.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 477,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 18,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.09631960215380177,
+      "feasible_angle_intervals_degree": [
+        [
+          176.0,
+          188.0
+        ]
+      ]
+    },
+    {
+      "point_index": 478,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 15,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.09910762165778095,
+      "feasible_angle_intervals_degree": [
+        [
+          178.0,
+          188.0
+        ]
+      ]
+    },
+    {
+      "point_index": 479,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 18,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.09802510597151518,
+      "feasible_angle_intervals_degree": [
+        [
+          176.0,
+          188.0
+        ]
+      ]
+    },
+    {
+      "point_index": 480,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 21,
+      "feasible_angle_count": 7,
+      "minimum_candidate_clearance": -0.09521910779659855,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          188.0
+        ]
+      ]
+    },
+    {
+      "point_index": 481,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 18,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.09769300730880971,
+      "feasible_angle_intervals_degree": [
+        [
+          176.0,
+          188.0
+        ]
+      ]
+    },
+    {
+      "point_index": 482,
+      "branch_id": 8,
+      "candidate_count": 540,
+      "feasible_candidate_count": 15,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.09939009619504936,
+      "feasible_angle_intervals_degree": [
+        [
+          178.0,
+          188.0
+        ]
+      ]
+    },
+    {
+      "point_index": 483,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 21,
+      "feasible_angle_count": 7,
+      "minimum_candidate_clearance": -0.09903380034101673,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 484,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 18,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.09778987113671272,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          186.0
+        ]
+      ]
+    },
+    {
+      "point_index": 485,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 15,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.09936883559898907,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          184.0
+        ]
+      ]
+    },
+    {
+      "point_index": 486,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 18,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.09669100058176429,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          186.0
+        ]
+      ]
+    },
+    {
+      "point_index": 487,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 18,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.0961522855197484,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 488,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 15,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.0988742278278551,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          184.0
+        ]
+      ]
+    },
+    {
+      "point_index": 489,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 18,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.09833650098117729,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 490,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 19,
+      "feasible_angle_count": 7,
+      "minimum_candidate_clearance": -0.09560631080665866,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          188.0
+        ]
+      ]
+    },
+    {
+      "point_index": 491,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 22,
+      "feasible_angle_count": 8,
+      "minimum_candidate_clearance": -0.09286703496365252,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          190.0
+        ]
+      ]
+    },
+    {
+      "point_index": 492,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 26,
+      "feasible_angle_count": 10,
+      "minimum_candidate_clearance": -0.09012623246010742,
+      "feasible_angle_intervals_degree": [
+        [
+          82.0,
+          102.0
+        ]
+      ]
+    },
+    {
+      "point_index": 493,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 22,
+      "feasible_angle_count": 8,
+      "minimum_candidate_clearance": -0.09285304231551944,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          190.0
+        ]
+      ]
+    },
+    {
+      "point_index": 494,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 19,
+      "feasible_angle_count": 7,
+      "minimum_candidate_clearance": -0.09559103468914425,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 495,
+      "branch_id": 9,
+      "candidate_count": 540,
+      "feasible_candidate_count": 18,
+      "feasible_angle_count": 6,
+      "minimum_candidate_clearance": -0.09831585160365366,
+      "feasible_angle_intervals_degree": [
+        [
+          84.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 496,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 40,
+      "feasible_angle_count": 14,
+      "minimum_candidate_clearance": -0.09803496274077142,
+      "feasible_angle_intervals_degree": [
+        [
+          244.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 497,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 159,
+      "feasible_angle_count": 53,
+      "minimum_candidate_clearance": -0.09806207275863899,
+      "feasible_angle_intervals_degree": [
+        [
+          166.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 498,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 159,
+      "feasible_angle_count": 53,
+      "minimum_candidate_clearance": -0.09809941232312465,
+      "feasible_angle_intervals_degree": [
+        [
+          166.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 499,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 159,
+      "feasible_angle_count": 53,
+      "minimum_candidate_clearance": -0.09807879680510626,
+      "feasible_angle_intervals_degree": [
+        [
+          166.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 500,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 159,
+      "feasible_angle_count": 53,
+      "minimum_candidate_clearance": -0.09809664143204457,
+      "feasible_angle_intervals_degree": [
+        [
+          166.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 501,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 3,
+      "feasible_angle_count": 1,
+      "minimum_candidate_clearance": -0.09768216626694794,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 502,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 12,
+      "feasible_angle_count": 4,
+      "minimum_candidate_clearance": -0.09957586387817768,
+      "feasible_angle_intervals_degree": [
+        [
+          264.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 503,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 12,
+      "feasible_angle_count": 4,
+      "minimum_candidate_clearance": -0.09926748169627962,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          182.0
+        ]
+      ]
+    },
+    {
+      "point_index": 504,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 12,
+      "feasible_angle_count": 4,
+      "minimum_candidate_clearance": -0.09931353461092787,
+      "feasible_angle_intervals_degree": [
+        [
+          174.0,
+          182.0
+        ]
+      ]
+    },
+    {
+      "point_index": 505,
+      "branch_id": 10,
+      "candidate_count": 540,
+      "feasible_candidate_count": 12,
+      "feasible_angle_count": 4,
+      "minimum_candidate_clearance": -0.09927023701400953,
+      "feasible_angle_intervals_degree": [
+        [
+          264.0,
+          272.0
+        ]
+      ]
+    },
+    {
+      "point_index": 506,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 12,
+      "feasible_angle_count": 4,
+      "minimum_candidate_clearance": -0.05077111662653228,
+      "feasible_angle_intervals_degree": [
+        [
+          266.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 507,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.052061851143587815,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 508,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 67,
+      "feasible_angle_count": 23,
+      "minimum_candidate_clearance": -0.05382445325106996,
+      "feasible_angle_intervals_degree": [
+        [
+          230.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 509,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 62,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.05566664194523155,
+      "feasible_angle_intervals_degree": [
+        [
+          234.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 510,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.057585752807414806,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 511,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.05958105435077613,
+      "feasible_angle_intervals_degree": [
+        [
+          238.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 512,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.061657694202824534,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          274.0
+        ]
+      ]
+    },
+    {
+      "point_index": 513,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.063816280556223,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 514,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.06604991020562594,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 515,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.06836886123713985,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 516,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.07076345119761443,
+      "feasible_angle_intervals_degree": [
+        [
+          236.0,
+          276.0
+        ]
+      ]
+    },
+    {
+      "point_index": 517,
+      "branch_id": 11,
+      "candidate_count": 540,
+      "feasible_candidate_count": 11,
+      "feasible_angle_count": 4,
+      "minimum_candidate_clearance": -0.0726467670099305,
+      "feasible_angle_intervals_degree": [
+        [
+          270.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "point_index": 518,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 13,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.03790585464703739,
+      "feasible_angle_intervals_degree": [
+        [
+          82.0,
+          92.0
+        ]
+      ]
+    },
+    {
+      "point_index": 519,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 51,
+      "feasible_angle_count": 17,
+      "minimum_candidate_clearance": -0.03849370076216085,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 520,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.03932416835560907,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 521,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.04023361502276773,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 522,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 49,
+      "feasible_angle_count": 17,
+      "minimum_candidate_clearance": -0.041215619290623375,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 523,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.042261091676083114,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 524,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.04338292266676767,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 525,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 51,
+      "feasible_angle_count": 17,
+      "minimum_candidate_clearance": -0.0445689203353327,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 526,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.04582166270553681,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 527,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.04715078994407026,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 528,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 141,
+      "feasible_angle_count": 47,
+      "minimum_candidate_clearance": -0.04854126073372992,
+      "feasible_angle_intervals_degree": [
+        [
+          0.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 529,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 57,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.05000818523611781,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 530,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 57,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.05155284410279825,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 531,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 49,
+      "feasible_angle_count": 17,
+      "minimum_candidate_clearance": -0.053155687298419255,
+      "feasible_angle_intervals_degree": [
+        [
+          62.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 532,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.0548272539726036,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 533,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.05657267581018099,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 534,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.05837100621040903,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 535,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.060240291953420566,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 536,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.06218071457077763,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 537,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.06417293427730399,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 538,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.06624888175343108,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 539,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.06840689342638306,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 540,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.07060677988603559,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 541,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.07288671958416555,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 542,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.07523968067034646,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 543,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 55,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.07762726807315937,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 544,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 53,
+      "feasible_angle_count": 18,
+      "minimum_candidate_clearance": -0.08010547835123273,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          92.0
+        ]
+      ]
+    },
+    {
+      "point_index": 545,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.08264649452471517,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 546,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 58,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.0852122268771837,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 547,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.08787531475562183,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          94.0
+        ]
+      ]
+    },
+    {
+      "point_index": 548,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 19,
+      "minimum_candidate_clearance": -0.09060745594686401,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 549,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 21,
+      "minimum_candidate_clearance": -0.0933580658599202,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 550,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.0961359072029808,
+      "feasible_angle_intervals_degree": [
+        [
+          56.0,
+          96.0
+        ]
+      ]
+    },
+    {
+      "point_index": 551,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 56,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09898798103344937,
+      "feasible_angle_intervals_degree": [
+        [
+          60.0,
+          100.0
+        ]
+      ]
+    },
+    {
+      "point_index": 552,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 59,
+      "feasible_angle_count": 20,
+      "minimum_candidate_clearance": -0.09957740109899674,
+      "feasible_angle_intervals_degree": [
+        [
+          58.0,
+          98.0
+        ]
+      ]
+    },
+    {
+      "point_index": 553,
+      "branch_id": 12,
+      "candidate_count": 540,
+      "feasible_candidate_count": 15,
+      "feasible_angle_count": 5,
+      "minimum_candidate_clearance": -0.0998440608536596,
+      "feasible_angle_intervals_degree": [
+        [
+          88.0,
+          98.0
+        ]
+      ]
+    }
+  ],
+  "limitations": [
+    "碰撞筛选使用工件表面采样点的近似球形包络，可能误判可行；不是精确的圆盘-三角面相交计算。",
+    "砂轮没有轴向厚度，结果不能代表有限宽度砂轮的侧面干涉结论。",
+    "结果使用 normalized units，不能直接解释为毫米加工公差。"
+  ]
+}
