@@ -21,6 +21,7 @@ def export_feasible_centers_obj(
     radius: float,
     delta: float,
     units: str = "normalized",
+    coordinate_transform: dict[str, Any] | None = None,
 ) -> Path:
     """导出根部线和可行砂轮中心点。
 
@@ -51,6 +52,10 @@ def export_feasible_centers_obj(
     if len(branch_ids) != len(curve_points):
         raise ValueError("根部线点和分支编号长度不一致")
 
+    # 算法在 normalized 坐标中计算；导出时可逆变换回原始 OBJ 坐标，
+    # 从而让本文件能与 mesh_with_flash.obj 在 MeshLab 中直接叠加。
+    coordinate_scale, coordinate_center = _parse_coordinate_transform(coordinate_transform)
+
     # 先按目标点收集可行中心的 OBJ 全局编号，随后再写 p 原语。
     feasible_indices = np.flatnonzero(feasible)
     point_to_obj_indices: dict[int, list[int]] = {}
@@ -67,17 +72,18 @@ def export_feasible_centers_obj(
         handle.write("# FeiLunQieGe feasible-center export\n")
         handle.write(f"# units: {units}\n")
         handle.write("# wheel_model: zero_thickness_disk\n")
-        handle.write(f"# radius: {radius:.12g}\n")
-        handle.write(f"# delta: {delta:.12g}\n")
+        handle.write(f"# radius: {radius * coordinate_scale:.12g}\n")
+        handle.write(f"# delta: {delta * coordinate_scale:.12g}\n")
         handle.write(f"# root_line_vertex_count: {len(curve_points)}\n")
         handle.write(f"# feasible_center_count: {len(feasible_indices)}\n")
         handle.write("# p primitives are feasible wheel-center points; l primitives are sampled root-line segments.\n")
+        _write_coordinate_metadata(handle, coordinate_transform)
 
         # 根部线使用 l 原语保留分支的连续关系，分支之间不会被错误连接。
         handle.write("o root_line\n")
         handle.write("g root_line\n")
         for point in curve_points:
-            handle.write(_vertex_line(point))
+            handle.write(_vertex_line(_to_export_coordinates(point, coordinate_scale, coordinate_center)))
         for start, end in _branch_runs(branch_ids):
             for index in range(start, end - 1):
                 handle.write(f"l {index + 1} {index + 2}\n")
@@ -86,7 +92,9 @@ def export_feasible_centers_obj(
         handle.write("o feasible_centers\n")
         handle.write("g feasible_centers\n")
         for candidate_index in feasible_indices:
-            handle.write(_vertex_line(centers[candidate_index]))
+            handle.write(
+                _vertex_line(_to_export_coordinates(centers[candidate_index], coordinate_scale, coordinate_center))
+            )
         for point_index in sorted(point_to_obj_indices):
             handle.write(f"g feasible_centers_point_{point_index:06d}\n")
             indices = point_to_obj_indices[point_index]
@@ -133,6 +141,41 @@ def _vertex_line(point: Any) -> str:
     return f"v {x:.12g} {y:.12g} {z:.12g}\n"
 
 
+def _parse_coordinate_transform(transform: dict[str, Any] | None) -> tuple[float, np.ndarray]:
+    """校验计算坐标到导出坐标的均匀缩放/平移变换。"""
+
+    if transform is None:
+        return 1.0, np.zeros(3, dtype=float)
+    scale = float(transform["scale"])
+    center = np.asarray(transform["center"], dtype=float)
+    if not np.isfinite(scale) or scale <= 0:
+        raise ValueError("coordinate_transform.scale 必须是正的有限数")
+    if center.shape != (3,) or not np.all(np.isfinite(center)):
+        raise ValueError("coordinate_transform.center 必须是三个有限坐标")
+    return scale, center
+
+
+def _to_export_coordinates(point: Any, scale: float, center: np.ndarray) -> np.ndarray:
+    """执行 source = normalized * scale + center，不修改算法内存中的数组。"""
+
+    return np.asarray(point, dtype=float) * scale + center
+
+
+def _write_coordinate_metadata(handle: Any, transform: dict[str, Any] | None) -> None:
+    """将 OBJ 的实际坐标系写入文件头，防止查看时再次混用坐标框架。"""
+
+    if transform is None:
+        handle.write("# coordinate_frame: computation_normalized\n")
+        return
+    scale, center = _parse_coordinate_transform(transform)
+    handle.write("# coordinate_frame: source_obj\n")
+    handle.write("# computation_frame: normalized_bbox_longest_side\n")
+    handle.write(
+        "# source_transform: source = normalized * "
+        f"{scale:.12g} + [{center[0]:.12g}, {center[1]:.12g}, {center[2]:.12g}]\n"
+    )
+
+
 def export_feasible_centers_display_obj(
     sampled_curve: Any,
     decisions: Any,
@@ -141,6 +184,7 @@ def export_feasible_centers_display_obj(
     radius: float,
     delta: float,
     units: str = "normalized",
+    coordinate_transform: dict[str, Any] | None = None,
     max_markers: int = 5000,
     marker_radius_factor: float = 0.08,
 ) -> Path:
@@ -165,11 +209,14 @@ def export_feasible_centers_display_obj(
     if marker_radius_factor <= 0:
         raise ValueError("marker_radius_factor 必须为正数")
 
+    # 所有位置和显示代理尺寸使用同一均匀逆变换，避免红色八面体与原始模型错位。
+    coordinate_scale, coordinate_center = _parse_coordinate_transform(coordinate_transform)
+
     feasible_indices = np.flatnonzero(feasible)
     marker_indices = _evenly_spaced_indices(feasible_indices, max_markers)
     outer_indices = np.flatnonzero(feasible & np.isclose(radial_values, radius))
     outer_obj_index: dict[int, int] = {}
-    marker_radius = float(radius) * float(marker_radius_factor)
+    marker_radius = float(radius) * float(marker_radius_factor) * coordinate_scale
     mtl_path = output.with_suffix(".mtl")
     _write_visualization_mtl(mtl_path)
 
@@ -178,14 +225,15 @@ def export_feasible_centers_display_obj(
             handle,
             mtl_path.name,
             units=units,
-            radius=radius,
-            delta=delta,
+            radius=radius * coordinate_scale,
+            delta=delta * coordinate_scale,
             description="display proxy: sampled feasible centers as octahedron faces",
         )
+        _write_coordinate_metadata(handle, coordinate_transform)
         # 根部线保留为 l 原语，便于把红色中心与真实目标位置对应起来。
         handle.write("o root_line\nusemtl root_line\ng root_line\n")
         for point in curve_points:
-            handle.write(_vertex_line(point))
+            handle.write(_vertex_line(_to_export_coordinates(point, coordinate_scale, coordinate_center)))
         for start, end in _branch_runs(branch_ids):
             for index in range(start, end - 1):
                 handle.write(f"l {index + 1} {index + 2}\n")
@@ -195,7 +243,9 @@ def export_feasible_centers_display_obj(
         next_vertex = len(curve_points) + 1
         for candidate_index in outer_indices:
             outer_obj_index[int(candidate_index)] = next_vertex
-            handle.write(_vertex_line(centers[candidate_index]))
+            handle.write(
+                _vertex_line(_to_export_coordinates(centers[candidate_index], coordinate_scale, coordinate_center))
+            )
             next_vertex += 1
         for point_index in range(len(curve_points)):
             local = outer_indices[point_indices[outer_indices] == point_index]
@@ -214,7 +264,7 @@ def export_feasible_centers_display_obj(
         for candidate_index in marker_indices:
             next_vertex = _write_octahedron(
                 handle,
-                centers[candidate_index],
+                _to_export_coordinates(centers[candidate_index], coordinate_scale, coordinate_center),
                 candidates.tangent_directions[candidate_index],
                 candidates.radius_directions[candidate_index],
                 candidates.axis_directions[candidate_index],
@@ -233,6 +283,7 @@ def export_local_feasible_centers_obj(
     radius: float,
     delta: float,
     units: str = "normalized",
+    coordinate_transform: dict[str, Any] | None = None,
     point_index: int | None = None,
     marker_radius_factor: float = 0.15,
 ) -> Path:
@@ -258,9 +309,12 @@ def export_local_feasible_centers_obj(
     if len(local_indices) == 0:
         raise ValueError("选定采样点没有候选中心")
 
+    # 局部 OBJ 与全局 OBJ 使用相同导出坐标系，方便与原始工件直接叠加。
+    coordinate_scale, coordinate_center = _parse_coordinate_transform(coordinate_transform)
+
     mtl_path = output.with_suffix(".mtl")
     _write_visualization_mtl(mtl_path)
-    marker_radius = float(radius) * float(marker_radius_factor)
+    marker_radius = float(radius) * float(marker_radius_factor) * coordinate_scale
     target = curve_points[int(point_index)]
     next_vertex = 1
     with output.open("w", encoding="utf-8", newline="\n") as handle:
@@ -268,15 +322,16 @@ def export_local_feasible_centers_obj(
             handle,
             mtl_path.name,
             units=units,
-            radius=radius,
-            delta=delta,
+            radius=radius * coordinate_scale,
+            delta=delta * coordinate_scale,
             description=f"local display proxy for sampled target point {point_index}",
         )
+        _write_coordinate_metadata(handle, coordinate_transform)
         # 目标接触点使用黑色八面体，避免在大量候选中心中找不到原点。
         handle.write(f"o target_point_{point_index:06d}\nusemtl target_point\ng target_point\n")
         next_vertex = _write_octahedron(
             handle,
-            target,
+            _to_export_coordinates(target, coordinate_scale, coordinate_center),
             np.array([1.0, 0.0, 0.0]),
             np.array([0.0, 1.0, 0.0]),
             np.array([0.0, 0.0, 1.0]),
@@ -293,7 +348,7 @@ def export_local_feasible_centers_obj(
             for candidate_index in local_indices[mask[local_indices]]:
                 next_vertex = _write_octahedron(
                     handle,
-                    centers[candidate_index],
+                    _to_export_coordinates(centers[candidate_index], coordinate_scale, coordinate_center),
                     candidates.tangent_directions[candidate_index],
                     candidates.radius_directions[candidate_index],
                     candidates.axis_directions[candidate_index],
@@ -308,7 +363,9 @@ def export_local_feasible_centers_obj(
         outer_vertex_ids: dict[int, int] = {}
         for candidate_index in outer:
             outer_vertex_ids[int(candidate_index)] = next_vertex
-            handle.write(_vertex_line(centers[candidate_index]))
+            handle.write(
+                _vertex_line(_to_export_coordinates(centers[candidate_index], coordinate_scale, coordinate_center))
+            )
             next_vertex += 1
         if len(outer) > 1:
             angle_step = _angle_step(angles[local_indices])

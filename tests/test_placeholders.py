@@ -78,6 +78,7 @@ def test_obj_export_contains_root_line_and_feasible_points() -> None:
         "__cache__/test_feasible_centers.obj",
         radius=1.0,
         delta=0.1,
+        coordinate_transform={"scale": 10.0, "center": [10.0, 20.0, 30.0]},
     )
     text = output.read_text(encoding="utf-8")
     assert "g root_line" in text
@@ -85,6 +86,10 @@ def test_obj_export_contains_root_line_and_feasible_points() -> None:
     assert "p 3 4" in text
     assert "g feasible_center_arcs" in text
     assert "l 3 4" in text
+    assert "# coordinate_frame: source_obj" in text
+    assert "# radius: 10" in text
+    assert "v 10 20 30" in text
+    assert "v 10 30 30" in text
 
 
 def test_display_and_local_obj_exports_contain_visible_faces() -> None:
@@ -115,18 +120,34 @@ def test_display_and_local_obj_exports_contain_visible_faces() -> None:
         method="test",
         candidates=candidates,
     )
+    transform = {"scale": 2.0, "center": [3.0, 4.0, 5.0]}
     display = export_feasible_centers_display_obj(
-        sampled, decisions, "__cache__/test_display.obj", radius=1.0, delta=0.1
+        sampled,
+        decisions,
+        "__cache__/test_display.obj",
+        radius=1.0,
+        delta=0.1,
+        coordinate_transform=transform,
     )
     local = export_local_feasible_centers_obj(
-        sampled, decisions, "__cache__/test_local.obj", radius=1.0, delta=0.1, point_index=0
+        sampled,
+        decisions,
+        "__cache__/test_local.obj",
+        radius=1.0,
+        delta=0.1,
+        coordinate_transform=transform,
+        point_index=0,
     )
     display_text = display.read_text(encoding="utf-8")
     local_text = local.read_text(encoding="utf-8")
     assert "mtllib test_display.mtl" in display_text
     assert "f " in display_text
+    assert "# coordinate_frame: source_obj" in display_text
+    assert "v 3 4 5" in display_text
     assert "o feasible_candidates" in local_text
     assert "o rejected_candidates" in local_text
+    assert "# coordinate_frame: source_obj" in local_text
+    assert "v 3 4 5" in local_text
 
 
 def test_interactive_demo_contains_selected_points_and_local_script() -> None:

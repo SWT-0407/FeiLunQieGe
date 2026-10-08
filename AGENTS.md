@@ -10,7 +10,7 @@
 - 当前已实现一个最小几何闭环：读取 ASCII `root_line.ply` 和 OBJ 工件网格，生成无厚度砂轮候选，执行基于表面采样点的近似筛选，并输出独立运行目录、全局总览图、局部半径解释图、JSON 摘要和可由 MeshLab 直接打开的 OBJ。运行目录不覆盖旧结果。精确 OBJ 中 `p` 表示可行中心点，`l` 表示采样根部线或离散可行弧，不是带厚度的砂轮实体网格；另有带三角面标记的全局/局部显示代理 OBJ，不能代替精确数据。未获明确授权不得扩展为更复杂的实体碰撞或工艺优化。
 - 当前还生成离线 `interactive_demo.html`：默认导出全部离散采样点，点击根部线投影中的点后，右侧显示该点局部法平面内的可行半径区域；`interactive_demo.max_points > 0` 可限制为少量演示点。它是交互式显示层，不改变精确 OBJ、JSON 或碰撞结果。
 - 交互页面中的“全红”只表示当前离散候选通过了近似碰撞筛选，不表示连续角度、精确三角面距离或有厚度砂轮一定安全。当前筛选使用工件表面顶点、三角形质心和边中点的离散采样加球形包络，可能漏检大三角面内部的碰撞；升级精确网格距离前，所有结果只能作为 preliminary geometry run。
-- 坐标使用输入数据的归一化单位，文档中写作 `normalized units`，不能擅自标注为毫米。
+- 算法计算坐标使用输入数据的归一化单位，文档中写作 `normalized units`，不能擅自标注为毫米。为了供 MeshLab 与原始 OBJ 叠加，`feasible_centers.obj`、`feasible_centers_display.obj` 和 `local_feasible_centers.obj` 必须在导出时逆变换为 `source_obj` 坐标，并在 OBJ 文件头和 JSON 摘要中明确标注；HTML 与 PNG 保持 normalized 计算坐标。
 - 批量运行默认在内存中对每个工件及其 `root_line` 施加同一个包围盒最长边归一化变换；原始材料不改写，变换中心、尺度和源包围盒必须进入 JSON 摘要。
 
 ## 当前模型约定
@@ -36,6 +36,7 @@
 - 每个案例的每次运行放在自己的 `run_YYYYMMDD_HHMMSS/` 目录中，不覆盖旧运行结果。
 - 每个案例至少应有一个精确可行中心 OBJ 和一个交互 HTML；原始模型继续从父目录材料引用，不复制进仓库。
 - 每次运行还可生成 `feasible_centers_display.obj` 和 `local_feasible_centers.obj` 两个 MeshLab 显示代理；它们用八面体/局部标记增强可见性，不能替代精确 `feasible_centers.obj`。
+- 修改坐标变换或 OBJ 导出后，必须运行 `python scripts/audit_meshlab_alignment.py --config configs/default.json`；它逐例比较导出 OBJ 的 root_line 与原始 PLY。审计通过只说明叠加坐标一致，不能替代碰撞或工艺验收。
 - `scripts/run_all_cases.py` 按顺序批量运行 12 个案例；当前 12 个案例均已生成一套本地结果。每个案例的网格在独立调用结束后释放，输出仍分别写入自己的 `run_YYYYMMDD_HHMMSS/` 目录。
 - 批处理完成后在 `results/batches/batch_*/` 写入 JSON 和 CSV 汇总，集中记录各案例半径选择、可行率、无解点数和结果路径；批次目录同样不覆盖旧结果。
 - 运行结果目录、OBJ、HTML、MTL 和 PNG 默认被 `.gitignore` 排除，不得因为批量完成就强制加入普通 Git 历史；GitHub 只同步代码、配置和文档，结果通过本机路径和 JSON 摘要审计。

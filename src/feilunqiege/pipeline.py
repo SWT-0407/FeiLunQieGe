@@ -131,7 +131,8 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         obj_path,
         radius=candidates.radius,
         delta=float(wheel["delta"]),
-        units=str(config["units"]),
+        units="source_obj coordinates (derived from normalized computation)",
+        coordinate_transform=normalization,
     )
 
     # 额外导出带三角标记的全局显示代理，避免 MeshLab 中 p 点过小而难以辨认。
@@ -142,7 +143,8 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         display_obj_path,
         radius=candidates.radius,
         delta=float(wheel["delta"]),
-        units=str(config["units"]),
+        units="source_obj coordinates (derived from normalized computation)",
+        coordinate_transform=normalization,
     )
 
     # 额外导出单个目标点的局部 OBJ；单独打开后 Fit View 即可查看放大结果。
@@ -153,7 +155,8 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         local_obj_path,
         radius=candidates.radius,
         delta=float(wheel["delta"]),
-        units=str(config["units"]),
+        units="source_obj coordinates (derived from normalized computation)",
+        coordinate_transform=normalization,
     )
 
     # 生成少量采样点可点击的离线 HTML，先用于人工验收交互方式。
@@ -251,6 +254,12 @@ def _build_summary(
             "root_line": str(Path(config["data_root"]) / config["case_name"] / config["inputs"]["root_line"]),
             "root_line_vertex_count": int(len(root_line.vertices)),
         },
+        "coordinate_frames": {
+            "computation": "normalized_bbox_longest_side",
+            "meshlab_obj_export": "source_obj; directly overlay with the original case OBJ files",
+            "interactive_html_and_png": "normalized computation coordinates",
+            "source_transform": "source = normalized * scale + center",
+        },
         "parameters": {
             "radius": candidates.radius,
             "delta": float(config["wheel"]["delta"]),
@@ -275,6 +284,7 @@ def _build_summary(
         "local_feasible_centers_obj": str(relative_output_root / local_obj_path.name),
         "interactive_demo_html": str(relative_output_root / interactive_demo_path.name),
         "obj_contents": [
+            "all OBJ vertex coordinates are exported back to source_obj coordinates for MeshLab overlay",
             "sampled root-line vertices and l line primitives",
             "feasible wheel-center vertices and p point primitives grouped by target point",
             "outer-radius feasible-center arcs as l line primitives",
@@ -285,7 +295,7 @@ def _build_summary(
         "limitations": [
             "碰撞筛选使用工件表面采样点的近似球形包络，可能误判可行；不是精确的圆盘-三角面相交计算。",
             "砂轮没有轴向厚度，结果不能代表有限宽度砂轮的侧面干涉结论。",
-            "结果使用 normalized units，不能直接解释为毫米加工公差。",
+            "算法计算使用 normalized units，不能直接解释为毫米加工公差；MeshLab OBJ 仅为便于叠加而逆变换到 source_obj 坐标。",
         ],
     }
 

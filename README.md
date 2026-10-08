@@ -19,7 +19,7 @@
 ## 当前约定
 
 - `root_line.ply` 暂按飞边与工件本体的根部交线处理，而不是把它当作完整飞边实体。所有有效顶点都应参与分析；多个连通分支应分别保留，不能静默丢弃。
-- 坐标统一使用 normalized units。批量运行时在内存中将每个工件和对应 `root_line` 共同变换为“工件包围盒中心为原点、最长边为 1”；原始 OBJ/PLY 不修改，具体中心、尺度和源包围盒写入每个案例的 JSON 摘要。
+- 算法计算统一使用 normalized units。批量运行时在内存中将每个工件和对应 `root_line` 共同变换为“工件包围盒中心为原点、最长边为 1”；原始 OBJ/PLY 不修改，具体中心、尺度和源包围盒写入每个案例的 JSON 摘要。为能在 MeshLab 直接叠加原始工件，三个输出 OBJ 会在写入时逆变换回 `source_obj` 坐标；HTML 和 PNG 仍使用 normalized 计算坐标，不能与原始 OBJ 直接叠加。
 - 初版砂轮采用**无厚度圆盘**模型，以减少实现量并验证中心候选和碰撞筛选流程。厚度 `w`、有限圆柱和圆角砂轮只预留接口。
 - `delta` 是归一化单位下的径向候选区间参数，不直接解释为毫米加工公差。
 - `mesh_without_flash.obj` 是默认碰撞对象，但仍需用小案例人工核对其含义和坐标范围。
@@ -82,7 +82,7 @@ python scripts/run_all_cases.py --config configs/default.json --continue-on-erro
 - `results/cases/<case_name>/run_.../feasible_centers_summary.json`：参数、计数、角区间、输入和限制的审计摘要；
 - `results/cases/<case_name>/run_.../interactive_demo.html`：全部离散采样点可点击的离线交互页面。
 
-OBJ 文件使用 normalized units，不是砂轮实体网格，也不代表厚度碰撞结果。文件中除了 `p` 点以外，还会把外圈相邻可行中心写成 `l` 线段，因此 MeshLab 即使没有打开顶点显示，也能看到可行圆弧。若要查看密集的中心点，选中图层后在右侧渲染面板把 `Vert` 从 `None` 改成点显示并适当增大点尺寸。若只想查看工件本体，仍应单独打开外部的 `mesh_without_flash.obj`。当前碰撞筛选方法是工件表面顶点、三角形质心和边中点构成的离散采样近似，并用球形包络估计安全距离，可能误判可行；结果摘要会明确记录这一限制。
+三个 OBJ 文件使用 `source_obj` 坐标，可与同一案例原始目录中的 `mesh_with_flash.obj` 或 `mesh_without_flash.obj` 直接叠加；它们的文件头有 `coordinate_frame: source_obj` 和逆变换参数。算法本身仍使用 normalized units，OBJ 不是砂轮实体网格，也不代表厚度碰撞结果。文件中除了 `p` 点以外，还会把外圈相邻可行中心写成 `l` 线段，因此 MeshLab 即使没有打开顶点显示，也能看到可行圆弧。若要查看密集的中心点，选中图层后在右侧渲染面板把 `Vert` 从 `None` 改成点显示并适当增大点尺寸。当前碰撞筛选方法是工件表面顶点、三角形质心和边中点构成的离散采样近似，并用球形包络估计安全距离，可能误判可行；结果摘要会明确记录这一限制。
 
 ### 当前碰撞判定的阅读边界
 
@@ -101,7 +101,15 @@ OBJ 文件使用 normalized units，不是砂轮实体网格，也不代表厚�
 
 局部 PNG 才用于读取单点的可行半径区域：黑点是目标点，圆心到候选点的距离是 `rho`；黑色实线为 `rho=r`，蓝色虚线为 `rho=r-delta`；橙色点/粗弧表示通过当前碰撞近似筛选的候选。右图只把外圈 `rho=r` 上的离散可行点连接起来，所以它是“可行圆弧”的可读表达，不是实体砂轮。
 
-MeshLab 中直接打开 OBJ 时，先按 `Ctrl+Shift+A` 或工具栏的适合视图按钮将模型置中，再在右侧图层面板选中 `feasible_centers`。如果只看到线段，说明当前显示的是 `l` 线原语；这仍然能检查根部线和可行弧。要看 `p` 中心点，开启 `Vert` 点显示并调大点尺寸。由于文件同时包含根部线、可行中心和可行弧，MeshLab 适合检查位置关系，而局部 PNG 更适合检查 `r`、`delta` 和角区间。
+MeshLab 中应先打开同一案例的原始 `mesh_with_flash.obj`，再通过 `File > Import Mesh...` 加载同一运行目录的 `feasible_centers_display.obj`；两者现在同为 `source_obj` 坐标，不能再对任一图层执行缩放或平移。随后按 `Ctrl+Shift+A` 或工具栏的适合视图按钮置中，再在右侧图层面板选中 `feasible_centers_display`。蓝线是输入根部交线，红色八面体和橙色线是可行中心显示代理；它们应贴近蓝线和飞边根部。若只看到线段，说明当前显示的是 `l` 线原语；这仍然能检查根部线和可行弧。要看 `p` 中心点，开启 `Vert` 点显示并调大点尺寸。局部 PNG/HTML 更适合检查 normalized 坐标下的 `r`、`delta` 和角区间。
+
+可重复执行的坐标叠加审计：
+
+```powershell
+python scripts/audit_meshlab_alignment.py --config configs/default.json
+```
+
+该脚本只检查 OBJ 是否回到输入 `root_line.ply` 的 `source_obj` 坐标，不验证碰撞近似或真实加工可行性。
 
 后续精化前仍需要确认：
 
