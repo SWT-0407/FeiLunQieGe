@@ -20,6 +20,7 @@ def export_interactive_demo_html(
     *,
     radius: float,
     delta: float,
+    width: float = 0.0,
     units: str = "normalized",
     max_demo_points: int = 0,
 ) -> Path:
@@ -47,6 +48,7 @@ def export_interactive_demo_html(
     radial_values = np.asarray(candidates.radial_values, dtype=float)
     angles = np.asarray(candidates.angles, dtype=float)
     clearance = np.asarray(decisions.clearance, dtype=float)
+    reasons = np.asarray(decisions.reason, dtype=object) if decisions.reason is not None else np.full(len(feasible), "unknown", dtype=object)
     # 所有目标点共享同一组 rho/theta 网格，页面只保存一份，避免全点模式重复膨胀。
     candidate_rho = np.unique(radial_values)
     candidate_theta = np.unique(angles)
@@ -66,6 +68,10 @@ def export_interactive_demo_html(
                     # 按生成顺序压缩成 0/1 字符串，1 表示可行，0 表示不可行。
                     "feasible": "".join("1" if value else "0" for value in feasible[mask]),
                     "minimum_clearance": float(clearance[mask].min()) if mask.any() else None,
+                    "reason_counts": {
+                        str(reason): int(count)
+                        for reason, count in zip(*np.unique(reasons[mask], return_counts=True), strict=True)
+                    },
                 },
             }
         )
@@ -75,6 +81,8 @@ def export_interactive_demo_html(
         "units": units,
         "radius": float(radius),
         "delta": float(delta),
+        "width": float(width),
+        "tool_model": "finite_cylinder" if width > 0 else "zero_thickness_disk",
         "candidate_rho": [float(value) for value in candidate_rho],
         "candidate_theta": [float(value) for value in candidate_theta],
         "root_line_xz": [[float(point[0]), float(point[2])] for point in points],
@@ -159,7 +167,7 @@ def _render_html(payload: dict[str, Any]) -> str:
 </head>
 <body>
   <h1>砂轮可行中心交互演示</h1>
-  <p class="subtitle">根部线上的离散采样点均可点击。单位：<span id="units"></span>。红色候选为可行中心，灰色候选为碰撞筛除中心。</p>
+  <p class="subtitle">根部线上的离散采样点均可点击。单位：<span id="units"></span>；有限砂轮宽度：<span id="width"></span>。红色候选为可行中心，灰色候选为碰撞筛除中心。</p>
   <div class="layout">
     <section class="panel">
       <h2>根部线投影：点击橙色采样点</h2>
@@ -312,7 +320,8 @@ def _render_html(payload: dict[str, Any]) -> str:
       const details = document.getElementById("details");
       const feasibleCount = [...local.feasible].filter(value => value === "1").length;
       const minimum = local.minimum_clearance;
-      details.textContent = `采样点 ${{point.index}}；分支 ${{point.branch_id}}；弧长位置 ${{point.arc_length.toFixed(5)}}；可行候选 ${{feasibleCount}}/${{local.feasible.length}}；最小候选余量 ${{minimum.toFixed(6)}} ${{DATA.units}}`;
+      const reasonText = Object.entries(local.reason_counts || {{}}).map(([key, value]) => key + ":" + value).join("；");
+      details.textContent = `采样点 ${{point.index}}；分支 ${{point.branch_id}}；弧长位置 ${{point.arc_length.toFixed(5)}}；可行候选 ${{feasibleCount}}/${{local.feasible.length}}；最小候选余量 ${{minimum.toFixed(6)}} ${{DATA.units}}；宽度 ${{DATA.width}}；状态统计：${{reasonText}}`;
     }}
 
     function selectPoint(index) {{
@@ -355,6 +364,7 @@ def _render_html(payload: dict[str, Any]) -> str:
     }}
 
     document.getElementById("units").textContent = DATA.units;
+    document.getElementById("width").textContent = DATA.width + " " + DATA.units;
     buildPointButtons();
     drawRoot();
     drawLocal();

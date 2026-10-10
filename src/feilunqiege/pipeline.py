@@ -7,8 +7,13 @@ from typing import Any
 
 import json
 from datetime import datetime
+import numpy as np
 
-from feilunqiege.collision.checker import build_collision_index, check_candidates
+from feilunqiege.collision.checker import (
+    build_collision_index,
+    check_candidates,
+    check_finite_cylinder_candidates,
+)
 from feilunqiege.geometry.curve import split_and_resample
 from feilunqiege.geometry.frame import build_frames
 from feilunqiege.io.mesh import load_mesh
@@ -18,12 +23,15 @@ from feilunqiege.visualization.export_obj import (
     export_feasible_centers_display_obj,
     export_feasible_centers_obj,
     export_local_feasible_centers_obj,
+    export_pose_examples_obj,
 )
 from feilunqiege.visualization.interactive import export_interactive_demo_html
 from feilunqiege.visualization.plot import (
     plot_feasible_centers,
     plot_local_feasibility_explanation,
     plot_workpiece_orientation_guide,
+    plot_finite_wheel_pose_overview,
+    plot_pose_example,
 )
 
 
@@ -81,11 +89,23 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     )
 
     # 当前使用表面采样点的保守球形包络做快速碰撞筛选，结果必须标注为近似。
-    collisions = check_candidates(
+    baseline_collisions = check_candidates(
         candidates,
         workpiece,
         float(config["collision"]["clearance"]),
         collision_index=collision_index,
+    )
+    width = float(wheel.get("width") or 0.0)
+    if width <= 0:
+        raise ValueError("第二阶段要求 wheel.width 为正数")
+    collisions = check_finite_cylinder_candidates(
+        candidates,
+        workpiece,
+        float(config["collision"]["clearance"]),
+        width,
+        collision_index=collision_index,
+        nearest_samples=int(config["collision"].get("finite_nearest_samples", 12)),
+        chunk_size=int(config["collision"].get("finite_chunk_size", 20000)),
     )
     # 每次运行建立独立目录，避免用户正在 MeshLab/图片查看器中打开旧文件时
     # Windows 锁住目标文件，也避免新的实验覆盖旧结果；旧目录绝不删除。
@@ -122,6 +142,29 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         orientation_path,
         max_surface_faces=int(config.get("visualization", {}).get("max_surface_faces", 20000)),
     )
+
+    pose_overview_path = output_root / config["outputs"]["pose_overview_image"]
+    plot_finite_wheel_pose_overview(
+        sampled,
+        collisions,
+        pose_overview_path,
+        width=width,
+        workpiece_mesh=workpiece,
+        max_surface_faces=int(config.get("visualization", {}).get("max_surface_faces", 20000)),
+    )
+    feasible_indices = np.flatnonzero(np.asarray(collisions.feasible, dtype=bool))
+    collision_indices = np.flatnonzero(~np.asarray(collisions.feasible, dtype=bool))
+    pose_feasible_path = output_root / config["outputs"]["pose_feasible_image"]
+    pose_collision_path = output_root / config["outputs"]["pose_collision_image"]
+    pose_examples = {}
+    if len(feasible_indices):
+        pose_examples["feasible"] = int(feasible_indices[0])
+        plot_pose_example(sampled, collisions, pose_feasible_path, candidate_index=int(feasible_indices[0]), width=width, workpiece_mesh=workpiece, title="Representative feasible finite wheel pose")
+    if len(collision_indices):
+        pose_examples["collision"] = int(collision_indices[0])
+        plot_pose_example(sampled, collisions, pose_collision_path, candidate_index=int(collision_indices[0]), width=width, workpiece_mesh=workpiece, title="Representative collision finite wheel pose")
+    pose_obj_path = output_root / config["outputs"]["pose_examples_obj"]
+    export_pose_examples_obj(collisions, pose_obj_path, candidate_indices=pose_examples, width=width, coordinate_transform=normalization)
 
     # 输出 MeshLab 可直接打开的 OBJ：l 是根部线，p 是可行砂轮中心点。
     obj_path = output_root / config["outputs"]["feasible_centers_obj"]
@@ -169,6 +212,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         delta=float(wheel["delta"]),
         units=str(config["units"]),
         max_demo_points=int(config["interactive_demo"]["max_points"]),
+        width=width,
     )
 
     # 最后写入 JSON 审计摘要，记录参数、计数、输出文件和当前方法边界。
@@ -189,6 +233,13 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         repo_root,
         normalization,
         radius_selection,
+        baseline_collisions,
+        pose_overview_path,
+        pose_feasible_path,
+        pose_collision_path,
+        pose_examples,
+        width,
+        pose_obj_path,
     )
     summary_path = output_root / config["outputs"]["summary_json"]
     summary_path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,6 +264,13 @@ def _build_summary(
     repo_root: Path,
     normalization: dict[str, Any],
     radius_selection: dict[str, Any],
+    baseline_collisions: Any,
+    pose_overview_path: Path,
+    pose_feasible_path: Path,
+    pose_collision_path: Path,
+    pose_examples: dict[str, int],
+    width: float,
+    pose_obj_path: Path,
 ) -> dict[str, Any]:
     """生成可审计的 JSON 摘要。"""
 
@@ -244,11 +302,14 @@ def _build_summary(
     feasible_count = int(np.asarray(collisions.feasible).sum())
     # 统一把输出路径写成相对仓库根目录的路径，便于复制摘要或跨机器查看。
     relative_output_root = output_root.relative_to(repo_root)
+    reason_values = np.asarray(collisions.reason, dtype=object) if collisions.reason is not None else np.full(len(collisions.feasible), "unknown", dtype=object)
+    reason_counts = {str(key): int(value) for key, value in zip(*np.unique(reason_values, return_counts=True), strict=True)}
     return {
         "status": "preliminary_geometry_run",
         "units": config["units"],
         "tool_model": config["tool_model"],
         "collision_method": collisions.method,
+        "baseline_collision_method": baseline_collisions.method,
         "case_name": config["case_name"],
         "inputs": {
             "root_line": str(Path(config["data_root"]) / config["case_name"] / config["inputs"]["root_line"]),
@@ -263,6 +324,7 @@ def _build_summary(
         "parameters": {
             "radius": candidates.radius,
             "delta": float(config["wheel"]["delta"]),
+            "width": width,
             "curve_points": int(len(sampled.points)),
             "candidate_angles": int(config["sampling"]["candidate_angles"]),
             "radial_samples": int(config["sampling"]["radial_samples"]),
@@ -271,14 +333,22 @@ def _build_summary(
             "radius_selection": radius_selection,
             "source_coordinate_equivalent_radius": candidates.radius * float(normalization["scale"]),
             "source_coordinate_equivalent_delta": float(config["wheel"]["delta"]) * float(normalization["scale"]),
+            "source_coordinate_equivalent_width": width * float(normalization["scale"]),
         },
         "candidate_count": int(len(candidates.centers)),
         "feasible_candidate_count": feasible_count,
         "feasible_ratio": feasible_count / len(candidates.centers) if len(candidates.centers) else 0.0,
+        "baseline_feasible_ratio": float(np.asarray(baseline_collisions.feasible, dtype=bool).mean()) if len(baseline_collisions.feasible) else 0.0,
+        "collision_reason_counts": reason_counts,
+        "pose_examples": pose_examples,
         "output_directory": str(relative_output_root),
         "overview_image": str(relative_output_root / image_path.name),
         "local_explanation_image": str(relative_output_root / local_explanation_path.name),
         "orientation_guide_image": str(relative_output_root / orientation_path.name),
+        "pose_overview_image": str(relative_output_root / pose_overview_path.name),
+        "pose_feasible_image": str(relative_output_root / pose_feasible_path.name),
+        "pose_collision_image": str(relative_output_root / pose_collision_path.name),
+        "pose_examples_obj": str(relative_output_root / pose_obj_path.name),
         "feasible_centers_obj": str(relative_output_root / obj_path.name),
         "feasible_centers_display_obj": str(relative_output_root / display_obj_path.name),
         "local_feasible_centers_obj": str(relative_output_root / local_obj_path.name),
@@ -293,8 +363,8 @@ def _build_summary(
         ],
         "per_point": per_point,
         "limitations": [
-            "碰撞筛选使用工件表面采样点的近似球形包络，可能误判可行；不是精确的圆盘-三角面相交计算。",
-            "砂轮没有轴向厚度，结果不能代表有限宽度砂轮的侧面干涉结论。",
+            "第一阶段 spherical-envelope 结果作为 baseline_collision_method 保留；主结果使用有限圆柱表面采样，仍可能漏检三角面内部。",
+            "有限圆柱碰撞原因和见证点来自 sampled_surface_nearest，不是精确实体布尔碰撞。",
             "算法计算使用 normalized units，不能直接解释为毫米加工公差；MeshLab OBJ 仅为便于叠加而逆变换到 source_obj 坐标。",
         ],
     }

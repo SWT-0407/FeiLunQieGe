@@ -71,7 +71,7 @@ def export_feasible_centers_obj(
     with output.open("w", encoding="utf-8", newline="\n") as handle:
         handle.write("# FeiLunQieGe feasible-center export\n")
         handle.write(f"# units: {units}\n")
-        handle.write("# wheel_model: zero_thickness_disk\n")
+        handle.write("# wheel_model: finite_cylinder_collision_result_center_export\n")
         handle.write(f"# radius: {radius * coordinate_scale:.12g}\n")
         handle.write(f"# delta: {delta * coordinate_scale:.12g}\n")
         handle.write(f"# root_line_vertex_count: {len(curve_points)}\n")
@@ -120,6 +120,58 @@ def export_feasible_centers_obj(
                 if first > 0 and second > 0:
                     handle.write(f"l {first} {second}\n")
 
+    return output
+
+
+def export_pose_examples_obj(
+    decisions: Any,
+    output_path: str | Path,
+    *,
+    candidate_indices: dict[str, int],
+    width: float,
+    coordinate_transform: dict[str, Any] | None = None,
+) -> Path:
+    """导出可行/碰撞代表姿态的有限圆柱代理，供 MeshLab 叠加工件检查。"""
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    candidates = decisions.candidates
+    if candidates is None:
+        raise ValueError("CollisionResult 缺少 candidates，无法导出姿态")
+    scale, center = _parse_coordinate_transform(coordinate_transform)
+
+    def export_point(point: np.ndarray) -> np.ndarray:
+        return np.asarray(point, dtype=float) * scale + center
+
+    with output.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write("# FeiLunQieGe finite wheel pose examples\n")
+        handle.write("# coordinate_frame: source_obj\n# units: source_obj coordinates\n")
+        handle.write(f"# width: {width * scale:.12g}\n")
+        next_vertex = 1
+        for label, candidate_index in candidate_indices.items():
+            if not 0 <= int(candidate_index) < len(candidates.centers):
+                continue
+            center_point = np.asarray(candidates.centers[int(candidate_index)], dtype=float)
+            radial = np.asarray(candidates.radius_directions[int(candidate_index)], dtype=float)
+            tangent = np.asarray(candidates.tangent_directions[int(candidate_index)], dtype=float)
+            axis = np.asarray(candidates.axis_directions[int(candidate_index)], dtype=float)
+            radius = float(candidates.radial_values[int(candidate_index)])
+            theta = np.linspace(0.0, 2.0 * np.pi, 32, endpoint=False)
+            vertices = []
+            for axial in (-width / 2.0, width / 2.0):
+                for angle in theta:
+                    point = center_point + radius * (np.cos(angle) * radial + np.sin(angle) * tangent) + axial * axis
+                    vertices.append(export_point(point))
+            handle.write(f"o pose_{label}\n")
+            for vertex in vertices:
+                handle.write(_vertex_line(vertex))
+            count = len(theta)
+            for ring in range(count):
+                following = (ring + 1) % count
+                a, b, c, d = next_vertex + ring, next_vertex + following, next_vertex + count + following, next_vertex + count + ring
+                handle.write(f"f {a} {b} {c} {d}\n")
+            next_vertex += 2 * count
+        _write_coordinate_metadata(handle, coordinate_transform)
     return output
 
 

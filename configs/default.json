@@ -10,11 +10,11 @@
   "normalization": {
     "mode": "bbox_longest_side_centered"
   },
-  "tool_model": "zero_thickness_disk",
+  "tool_model": "finite_cylinder",
   "wheel": {
     "radius": 0.02,
     "delta": 0.001,
-    "width": null,
+    "width": 0.004,
     "axis_mode": "free_about_curve_tangent"
   },
   "radius_selection": {
@@ -40,13 +40,20 @@
   "collision": {
     "clearance": 0.0,
     "allow_target_contact": true,
-    "check_flash_mesh": false
+    "check_flash_mesh": false,
+    "finite_nearest_samples": 12,
+    "finite_chunk_size": 20000
   },
   "outputs": {
     "directory": "results/cases",
     "overview_image": "feasible_centers_overview.png",
     "local_explanation_image": "local_feasibility_explanation.png",
     "orientation_guide_image": "workpiece_orientation_guide.png",
+    "pose_overview_image": "finite_wheel_pose_overview.png",
+    "pose_feasible_image": "pose_case_feasible.png",
+    "pose_collision_image": "pose_case_collision.png",
+    "pose_summary_json": "pose_collision_summary.json",
+    "pose_examples_obj": "pose_examples.obj",
     "summary_json": "feasible_centers_summary.json",
     "feasible_centers_obj": "feasible_centers.obj",
     "feasible_centers_display_obj": "feasible_centers_display.obj",

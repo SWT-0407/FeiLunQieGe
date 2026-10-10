@@ -41,3 +41,27 @@
 - 批处理完成后在 `results/batches/batch_*/` 写入 JSON 和 CSV 汇总，集中记录各案例半径选择、可行率、无解点数和结果路径；批次目录同样不覆盖旧结果。
 - 运行结果目录、OBJ、HTML、MTL 和 PNG 默认被 `.gitignore` 排除，不得因为批量完成就强制加入普通 Git 历史；GitHub 只同步代码、配置和文档，结果通过本机路径和 JSON 摘要审计。
 - 点编号从 `0` 开始：先按 PLY edge 连通关系拆分分支，再按分支内连接顺序排列，最后按分支顺序拼接；输出同时记录 `branch_id` 和弧长位置。
+
+## 第二阶段实施边界（有限厚度砂轮与姿态碰撞解释）
+
+本阶段按学长反馈“砂轮做成有厚度，并可视化不同位置姿态及碰撞形态”推进，实施顺序固定为：
+
+1. 增加有限圆柱砂轮数据结构和 `wheel.width` 配置；
+2. 实现 `finite_cylinder_surface_samples` 碰撞方法；
+3. 保留第一阶段无厚度方法，输出有限厚度与无厚度的并行对照；
+4. 为候选记录碰撞原因、最小余量和碰撞见证点；
+5. 增加两个局部姿态案例图（一个可行姿态、一个碰撞姿态）；
+6. 增加全局姿态状态图；
+7. 扩展离线交互 HTML，使其能够查看候选姿态、有限厚度砂轮和碰撞诊断；
+8. 只运行 `leaf` 和 `5pipe` 两个案例，检查代码、JSON、PNG、OBJ 和坐标对齐；
+9. 在人工验收前停止，不批量运行 12 个案例。人工确认通过后，才允许批量运行。
+
+### 第二阶段模型约定
+
+- 有限厚度砂轮采用圆柱模型：半径 `r`、轴向宽度 `w`、中心 `c_i`、径向 `e_i`、曲线切向 `t_i`、轴向 `a_i = normalize(t_i × e_i)`。
+- 圆柱表面采样只作为当前阶段的可解释近似，不得表述为精确实体布尔碰撞或真实加工安全结论。
+- `width`、`radius`、`delta`、`clearance` 和所有采样间距均使用 normalized units；不得直接标注为毫米。
+- 碰撞诊断至少区分 `safe`、`target_contact_only`、`wheel_outer_collision`、`wheel_side_collision` 和 `insufficient_clearance`；应记录最小余量及对应砂轮/工件见证点（若当前近似后端无法定位三角面内部，则明确标记为采样见证点）。
+- 有限厚度计算必须保留第一阶段 `approximate_surface_samples_spherical_envelope` 结果，允许并行比较但不得覆盖旧结果。
+- 新结果必须写入新的 `results/cases/<case>/run_YYYYMMDD_HHMMSS/` 目录；不得删除或覆盖任何旧文件。新 OBJ 仍需导出为 `source_obj` 坐标并通过 `scripts/audit_meshlab_alignment.py` 审计。
+- 本阶段人工验收重点是：MeshLab 中砂轮姿态与工件叠加是否直观、两个局部姿态案例的碰撞原因是否可信、全局状态图与 JSON 是否一致、交互页面是否能查看姿态。自动测试通过不等同于工艺验收。

@@ -80,7 +80,7 @@ def plot_feasible_centers(
     axis.set_xlabel("X (normalized units)")
     axis.set_ylabel("Y (normalized units)")
     axis.set_zlabel("Z (normalized units)")
-    axis.set_title(f"Global inspection view: zero-thickness wheel  r={radius:g}, delta={delta:g}")
+    axis.set_title(f"Global wheel-center inspection: r={radius:g}, delta={delta:g}")
     axis.legend(loc="upper left", fontsize=8)
     values = [points, feasible_centers]
     if workpiece_mesh is not None:
@@ -321,6 +321,132 @@ def _plot_boolean_arcs(axis: Any, angles: np.ndarray, feasible: np.ndarray, radi
                 label="feasible center arc" if not label_used else None,
             )
             label_used = True
+
+
+def plot_finite_wheel_pose_overview(
+    sampled_curve: Any,
+    decisions: Any,
+    output_path: str | Path,
+    *,
+    width: float,
+    workpiece_mesh: Any | None = None,
+    max_surface_faces: int = 20000,
+) -> Path:
+    """绘制有限厚度候选的全局姿态状态图。"""
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    candidates = decisions.candidates
+    if candidates is None:
+        raise ValueError("CollisionResult 缺少 candidates，无法绘制姿态总览")
+    centers = np.asarray(candidates.centers, dtype=float)
+    feasible = np.asarray(decisions.feasible, dtype=bool)
+    points = np.asarray(sampled_curve.points, dtype=float)
+    fig = plt.figure(figsize=(13, 9), dpi=140, layout="constrained")
+    axis = fig.add_subplot(111, projection="3d")
+    if workpiece_mesh is not None:
+        _add_workpiece_surface(axis, workpiece_mesh, max_faces=max_surface_faces)
+    for mask, color, label in ((feasible, "#009E73", "safe finite-cylinder candidates"), (~feasible, "#D55E00", "collision candidates")):
+        selected = np.flatnonzero(mask)
+        if len(selected):
+            step = max(1, len(selected) // 12000)
+            chosen = selected[::step]
+            axis.scatter(centers[chosen, 0], centers[chosen, 1], centers[chosen, 2], s=3, c=color, alpha=0.45, label=label)
+    _plot_root_branches(axis, points, np.asarray(sampled_curve.branch_ids), linewidth=2.2)
+    examples = [int(np.flatnonzero(mask)[0]) for mask in (feasible, ~feasible) if np.any(mask)]
+    for index in examples:
+        _add_cylinder_pose(axis, candidates, index, width, alpha=0.28)
+    values = [points, centers]
+    if workpiece_mesh is not None:
+        values.append(np.asarray(workpiece_mesh.vertices, dtype=float))
+    _set_equal_axes(axis, np.vstack(values))
+    axis.set_xlabel("X (normalized units)")
+    axis.set_ylabel("Y (normalized units)")
+    axis.set_zlabel("Z (normalized units)")
+    axis.set_title(f"Finite-thickness wheel poses: width={width:g} (normalized units)")
+    axis.legend(loc="upper left", fontsize=8)
+    axis.view_init(elev=22, azim=-62)
+    _save_figure(fig, output)
+    return output
+
+
+def plot_pose_example(
+    sampled_curve: Any,
+    decisions: Any,
+    output_path: str | Path,
+    *,
+    candidate_index: int,
+    width: float,
+    workpiece_mesh: Any | None = None,
+    title: str,
+    max_surface_faces: int = 20000,
+) -> Path:
+    """绘制单个有限砂轮姿态及其碰撞见证点。"""
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    candidates = decisions.candidates
+    if candidates is None or not 0 <= candidate_index < len(candidates.centers):
+        raise ValueError("candidate_index 无效")
+    center = np.asarray(candidates.centers[candidate_index], dtype=float)
+    fig = plt.figure(figsize=(11, 8), dpi=150, layout="constrained")
+    axis = fig.add_subplot(111, projection="3d")
+    if workpiece_mesh is not None:
+        # 局部姿态图只显示见证点附近的工件采样，避免完整包围盒把砂轮压缩到不可见。
+        mesh_vertices = np.asarray(workpiece_mesh.vertices, dtype=float)
+        local_radius = max(float(candidates.radial_values[candidate_index]) * 2.5, float(width) * 3.0)
+        nearby = np.linalg.norm(mesh_vertices - center[None, :], axis=1) <= local_radius
+        if np.count_nonzero(nearby) >= 3:
+            _add_local_workpiece_samples(axis, mesh_vertices[nearby], color="#B8BDC5")
+    _add_cylinder_pose(axis, candidates, candidate_index, width, alpha=0.5)
+    contact = np.asarray(candidates.contact_points[candidate_index], dtype=float)
+    axis.scatter(*contact, s=40, c="black", label="target/contact point")
+    if decisions.witness_workpiece is not None:
+        witness = np.asarray(decisions.witness_workpiece[candidate_index], dtype=float)
+        tool_witness = np.asarray(decisions.witness_tool[candidate_index], dtype=float)
+        if np.all(np.isfinite(witness)):
+            axis.scatter(*witness, s=45, c="#D55E00", label="sampled workpiece witness")
+            axis.plot(*np.column_stack((witness, tool_witness)), color="#D55E00", linewidth=2.0)
+        if np.all(np.isfinite(tool_witness)):
+            axis.scatter(*tool_witness, s=35, c="#CC79A7", label="wheel witness")
+    local_points = [center, contact]
+    if decisions.witness_workpiece is not None:
+        local_points.append(np.asarray(decisions.witness_workpiece[candidate_index], dtype=float))
+    _set_equal_axes(axis, np.vstack(local_points))
+    axis.set_xlabel("X (normalized units)")
+    axis.set_ylabel("Y (normalized units)")
+    axis.set_zlabel("Z (normalized units)")
+    reason = str(np.asarray(decisions.reason, dtype=object)[candidate_index]) if decisions.reason is not None else "unknown"
+    clearance = float(np.asarray(decisions.clearance)[candidate_index])
+    axis.set_title(f"{title}\nreason={reason}; signed clearance={clearance:.6g}; width={width:g}")
+    axis.legend(loc="upper left", fontsize=8)
+    axis.view_init(elev=25, azim=-60)
+    _save_figure(fig, output)
+    return output
+
+
+def _add_cylinder_pose(axis: Any, candidates: Any, candidate_index: int, width: float, *, alpha: float = 0.35) -> None:
+    """在三维坐标轴中添加一个按候选局部标架定向的圆柱代理。"""
+
+    center = np.asarray(candidates.centers[candidate_index], dtype=float)
+    radial = np.asarray(candidates.radius_directions[candidate_index], dtype=float)
+    tangent = np.asarray(candidates.tangent_directions[candidate_index], dtype=float)
+    axis_direction = np.asarray(candidates.axis_directions[candidate_index], dtype=float)
+    radius = float(candidates.radial_values[candidate_index])
+    theta = np.linspace(0.0, 2.0 * np.pi, 36)
+    z_values = np.linspace(-float(width) / 2.0, float(width) / 2.0, 5)
+    circle = np.cos(theta)[:, None] * radial[None, :] + np.sin(theta)[:, None] * tangent[None, :]
+    surface = center[None, None, :] + radius * circle[:, None, :] + z_values[None, :, None] * axis_direction[None, None, :]
+    axis.plot_surface(surface[:, :, 0], surface[:, :, 1], surface[:, :, 2], color="#56B4E9", alpha=alpha, linewidth=0.2)
+    for direction, color in ((tangent, "#0072B2"), (radial, "#E69F00"), (axis_direction, "#CC79A7")):
+        axis.quiver(*center, *direction, length=max(radius, float(width)), color=color, linewidth=1.8, arrow_length_ratio=0.18)
+
+
+def _add_local_workpiece_samples(axis: Any, vertices: np.ndarray, *, color: str) -> None:
+    """绘制局部工件采样点；局部图不把点云误认为精确裁剪网格。"""
+
+    if len(vertices):
+        axis.scatter(vertices[:, 0], vertices[:, 1], vertices[:, 2], s=8, c=color, alpha=0.35, label="nearby workpiece samples")
 
 
 def _save_figure(fig: Any, output: Path) -> None:
