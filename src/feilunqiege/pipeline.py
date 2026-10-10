@@ -25,7 +25,6 @@ from feilunqiege.visualization.export_obj import (
     export_local_feasible_centers_obj,
     export_pose_examples_obj,
 )
-from feilunqiege.visualization.interactive import export_interactive_demo_html
 from feilunqiege.visualization.plot import (
     plot_feasible_centers,
     plot_local_feasibility_explanation,
@@ -203,18 +202,6 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     )
 
     # 生成少量采样点可点击的离线 HTML，先用于人工验收交互方式。
-    interactive_demo_path = output_root / config["outputs"]["interactive_demo_html"]
-    export_interactive_demo_html(
-        sampled,
-        collisions,
-        interactive_demo_path,
-        radius=candidates.radius,
-        delta=float(wheel["delta"]),
-        units=str(config["units"]),
-        max_demo_points=int(config["interactive_demo"]["max_points"]),
-        width=width,
-    )
-
     # 最后写入 JSON 审计摘要，记录参数、计数、输出文件和当前方法边界。
     summary = _build_summary(
         config,
@@ -228,7 +215,6 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         obj_path,
         display_obj_path,
         local_obj_path,
-        interactive_demo_path,
         output_root,
         repo_root,
         normalization,
@@ -259,7 +245,6 @@ def _build_summary(
     obj_path: Path,
     display_obj_path: Path,
     local_obj_path: Path,
-    interactive_demo_path: Path,
     output_root: Path,
     repo_root: Path,
     normalization: dict[str, Any],
@@ -318,7 +303,7 @@ def _build_summary(
         "coordinate_frames": {
             "computation": "normalized_bbox_longest_side",
             "meshlab_obj_export": "source_obj; directly overlay with the original case OBJ files",
-            "interactive_html_and_png": "normalized computation coordinates",
+            "png_and_json": "normalized computation coordinates",
             "source_transform": "source = normalized * scale + center",
         },
         "parameters": {
@@ -352,7 +337,6 @@ def _build_summary(
         "feasible_centers_obj": str(relative_output_root / obj_path.name),
         "feasible_centers_display_obj": str(relative_output_root / display_obj_path.name),
         "local_feasible_centers_obj": str(relative_output_root / local_obj_path.name),
-        "interactive_demo_html": str(relative_output_root / interactive_demo_path.name),
         "obj_contents": [
             "all OBJ vertex coordinates are exported back to source_obj coordinates for MeshLab overlay",
             "sampled root-line vertices and l line primitives",
@@ -360,6 +344,7 @@ def _build_summary(
             "outer-radius feasible-center arcs as l line primitives",
             "display OBJ: sampled feasible centers as red octahedron face proxies",
             "local OBJ: one target point with feasible red and rejected gray face proxies",
+            "pose_examples.obj: feasible_pose is green and collision_pose is red-orange; see adjacent pose_examples.mtl",
         ],
         "per_point": per_point,
         "limitations": [

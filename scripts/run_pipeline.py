@@ -43,7 +43,6 @@ def main() -> int:
     print(f"feasible_centers_obj={summary['feasible_centers_obj']}")
     print(f"feasible_centers_display_obj={summary['feasible_centers_display_obj']}")
     print(f"local_feasible_centers_obj={summary['local_feasible_centers_obj']}")
-    print(f"interactive_demo_html={summary['interactive_demo_html']}")
     return 0
 
 

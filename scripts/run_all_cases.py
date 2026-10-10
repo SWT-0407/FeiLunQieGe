@@ -101,7 +101,6 @@ def main() -> int:
                 1 for item in per_point if item["feasible_candidate_count"] == 0
             ),
             "output_directory": summary["output_directory"],
-            "interactive_demo_html": summary["interactive_demo_html"],
             "feasible_centers_obj": summary["feasible_centers_obj"],
         }
         completed.append(result)
@@ -172,7 +171,6 @@ def _write_batch_summary(
         "radius_selection_reason",
         "output_directory",
         "feasible_centers_obj",
-        "interactive_demo_html",
     ]
     with (output / "batch_summary.csv").open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")

@@ -355,7 +355,8 @@ def plot_finite_wheel_pose_overview(
     _plot_root_branches(axis, points, np.asarray(sampled_curve.branch_ids), linewidth=2.2)
     examples = [int(np.flatnonzero(mask)[0]) for mask in (feasible, ~feasible) if np.any(mask)]
     for index in examples:
-        _add_cylinder_pose(axis, candidates, index, width, alpha=0.28)
+        pose_color = "#009E73" if bool(feasible[index]) else "#D55E00"
+        _add_cylinder_pose(axis, candidates, index, width, alpha=0.28, color=pose_color)
     values = [points, centers]
     if workpiece_mesh is not None:
         values.append(np.asarray(workpiece_mesh.vertices, dtype=float))
@@ -398,7 +399,8 @@ def plot_pose_example(
         nearby = np.linalg.norm(mesh_vertices - center[None, :], axis=1) <= local_radius
         if np.count_nonzero(nearby) >= 3:
             _add_local_workpiece_samples(axis, mesh_vertices[nearby], color="#B8BDC5")
-    _add_cylinder_pose(axis, candidates, candidate_index, width, alpha=0.5)
+    pose_color = "#009E73" if bool(np.asarray(decisions.feasible, dtype=bool)[candidate_index]) else "#D55E00"
+    _add_cylinder_pose(axis, candidates, candidate_index, width, alpha=0.5, color=pose_color)
     contact = np.asarray(candidates.contact_points[candidate_index], dtype=float)
     axis.scatter(*contact, s=40, c="black", label="target/contact point")
     if decisions.witness_workpiece is not None:
@@ -425,7 +427,15 @@ def plot_pose_example(
     return output
 
 
-def _add_cylinder_pose(axis: Any, candidates: Any, candidate_index: int, width: float, *, alpha: float = 0.35) -> None:
+def _add_cylinder_pose(
+    axis: Any,
+    candidates: Any,
+    candidate_index: int,
+    width: float,
+    *,
+    alpha: float = 0.35,
+    color: str = "#56B4E9",
+) -> None:
     """在三维坐标轴中添加一个按候选局部标架定向的圆柱代理。"""
 
     center = np.asarray(candidates.centers[candidate_index], dtype=float)
@@ -437,7 +447,7 @@ def _add_cylinder_pose(axis: Any, candidates: Any, candidate_index: int, width: 
     z_values = np.linspace(-float(width) / 2.0, float(width) / 2.0, 5)
     circle = np.cos(theta)[:, None] * radial[None, :] + np.sin(theta)[:, None] * tangent[None, :]
     surface = center[None, None, :] + radius * circle[:, None, :] + z_values[None, :, None] * axis_direction[None, None, :]
-    axis.plot_surface(surface[:, :, 0], surface[:, :, 1], surface[:, :, 2], color="#56B4E9", alpha=alpha, linewidth=0.2)
+    axis.plot_surface(surface[:, :, 0], surface[:, :, 1], surface[:, :, 2], color=color, alpha=alpha, linewidth=0.2)
     for direction, color in ((tangent, "#0072B2"), (radial, "#E69F00"), (axis_direction, "#CC79A7")):
         axis.quiver(*center, *direction, length=max(radius, float(width)), color=color, linewidth=1.8, arrow_length_ratio=0.18)
 

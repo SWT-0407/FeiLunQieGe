@@ -147,6 +147,7 @@ def export_pose_examples_obj(
         handle.write("# FeiLunQieGe finite wheel pose examples\n")
         handle.write("# coordinate_frame: source_obj\n# units: source_obj coordinates\n")
         handle.write(f"# width: {width * scale:.12g}\n")
+        handle.write(f"mtllib {output.with_suffix('.mtl').name}\n")
         next_vertex = 1
         for label, candidate_index in candidate_indices.items():
             if not 0 <= int(candidate_index) < len(candidates.centers):
@@ -162,7 +163,8 @@ def export_pose_examples_obj(
                 for angle in theta:
                     point = center_point + radius * (np.cos(angle) * radial + np.sin(angle) * tangent) + axial * axis
                     vertices.append(export_point(point))
-            handle.write(f"o pose_{label}\n")
+            material = {"feasible": "feasible_pose", "collision": "collision_pose"}.get(label, "other_pose")
+            handle.write(f"o pose_{label}\nusemtl {material}\n")
             for vertex in vertices:
                 handle.write(_vertex_line(vertex))
             count = len(theta)
@@ -172,6 +174,7 @@ def export_pose_examples_obj(
                 handle.write(f"f {a} {b} {c} {d}\n")
             next_vertex += 2 * count
         _write_coordinate_metadata(handle, coordinate_transform)
+    _write_pose_examples_mtl(output.with_suffix(".mtl"))
     return output
 
 
@@ -538,6 +541,25 @@ newmtl rejected_marker
 Kd 0.55 0.55 0.55
 newmtl target_point
 Kd 0.05 0.05 0.05
+""",
+        encoding="utf-8",
+    )
+
+
+def _write_pose_examples_mtl(path: Path) -> None:
+    """为姿态示例提供语义颜色：绿色可行，红橙色碰撞。"""
+
+    path.write_text(
+        """# FeiLunQieGe finite wheel pose semantics
+# feasible_pose: collision check passed
+newmtl feasible_pose
+Kd 0.00 0.62 0.45
+# collision_pose: collision or insufficient clearance detected
+newmtl collision_pose
+Kd 0.84 0.20 0.10
+# fallback for future labels
+newmtl other_pose
+Kd 0.55 0.55 0.55
 """,
         encoding="utf-8",
     )

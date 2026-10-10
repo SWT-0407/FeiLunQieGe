@@ -65,3 +65,10 @@
 - 有限厚度计算必须保留第一阶段 `approximate_surface_samples_spherical_envelope` 结果，允许并行比较但不得覆盖旧结果。
 - 新结果必须写入新的 `results/cases/<case>/run_YYYYMMDD_HHMMSS/` 目录；不得删除或覆盖任何旧文件。新 OBJ 仍需导出为 `source_obj` 坐标并通过 `scripts/audit_meshlab_alignment.py` 审计。
 - 本阶段人工验收重点是：MeshLab 中砂轮姿态与工件叠加是否直观、两个局部姿态案例的碰撞原因是否可信、全局状态图与 JSON 是否一致、交互页面是否能查看姿态。自动测试通过不等同于工艺验收。
+## Current acceptance gate
+
+- New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is green (`feasible_pose`), collision pose is red-orange (`collision_pose`).
+- New runs must not generate `interactive_demo.html`; existing historical HTML outputs are retained and must not be deleted.
+- After the 12-case batch, stop for human inspection of PNG, JSON, OBJ/MTL coloring, and the source-coordinate alignment audit.
+
+The earlier interactive-demo notes in this file describe historical runs only. They are superseded for the current stage: the pipeline no longer creates HTML files.
