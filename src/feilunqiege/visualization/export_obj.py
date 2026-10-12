@@ -163,10 +163,14 @@ def export_pose_examples_obj(
                 for angle in theta:
                     point = center_point + radius * (np.cos(angle) * radial + np.sin(angle) * tangent) + axial * axis
                     vertices.append(export_point(point))
-            material = {"feasible": "feasible_pose", "collision": "collision_pose"}.get(label, "other_pose")
+            # OBJ 顶点颜色是 MTL 之外的兼容性回退：MeshLab 未启用材质时仍可区分两种姿态。
+            material, color = {
+                "feasible": ("feasible_pose", (0.00, 0.62, 0.45)),
+                "collision": ("collision_pose", (0.84, 0.20, 0.10)),
+            }.get(label, ("other_pose", (0.55, 0.55, 0.55)))
             handle.write(f"o pose_{label}\nusemtl {material}\n")
             for vertex in vertices:
-                handle.write(_vertex_line(vertex))
+                handle.write(_colored_vertex_line(vertex, color))
             count = len(theta)
             for ring in range(count):
                 following = (ring + 1) % count
@@ -194,6 +198,16 @@ def _vertex_line(point: Any) -> str:
 
     x, y, z = (float(value) for value in np.asarray(point, dtype=float)[:3])
     return f"v {x:.12g} {y:.12g} {z:.12g}\n"
+
+
+def _colored_vertex_line(point: Any, color: tuple[float, float, float]) -> str:
+    """写入带 RGB 的 OBJ 顶点，避免查看器忽略 MTL 后退化为灰色。"""
+
+    x, y, z = (float(value) for value in np.asarray(point, dtype=float)[:3])
+    red, green, blue = (float(value) for value in color)
+    if not all(0.0 <= value <= 1.0 for value in (red, green, blue)):
+        raise ValueError("OBJ vertex RGB must be in [0, 1]")
+    return f"v {x:.12g} {y:.12g} {z:.12g} {red:.12g} {green:.12g} {blue:.12g}\n"
 
 
 def _parse_coordinate_transform(transform: dict[str, Any] | None) -> tuple[float, np.ndarray]:

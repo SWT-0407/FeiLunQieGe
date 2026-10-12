@@ -67,7 +67,7 @@
 - 本阶段人工验收重点是：MeshLab 中砂轮姿态与工件叠加是否直观、两个局部姿态案例的碰撞原因是否可信、全局状态图与 JSON 是否一致、交互页面是否能查看姿态。自动测试通过不等同于工艺验收。
 ## Current acceptance gate
 
-- New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is green (`feasible_pose`), collision pose is red-orange (`collision_pose`).
+- New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is green (`feasible_pose`), collision pose is red-orange (`collision_pose`). The OBJ vertex records must also carry the same RGB values so MeshLab remains colored when it does not apply MTL materials.
 - New runs must not generate `interactive_demo.html`; existing historical HTML outputs are retained and must not be deleted.
 - After the 12-case batch, stop for human inspection of PNG, JSON, OBJ/MTL coloring, and the source-coordinate alignment audit.
 

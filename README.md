@@ -2,7 +2,7 @@
 
 ## Current output contract
 
-The current post-acceptance batch writes PNG, JSON, OBJ, and MTL artifacts only. New runs do not generate `interactive_demo.html`; historical run directories that already contain HTML are retained because outputs are never deleted. `pose_examples.obj` references the adjacent `pose_examples.mtl`: `feasible_pose` is green and `collision_pose` is red-orange. The two colors identify the feasible and collision examples in MeshLab; the PNG pose views use the same semantic colors.
+The current post-acceptance batch writes PNG, JSON, OBJ, and MTL artifacts only. New runs do not generate `interactive_demo.html`; historical run directories that already contain HTML are retained because outputs are never deleted. `pose_examples.obj` stores RGB colors directly on its vertices and also references the adjacent `pose_examples.mtl`: `feasible_pose` is green and `collision_pose` is red-orange. The two colors identify the feasible and collision examples in MeshLab; the PNG pose views use the same semantic colors.
 
 The older output-list and viewer notes below may mention `interactive_demo.html`; those references apply only to historical output directories. They do not describe the current pipeline contract.
 

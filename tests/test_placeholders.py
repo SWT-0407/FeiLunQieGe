@@ -11,6 +11,7 @@ from feilunqiege.visualization.export_obj import (
     export_feasible_centers_display_obj,
     export_feasible_centers_obj,
     export_local_feasible_centers_obj,
+    export_pose_examples_obj,
 )
 from feilunqiege.visualization.interactive import export_interactive_demo_html
 
@@ -148,6 +149,23 @@ def test_display_and_local_obj_exports_contain_visible_faces() -> None:
     assert "o rejected_candidates" in local_text
     assert "# coordinate_frame: source_obj" in local_text
     assert "v 3 4 5" in local_text
+
+    pose = export_pose_examples_obj(
+        decisions,
+        "__cache__/test_pose_examples.obj",
+        candidate_indices={"feasible": 0, "collision": 2},
+        width=0.1,
+        coordinate_transform=transform,
+    )
+    pose_text = pose.read_text(encoding="utf-8")
+    pose_mtl = pose.with_suffix(".mtl").read_text(encoding="utf-8")
+    assert "mtllib test_pose_examples.mtl" in pose_text
+    assert "usemtl feasible_pose" in pose_text
+    assert "usemtl collision_pose" in pose_text
+    assert "v 3 8 4.9 0 0.62 0.45" in pose_text
+    assert "v 5 8 4.9 0.84 0.2 0.1" in pose_text
+    assert "newmtl feasible_pose" in pose_mtl
+    assert "newmtl collision_pose" in pose_mtl
 
 
 def test_interactive_demo_contains_selected_points_and_local_script() -> None:
