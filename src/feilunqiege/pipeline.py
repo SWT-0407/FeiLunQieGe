@@ -21,16 +21,11 @@ from feilunqiege.io.root_line import load_root_line
 from feilunqiege.tooling.grinding_wheel import generate_disk_candidates
 from feilunqiege.visualization.export_obj import (
     export_feasible_centers_display_obj,
-    export_feasible_centers_obj,
     export_local_feasible_centers_obj,
     export_pose_examples_obj,
 )
 from feilunqiege.visualization.plot import (
     plot_feasible_centers,
-    plot_local_feasibility_explanation,
-    plot_workpiece_orientation_guide,
-    plot_finite_wheel_pose_overview,
-    plot_pose_example,
 )
 
 
@@ -123,59 +118,15 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         max_surface_faces=int(config.get("visualization", {}).get("max_surface_faces", 20000)),
     )
 
-    # 局部解释图放大一个代表性目标点，专门展示 r、delta 和可行圆弧。
-    local_explanation_path = output_root / config["outputs"]["local_explanation_image"]
-    plot_local_feasibility_explanation(
-        sampled,
-        collisions,
-        local_explanation_path,
-        radius=candidates.radius,
-        delta=float(wheel["delta"]),
-    )
-
-    # 输出同一工件在透视视角和正视投影下的对照图，帮助理解 T 形外观差异。
-    orientation_path = output_root / config["outputs"]["orientation_guide_image"]
-    plot_workpiece_orientation_guide(
-        sampled,
-        workpiece,
-        orientation_path,
-        max_surface_faces=int(config.get("visualization", {}).get("max_surface_faces", 20000)),
-    )
-
-    pose_overview_path = output_root / config["outputs"]["pose_overview_image"]
-    plot_finite_wheel_pose_overview(
-        sampled,
-        collisions,
-        pose_overview_path,
-        width=width,
-        workpiece_mesh=workpiece,
-        max_surface_faces=int(config.get("visualization", {}).get("max_surface_faces", 20000)),
-    )
     feasible_indices = np.flatnonzero(np.asarray(collisions.feasible, dtype=bool))
     collision_indices = np.flatnonzero(~np.asarray(collisions.feasible, dtype=bool))
-    pose_feasible_path = output_root / config["outputs"]["pose_feasible_image"]
-    pose_collision_path = output_root / config["outputs"]["pose_collision_image"]
     pose_examples = {}
     if len(feasible_indices):
         pose_examples["feasible"] = int(feasible_indices[0])
-        plot_pose_example(sampled, collisions, pose_feasible_path, candidate_index=int(feasible_indices[0]), width=width, workpiece_mesh=workpiece, title="Representative feasible finite wheel pose")
     if len(collision_indices):
         pose_examples["collision"] = int(collision_indices[0])
-        plot_pose_example(sampled, collisions, pose_collision_path, candidate_index=int(collision_indices[0]), width=width, workpiece_mesh=workpiece, title="Representative collision finite wheel pose")
     pose_obj_path = output_root / config["outputs"]["pose_examples_obj"]
     export_pose_examples_obj(collisions, pose_obj_path, candidate_indices=pose_examples, width=width, coordinate_transform=normalization)
-
-    # 输出 MeshLab 可直接打开的 OBJ：l 是根部线，p 是可行砂轮中心点。
-    obj_path = output_root / config["outputs"]["feasible_centers_obj"]
-    export_feasible_centers_obj(
-        sampled,
-        collisions,
-        obj_path,
-        radius=candidates.radius,
-        delta=float(wheel["delta"]),
-        units="source_obj coordinates (derived from normalized computation)",
-        coordinate_transform=normalization,
-    )
 
     # 额外导出带三角标记的全局显示代理，避免 MeshLab 中 p 点过小而难以辨认。
     display_obj_path = output_root / config["outputs"]["feasible_centers_display_obj"]
@@ -210,9 +161,6 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         candidates,
         collisions,
         image_path,
-        local_explanation_path,
-        orientation_path,
-        obj_path,
         display_obj_path,
         local_obj_path,
         output_root,
@@ -220,9 +168,6 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         normalization,
         radius_selection,
         baseline_collisions,
-        pose_overview_path,
-        pose_feasible_path,
-        pose_collision_path,
         pose_examples,
         width,
         pose_obj_path,
@@ -240,9 +185,6 @@ def _build_summary(
     candidates: Any,
     collisions: Any,
     image_path: Path,
-    local_explanation_path: Path,
-    orientation_path: Path,
-    obj_path: Path,
     display_obj_path: Path,
     local_obj_path: Path,
     output_root: Path,
@@ -250,9 +192,6 @@ def _build_summary(
     normalization: dict[str, Any],
     radius_selection: dict[str, Any],
     baseline_collisions: Any,
-    pose_overview_path: Path,
-    pose_feasible_path: Path,
-    pose_collision_path: Path,
     pose_examples: dict[str, int],
     width: float,
     pose_obj_path: Path,
@@ -328,23 +267,14 @@ def _build_summary(
         "pose_examples": pose_examples,
         "output_directory": str(relative_output_root),
         "overview_image": str(relative_output_root / image_path.name),
-        "local_explanation_image": str(relative_output_root / local_explanation_path.name),
-        "orientation_guide_image": str(relative_output_root / orientation_path.name),
-        "pose_overview_image": str(relative_output_root / pose_overview_path.name),
-        "pose_feasible_image": str(relative_output_root / pose_feasible_path.name),
-        "pose_collision_image": str(relative_output_root / pose_collision_path.name),
         "pose_examples_obj": str(relative_output_root / pose_obj_path.name),
-        "feasible_centers_obj": str(relative_output_root / obj_path.name),
         "feasible_centers_display_obj": str(relative_output_root / display_obj_path.name),
         "local_feasible_centers_obj": str(relative_output_root / local_obj_path.name),
         "obj_contents": [
             "all OBJ vertex coordinates are exported back to source_obj coordinates for MeshLab overlay",
-            "sampled root-line vertices and l line primitives",
-            "feasible wheel-center vertices and p point primitives grouped by target point",
-            "outer-radius feasible-center arcs as l line primitives",
             "display OBJ: sampled feasible centers as red octahedron face proxies",
             "local OBJ: one target point with feasible red and rejected gray face proxies",
-            "pose_examples.obj: feasible_pose is green and collision_pose is red-orange; see adjacent pose_examples.mtl",
+            "pose_examples.obj: feasible_pose is mint green and collision_pose is coral red; OBJ vertex RGB and adjacent MTL agree",
         ],
         "per_point": per_point,
         "limitations": [

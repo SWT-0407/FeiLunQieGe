@@ -162,8 +162,8 @@ def test_display_and_local_obj_exports_contain_visible_faces() -> None:
     assert "mtllib test_pose_examples.mtl" in pose_text
     assert "usemtl feasible_pose" in pose_text
     assert "usemtl collision_pose" in pose_text
-    assert "v 3 8 4.9 0 0.62 0.45" in pose_text
-    assert "v 5 8 4.9 0.84 0.2 0.1" in pose_text
+    assert "v 3 8 4.9 0.21 0.84 0.63" in pose_text
+    assert "v 5 8 4.9 1 0.47 0.42" in pose_text
     assert "newmtl feasible_pose" in pose_mtl
     assert "newmtl collision_pose" in pose_mtl
 

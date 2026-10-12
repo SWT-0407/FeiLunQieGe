@@ -44,15 +44,8 @@
   "outputs": {
     "directory": "results/cases",
     "overview_image": "feasible_centers_overview.png",
-    "local_explanation_image": "local_feasibility_explanation.png",
-    "orientation_guide_image": "workpiece_orientation_guide.png",
-    "pose_overview_image": "finite_wheel_pose_overview.png",
-    "pose_feasible_image": "pose_case_feasible.png",
-    "pose_collision_image": "pose_case_collision.png",
-    "pose_summary_json": "pose_collision_summary.json",
     "pose_examples_obj": "pose_examples.obj",
     "summary_json": "feasible_centers_summary.json",
-    "feasible_centers_obj": "feasible_centers.obj",
     "feasible_centers_display_obj": "feasible_centers_display.obj",
     "local_feasible_centers_obj": "local_feasible_centers.obj"
   }

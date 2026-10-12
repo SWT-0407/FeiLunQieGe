@@ -38,9 +38,6 @@ def main() -> int:
     print(f"feasible_candidate_count={summary['feasible_candidate_count']}")
     print(f"output_directory={summary['output_directory']}")
     print(f"overview_image={summary['overview_image']}")
-    print(f"local_explanation_image={summary['local_explanation_image']}")
-    print(f"orientation_guide_image={summary['orientation_guide_image']}")
-    print(f"feasible_centers_obj={summary['feasible_centers_obj']}")
     print(f"feasible_centers_display_obj={summary['feasible_centers_display_obj']}")
     print(f"local_feasible_centers_obj={summary['local_feasible_centers_obj']}")
     return 0
