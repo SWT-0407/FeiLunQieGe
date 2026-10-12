@@ -165,8 +165,8 @@ def export_pose_examples_obj(
                     vertices.append(export_point(point))
             # OBJ 顶点颜色是 MTL 之外的兼容性回退：MeshLab 未启用材质时仍可区分两种姿态。
             material, color = {
-                "feasible": ("feasible_pose", (0.21, 0.84, 0.63)),
-                "collision": ("collision_pose", (1.00, 0.47, 0.42)),
+                "feasible": ("feasible_pose", (0.60, 1.00, 0.80)),
+                "collision": ("collision_pose", (1.00, 0.78, 0.70)),
             }.get(label, ("other_pose", (0.55, 0.55, 0.55)))
             handle.write(f"o pose_{label}\nusemtl {material}\n")
             for vertex in vertices:
@@ -565,12 +565,14 @@ def _write_pose_examples_mtl(path: Path) -> None:
 
     path.write_text(
         """# FeiLunQieGe finite wheel pose semantics
-# feasible_pose: collision check passed; mint green
+# feasible_pose: collision check passed; high-lightness mint green
 newmtl feasible_pose
-Kd 0.21 0.84 0.63
-# collision_pose: collision or insufficient clearance detected; coral red
+Ka 0.60 1.00 0.80
+Kd 0.60 1.00 0.80
+# collision_pose: collision or insufficient clearance detected; high-lightness coral red
 newmtl collision_pose
-Kd 1.00 0.47 0.42
+Ka 1.00 0.78 0.70
+Kd 1.00 0.78 0.70
 # fallback for future labels
 newmtl other_pose
 Kd 0.55 0.55 0.55

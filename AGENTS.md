@@ -67,7 +67,7 @@
 - 本阶段人工验收重点是：MeshLab 中砂轮姿态与工件叠加是否直观、两个局部姿态案例的碰撞原因是否可信、全局状态图与 JSON 是否一致、交互页面是否能查看姿态。自动测试通过不等同于工艺验收。
 ## Current acceptance gate
 
-- New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is mint green (`feasible_pose`, RGB `0.21, 0.84, 0.63`), collision pose is coral red (`collision_pose`, RGB `1.00, 0.47, 0.42`). This coral red must remain visually distinct from the deep-red feasible-center display markers. The OBJ vertex records and MTL must carry the same colors so MeshLab remains colored when it does not apply MTL materials.
+- New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is high-lightness mint green (`feasible_pose`, RGB `0.60, 1.00, 0.80`), collision pose is high-lightness coral red (`collision_pose`, RGB `1.00, 0.78, 0.70`). This coral red must remain visually distinct from the deep-red feasible-center display markers. The OBJ vertex records and MTL must carry the same colors so MeshLab remains colored when it does not apply MTL materials.
 - New runs must not generate `interactive_demo.html`; existing historical HTML outputs are retained and must not be deleted.
 - New run directories contain only `feasible_centers_overview.png`, `feasible_centers_summary.json`, `pose_examples.obj`/`.mtl`, `feasible_centers_display.obj`/`.mtl`, and `local_feasible_centers.obj`/`.mtl`. Do not generate other PNG files or `feasible_centers.obj`.
 - After the 12-case batch, stop for human inspection of PNG, JSON, OBJ/MTL coloring, and the source-coordinate alignment audit.

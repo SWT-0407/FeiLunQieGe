@@ -2,7 +2,7 @@
 
 ## Current output contract
 
-The current post-acceptance batch writes only the overview PNG, one JSON summary, and OBJ/MTL artifacts. New runs do not generate `interactive_demo.html`; historical run directories that already contain HTML are retained because outputs are never deleted. `pose_examples.obj` stores RGB colors directly on its vertices and also references the adjacent `pose_examples.mtl`: `feasible_pose` is mint green (RGB `0.21, 0.84, 0.63`) and `collision_pose` is coral red (RGB `1.00, 0.47, 0.42`). The coral-red collision pose is intentionally distinct from the deep-red feasible-center display markers.
+The current post-acceptance batch writes only the overview PNG, one JSON summary, and OBJ/MTL artifacts. New runs do not generate `interactive_demo.html`; historical run directories that already contain HTML are retained because outputs are never deleted. `pose_examples.obj` stores RGB colors directly on its vertices and also references the adjacent `pose_examples.mtl`: `feasible_pose` is high-lightness mint green (RGB `0.60, 1.00, 0.80`) and `collision_pose` is high-lightness coral red (RGB `1.00, 0.78, 0.70`). The coral-red collision pose is intentionally distinct from the deep-red feasible-center display markers.
 
 Each new run directory contains only: `feasible_centers_overview.png`, `feasible_centers_summary.json`, `pose_examples.obj` with `pose_examples.mtl`, `feasible_centers_display.obj` with `.mtl`, and `local_feasible_centers.obj` with `.mtl`. It must not contain other PNG files or `feasible_centers.obj`.
 
