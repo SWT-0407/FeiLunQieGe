@@ -565,14 +565,18 @@ def _write_pose_examples_mtl(path: Path) -> None:
 
     path.write_text(
         """# FeiLunQieGe finite wheel pose semantics
-# feasible_pose: collision check passed; high-lightness mint green
+# feasible_pose: collision check passed; unlit high-lightness mint green
 newmtl feasible_pose
 Ka 0.60 1.00 0.80
 Kd 0.60 1.00 0.80
-# collision_pose: collision or insufficient clearance detected; high-lightness coral red
+Ke 0.60 1.00 0.80
+illum 0
+# collision_pose: collision or insufficient clearance detected; unlit high-lightness coral red
 newmtl collision_pose
 Ka 1.00 0.78 0.70
 Kd 1.00 0.78 0.70
+Ke 1.00 0.78 0.70
+illum 0
 # fallback for future labels
 newmtl other_pose
 Kd 0.55 0.55 0.55

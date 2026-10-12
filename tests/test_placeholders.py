@@ -166,6 +166,9 @@ def test_display_and_local_obj_exports_contain_visible_faces() -> None:
     assert "v 5 8 4.9 1 0.78 0.7" in pose_text
     assert "newmtl feasible_pose" in pose_mtl
     assert "newmtl collision_pose" in pose_mtl
+    assert "Ke 0.60 1.00 0.80" in pose_mtl
+    assert "Ke 1.00 0.78 0.70" in pose_mtl
+    assert pose_mtl.count("illum 0") == 2
 
 
 def test_interactive_demo_contains_selected_points_and_local_script() -> None:
