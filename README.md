@@ -6,6 +6,8 @@ The current post-acceptance batch writes only the overview PNG, one JSON summary
 
 Each new run directory contains only: `feasible_centers_overview.png`, `feasible_centers_summary.json`, `pose_examples.obj` with `pose_examples.mtl`, `feasible_centers_display.obj` with `.mtl`, and `local_feasible_centers.obj` with `.mtl`. It must not contain other PNG files or `feasible_centers.obj`.
 
+Finite-cylinder collision filtering uses 2048 nearest workpiece surface samples per candidate by default. This stricter sampled-surface approximation reduces triangle-interior misses but is not an exact triangle-cylinder boolean certificate.
+
 The older output-list and viewer notes below may mention `interactive_demo.html`; those references apply only to historical output directories. They do not describe the current pipeline contract.
 
 砂轮切除铸件飞边的可行区域与路径规划研究。

@@ -38,7 +38,7 @@
     "clearance": 0.0,
     "allow_target_contact": true,
     "check_flash_mesh": false,
-    "finite_nearest_samples": 12,
+    "finite_nearest_samples": 2048,
     "finite_chunk_size": 20000
   },
   "outputs": {

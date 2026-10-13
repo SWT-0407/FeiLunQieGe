@@ -122,7 +122,10 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     collision_indices = np.flatnonzero(~np.asarray(collisions.feasible, dtype=bool))
     pose_examples = {}
     if len(feasible_indices):
-        pose_examples["feasible"] = int(feasible_indices[0])
+        # 绿色展示姿态优先取已判定可行集合中余量最大的候选，而不是数组中的第一个。
+        # 这避免把仅擦过离散判定边界的姿态作为人工核验的代表案例。
+        feasible_clearance = np.asarray(collisions.clearance, dtype=float)[feasible_indices]
+        pose_examples["feasible"] = int(feasible_indices[int(np.argmax(feasible_clearance))])
     if len(collision_indices):
         pose_examples["collision"] = int(collision_indices[0])
     pose_obj_path = output_root / config["outputs"]["pose_examples_obj"]
@@ -253,6 +256,8 @@ def _build_summary(
             "candidate_angles": int(config["sampling"]["candidate_angles"]),
             "radial_samples": int(config["sampling"]["radial_samples"]),
             "collision_clearance": float(config["collision"]["clearance"]),
+            "finite_nearest_samples": int(config["collision"].get("finite_nearest_samples", 2048)),
+            "finite_chunk_size": int(config["collision"].get("finite_chunk_size", 20000)),
             "normalization": normalization,
             "radius_selection": radius_selection,
             "source_coordinate_equivalent_radius": candidates.radius * float(normalization["scale"]),
