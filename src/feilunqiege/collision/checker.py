@@ -38,6 +38,7 @@ class CollisionIndex:
     """由工件网格表面采样点建立的快速查询索引。"""
 
     samples: Any
+    normals: Any
     tree: Any
 
 
@@ -58,8 +59,21 @@ def build_collision_index(workpiece_mesh: Any) -> CollisionIndex:
             (triangles[:, 2] + triangles[:, 0]) / 2.0,
         )
     )
+    # 为每个表面样本附带朝外法向，用于识别“候选中心整体位于实体内部”。
+    # 这不是精确点内测试，但能排除表面距离法无法发现的内部嵌入姿态。
+    face_normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
+    face_norms = np.linalg.norm(face_normals, axis=1, keepdims=True)
+    face_normals = face_normals / np.maximum(face_norms, 1e-12)
+    vertex_normals = np.zeros_like(vertices)
+    np.add.at(vertex_normals, faces[:, 0], face_normals)
+    np.add.at(vertex_normals, faces[:, 1], face_normals)
+    np.add.at(vertex_normals, faces[:, 2], face_normals)
+    vertex_norms = np.linalg.norm(vertex_normals, axis=1, keepdims=True)
+    vertex_normals = vertex_normals / np.maximum(vertex_norms, 1e-12)
+    midpoint_normals = np.tile(face_normals, (3, 1))
     samples = np.vstack((vertices, centroids, midpoints))
-    return CollisionIndex(samples=samples, tree=cKDTree(samples))
+    normals = np.vstack((vertex_normals, face_normals, midpoint_normals))
+    return CollisionIndex(samples=samples, normals=normals, tree=cKDTree(samples))
 
 
 def check_candidates(
@@ -148,6 +162,7 @@ def check_finite_cylinder_candidates(
             distances = distances[:, None]
             nearest_indices = nearest_indices[:, None]
         workpiece_points = index.samples[np.asarray(nearest_indices, dtype=np.int64)]
+        workpiece_normals = index.normals[np.asarray(nearest_indices, dtype=np.int64)]
         delta = workpiece_points - block_centers[:, None, :]
         radial_coord = np.einsum("bkj,bj->bk", delta, radials[start:stop])
         tangent_coord = np.einsum("bkj,bj->bk", delta, tangents[start:stop])
@@ -164,6 +179,18 @@ def check_finite_cylinder_candidates(
             (radial_distance <= radii[start:stop, None]) & (axial_coord <= half_width),
             -inside_penetration,
             outside_distance,
+        )
+        # 若中心到多个最近表面样本的位移均指向其外法向反侧，
+        # 则中心处于封闭工件实体内部；这类候选必须直接判为碰撞。
+        outward_dot = np.einsum("bkj,bkj->bk", block_centers[:, None, :] - workpiece_points, workpiece_normals)
+        # 只使用排序后最靠近表面的少量样本做点内侧判定；把很远的邻居
+        # 混入法向统计会把凹面外部误判为实体内部。
+        inside_probe_count = min(128, outward_dot.shape[1])
+        inside_center = np.median(outward_dot[:, :inside_probe_count], axis=1) < -1e-9
+        signed_distance = np.where(
+            inside_center[:, None],
+            np.minimum(signed_distance, -np.maximum(distances, 1e-12)),
+            signed_distance,
         )
         local_index = np.argmin(signed_distance, axis=1)
         rows = np.arange(stop - start)
@@ -209,13 +236,16 @@ def check_finite_cylinder_candidates(
             "wheel_outer_collision",
         )
         witness_region[start:stop] = np.where(
+            inside_center,
+            "workpiece_interior_collision",
+            np.where(
             inside,
             inside_region,
             np.where(
             side,
             "wheel_side_collision",
             np.where(outer, "wheel_outer_collision", np.where(corner, "wheel_corner_collision", "clearance")),
-            ),
+            )),
         )
 
     feasible = signed_clearance >= float(clearance)

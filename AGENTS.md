@@ -69,6 +69,7 @@
 
 - New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is high-lightness mint green (`feasible_pose`, RGB `0.60, 1.00, 0.80`), collision pose is high-lightness coral red (`collision_pose`, RGB `1.00, 0.78, 0.70`). This coral red must remain visually distinct from the deep-red feasible-center display markers. The OBJ vertex records and MTL must carry the same colors. The MTL sets matching `Ka`/`Kd`/`Ke` plus `illum 0`, so its semantic colors are not darkened by directional lighting in MeshLab.
 - Finite-cylinder collision filtering uses 2048 nearest workpiece surface samples per candidate by default. This is a stricter sampled-surface approximation than the earlier 12-sample run and is intended to reduce triangle-interior misses; it remains preliminary geometry evidence, not an exact triangle-cylinder boolean certificate.
+- `226633` 的姿态示例绿色环固定使用候选索引 `135`：它与红色碰撞姿态位于同一目标点，并经过更高密度表面样本复核；该覆盖只影响展示姿态，不改变全体候选筛选。
 - New runs must not generate `interactive_demo.html`; existing historical HTML outputs are retained and must not be deleted.
 - New run directories contain only `feasible_centers_overview.png`, `feasible_centers_summary.json`, `pose_examples.obj`/`.mtl`, `feasible_centers_display.obj`/`.mtl`, and `local_feasible_centers.obj`/`.mtl`. Do not generate other PNG files or `feasible_centers.obj`.
 - After the 12-case batch, stop for human inspection of PNG, JSON, OBJ/MTL coloring, and the source-coordinate alignment audit.

@@ -32,7 +32,14 @@
     "radial_samples": 3
   },
   "visualization": {
-    "max_surface_faces": 20000
+    "max_surface_faces": 20000,
+    "pose_examples": {
+      "case_overrides": {
+        "226633": {
+          "feasible": 135
+        }
+      }
+    }
   },
   "collision": {
     "clearance": 0.0,

@@ -128,6 +128,14 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         pose_examples["feasible"] = int(feasible_indices[int(np.argmax(feasible_clearance))])
     if len(collision_indices):
         pose_examples["collision"] = int(collision_indices[0])
+    # 个别案例可指定经过更高密度独立复核的展示姿态；这只影响示例环，不改变候选筛选结果。
+    pose_overrides = config.get("visualization", {}).get("pose_examples", {}).get("case_overrides", {})
+    case_override = pose_overrides.get(config["case_name"], {})
+    override_feasible = case_override.get("feasible")
+    if override_feasible is not None:
+        override_feasible = int(override_feasible)
+        if 0 <= override_feasible < len(collisions.feasible) and bool(collisions.feasible[override_feasible]):
+            pose_examples["feasible"] = override_feasible
     pose_obj_path = output_root / config["outputs"]["pose_examples_obj"]
     export_pose_examples_obj(collisions, pose_obj_path, candidate_indices=pose_examples, width=width, coordinate_transform=normalization)
 
