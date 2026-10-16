@@ -8,7 +8,7 @@
 - 缓存、临时提取物和中间文件只放入 `__cache__` 或 `__pycache__`；不要把正式代码、结果和报告放入缓存。
 - 不覆盖原始论文和模型数据，不把父目录的约 930 MB 原始 OBJ/PLY 材料复制进仓库。
 - 当前已实现一个最小几何闭环：读取 ASCII `root_line.ply` 和 OBJ 工件网格，生成无厚度砂轮候选，执行基于表面采样点的近似筛选，并输出独立运行目录、全局总览图、局部半径解释图、JSON 摘要和可由 MeshLab 直接打开的 OBJ。运行目录不覆盖旧结果。精确 OBJ 中 `p` 表示可行中心点，`l` 表示采样根部线或离散可行弧，不是带厚度的砂轮实体网格；另有带三角面标记的全局/局部显示代理 OBJ，不能代替精确数据。未获明确授权不得扩展为更复杂的实体碰撞或工艺优化。
-- 当前还生成离线 `interactive_demo.html`：默认导出全部离散采样点，点击根部线投影中的点后，右侧显示该点局部法平面内的可行半径区域；`interactive_demo.max_points > 0` 可限制为少量演示点。它是交互式显示层，不改变精确 OBJ、JSON 或碰撞结果。
+- 当前还生成离线 `interactive_demo.html`：默认导出全部离散采样点，点击根部线投影中的点后，右侧显示该点局部切平面内的可行半径区域；`interactive_demo.max_points > 0` 可限制为少量演示点。它是交互式显示层，不改变精确 OBJ、JSON 或碰撞结果。
 - 交互页面中的“全红”只表示当前离散候选通过了近似碰撞筛选，不表示连续角度、精确三角面距离或有厚度砂轮一定安全。当前筛选使用工件表面顶点、三角形质心和边中点的离散采样加球形包络，可能漏检大三角面内部的碰撞；升级精确网格距离前，所有结果只能作为 preliminary geometry run。
 - 算法计算坐标使用输入数据的归一化单位，文档中写作 `normalized units`，不能擅自标注为毫米。为了供 MeshLab 与原始 OBJ 叠加，`feasible_centers.obj`、`feasible_centers_display.obj` 和 `local_feasible_centers.obj` 必须在导出时逆变换为 `source_obj` 坐标，并在 OBJ 文件头和 JSON 摘要中明确标注；HTML 与 PNG 保持 normalized 计算坐标。
 - 批量运行默认在内存中对每个工件及其 `root_line` 施加同一个包围盒最长边归一化变换；原始材料不改写，变换中心、尺度和源包围盒必须进入 JSON 摘要。
@@ -16,14 +16,15 @@
 ## 当前模型约定
 
 - `root_line.ply` 暂作为飞边与工件本体根部交线 `l`；全部有效点参与分析。多个 edge 连通分支必须分别保留并记录。
-- 在采样点 `x_i` 处，曲线切线为 `t_i`，砂轮半径方向为 `e_i`，必须满足 `e_i · t_i = 0`；砂轮圆周切线与 `t_i` 平行或重合。
+- 在采样点 `x_i` 处，曲线切线为 `t_i`，工件表面法向为 `n_i`。砂轮中心偏移方向 `e_i` 在局部切平面内，砂轮轴向取 `n_i`；砂轮圆盘平面与切平面平行、与法平面垂直。`e_i` 不再强制与 `t_i` 垂直。
 - 初版工具是无厚度圆盘，半径 `r`，候选半径范围为 `rho ∈ [r - delta, r]`。厚度圆盘/圆柱只保留扩展接口。
 - `r` 不是全项目固定常数。批量运行可扫描多个归一化候选半径并按覆盖规则为每个案例选择主半径，也可通过 `radius_selection.case_overrides` 人工指定；扫描表、规则、最终值和源坐标等效值必须写入 JSON。
 - 默认碰撞对象是 `mesh_without_flash.obj`，但实现前需用小案例人工核对。
 
 ## 代码和验证
 
-- 使用详尽中文注释解释坐标、单位、参数、几何约束、碰撞容差和输出语义；每个具有独立含义的小代码块前应有对应注释，便于逐段理解。
+- 代码应增加足够的中文注释，使读者能够看懂数据流、坐标系、参数、几何约束、连续碰撞判定、BVH/空间索引、容差和输出语义。复杂算法前应说明输入、几何假设、判定步骤和失败边界；注释不能掩盖未验证的假设，也不能逐行重复代码字面含义。
+- 若连续碰撞、BVH 或网格质量检查确实需要第三方库，可以直接在本机安装；必须记录库名、版本、安装命令和用途，并更新依赖声明和验证记录，不得为“可能有用”而批量安装。
 - 绘图必须使用非交互式后端保存 PNG，并保留全局总览、局部半径解释和工件视角对照；全局图不能被解释为等比例显示砂轮半径。
 - 大网格的全局/视角 PNG 允许对三角面做确定性显示抽样（默认最多 20,000 面），但碰撞筛选不得因此减少其输入网格；摘要和文档需说明该显示限制。
 - 先验证合成直线/圆弧，再加载小案例，最后再批量处理 12 组模型。当前最小闭环结果必须标记为 preliminary geometry run。
@@ -42,29 +43,16 @@
 - 运行结果目录、OBJ、HTML、MTL 和 PNG 默认被 `.gitignore` 排除，不得因为批量完成就强制加入普通 Git 历史；GitHub 只同步代码、配置和文档，结果通过本机路径和 JSON 摘要审计。
 - 点编号从 `0` 开始：先按 PLY edge 连通关系拆分分支，再按分支内连接顺序排列，最后按分支顺序拼接；输出同时记录 `branch_id` 和弧长位置。
 
-## 第二阶段实施边界（有限厚度砂轮与姿态碰撞解释）
+## 后续实施边界（四阶段）
 
-本阶段按学长反馈“砂轮做成有厚度，并可视化不同位置姿态及碰撞形态”推进，实施顺序固定为：
+后续修改压缩为四个有明确验收门的阶段。这里的主碰撞视角是“工件三角面/工件实体是否进入砂轮实体”，而不是只遍历砂轮采样点；已有表面采样方法保留为 baseline 和快速预筛，不能作为连续无碰撞证明。
 
-1. 增加有限圆柱砂轮数据结构和 `wheel.width` 配置；
-2. 实现 `finite_cylinder_surface_samples` 碰撞方法；
-3. 保留第一阶段无厚度方法，输出有限厚度与无厚度的并行对照；
-4. 为候选记录碰撞原因、最小余量和碰撞见证点；
-5. 增加两个局部姿态案例图（一个可行姿态、一个碰撞姿态）；
-6. 增加全局姿态状态图；
-7. 扩展离线交互 HTML，使其能够查看候选姿态、有限厚度砂轮和碰撞诊断；
-8. 只运行 `leaf` 和 `5pipe` 两个案例，检查代码、JSON、PNG、OBJ 和坐标对齐；
-9. 在人工验收前停止，不批量运行 12 个案例。人工确认通过后，才允许批量运行。
+1. **姿态与输入契约冻结**：选取一个小案例和合成几何，核对 root line 分支、归一化坐标、工件网格封闭性，明确 `t/e/n`、切平面、法平面、砂轮圆盘平面和轴向。自动检查 `n·t≈0`、`n·e≈0`、`||e||≈1`，人工确认砂轮圆盘与切平面平行、与法平面垂直。
+2. **无厚度圆盘连续碰撞基线**：实现三角形与圆盘的连续判定，加入 BVH/AABB broad phase；用三角形内部穿入、相切、顶点均在外部和闭合工件内部嵌入等合成案例验收，再运行一个真实小案例。输出连续可行角区间及边界复核结果。
+3. **有限厚度圆柱连续碰撞**：扩展为半径 `r`、轴向宽度 `w` 的圆柱实体，连续检查侧面、端面、边缘和实体包含；记录 `epsilon`、碰撞原因、最小间隙和见证几何。人工确认安全姿态和至少两类碰撞姿态，并核对 OBJ/PNG/JSON 一致。
+4. **单案例回归与批量推广**：完成新旧方法对照、坐标审计和输出契约检查后，才运行 12 个案例。批量完成后停止，等待 PNG、OBJ/MTL、JSON 和 alignment audit 的人工检查。
 
-### 第二阶段模型约定
-
-- 有限厚度砂轮采用圆柱模型：半径 `r`、轴向宽度 `w`、中心 `c_i`、径向 `e_i`、曲线切向 `t_i`、轴向 `a_i = normalize(t_i × e_i)`。
-- 圆柱表面采样只作为当前阶段的可解释近似，不得表述为精确实体布尔碰撞或真实加工安全结论。
-- `width`、`radius`、`delta`、`clearance` 和所有采样间距均使用 normalized units；不得直接标注为毫米。
-- 碰撞诊断至少区分 `safe`、`target_contact_only`、`wheel_outer_collision`、`wheel_side_collision` 和 `insufficient_clearance`；应记录最小余量及对应砂轮/工件见证点（若当前近似后端无法定位三角面内部，则明确标记为采样见证点）。
-- 有限厚度计算必须保留第一阶段 `approximate_surface_samples_spherical_envelope` 结果，允许并行比较但不得覆盖旧结果。
-- 新结果必须写入新的 `results/cases/<case>/run_YYYYMMDD_HHMMSS/` 目录；不得删除或覆盖任何旧文件。新 OBJ 仍需导出为 `source_obj` 坐标并通过 `scripts/audit_meshlab_alignment.py` 审计。
-- 本阶段人工验收重点是：MeshLab 中砂轮姿态与工件叠加是否直观、两个局部姿态案例的碰撞原因是否可信、全局状态图与 JSON 是否一致、交互页面是否能查看姿态。自动测试通过不等同于工艺验收。
+每阶段都要记录输入、参数、后端、连续/近似性质、运行时间和人工验收状态；自动测试通过不等于真实加工验收通过。
 ## Current acceptance gate
 
 - New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is high-lightness mint green (`feasible_pose`, RGB `0.60, 1.00, 0.80`), collision pose is high-lightness coral red (`collision_pose`, RGB `1.00, 0.78, 0.70`). This coral red must remain visually distinct from the deep-red feasible-center display markers. The OBJ vertex records and MTL must carry the same colors. The MTL sets matching `Ka`/`Kd`/`Ke` plus `illum 0`, so its semantic colors are not darkened by directional lighting in MeshLab.

@@ -160,10 +160,10 @@ def plot_local_feasibility_explanation(
     radius: float,
     delta: float,
 ) -> tuple[Path, int]:
-    """绘制一个代表性目标点的局部法平面，以解释半径、余量和可行圆弧。
+    """绘制一个代表性目标点的局部切平面，以解释半径、余量和可行圆弧。
 
-    图中的局部横纵轴不是工件的全局 X/Y，而是垂直于根部线切线 ``t_i``
-    的二维平面。算法会优先选择既有可行候选也有不可行候选的点，从而
+    图中的局部横纵轴不是工件的全局 X/Y，而是工件表面切平面内的二维基。
+    算法会优先选择既有可行候选也有不可行候选的点，从而
     同时显示两种判定；若不存在这种点，则选择可行率最低的目标点。
     """
 
@@ -187,7 +187,7 @@ def plot_local_feasibility_explanation(
         ratios = np.divide(feasible_counts, total_counts, out=np.zeros_like(feasible_counts, dtype=float), where=total_counts > 0)
         point_index = int(np.argmin(ratios))
 
-    # 在局部法平面中，候选点坐标可以直接由 rho、theta 写成极坐标。
+    # 在局部切平面中，候选点坐标可以直接由 rho、theta 写成极坐标。
     mask = point_indices == point_index
     local_feasible = feasible[mask]
     angles = np.asarray(candidates.angles, dtype=float)[mask]
@@ -216,7 +216,7 @@ def plot_local_feasibility_explanation(
         color="#0072B2",
         fontsize=11,
     )
-    axes[0].set_title("[A] Candidate centers in the plane perpendicular to tangent $t_i$")
+    axes[0].set_title("[A] Candidate centers in the local tangent plane")
     axes[0].legend(loc="upper right", fontsize=8)
 
     # 只取外圈候选并按角度排序，把相邻可行点连接成用户所说的“可行圆弧”。
@@ -238,8 +238,8 @@ def plot_local_feasibility_explanation(
         axis.set_aspect("equal")
         axis.set_xlim(-limit, limit)
         axis.set_ylim(-limit, limit)
-        axis.set_xlabel("local radial basis 1 (normalized units)")
-        axis.set_ylabel("local radial basis 2 (normalized units)")
+        axis.set_xlabel("local tangent-plane basis 1 (normalized units)")
+        axis.set_ylabel("local tangent-plane basis 2 (normalized units)")
         axis.grid(True, linewidth=0.5, alpha=0.35)
     fig.suptitle(
         f"Local explanation at target point {point_index}: r={radius:g}, delta={delta:g}, "

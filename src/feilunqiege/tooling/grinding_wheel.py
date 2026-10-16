@@ -43,11 +43,11 @@ def generate_disk_candidates(
     angle_count: int,
     radial_samples: int,
 ) -> Any:
-    """生成候选无厚度圆盘中心和姿态。
+    """生成切平面内的候选无厚度圆盘中心和姿态。
 
     当前候选半径区间包含两个端点，便于对 `delta` 敏感性进行可重复采样。
-    砂轮圆盘平面由 `tangent_direction` 与 `radius_direction` 张成，
-    轴向为 `tangent_direction × radius_direction`。
+    ``frame.radial_basis_1/2`` 现在是切平面基向量；候选中心在切平面内
+    绕接触点转动，砂轮轴向固定为工件表面法向，圆盘平面因此与切平面平行。
     """
 
     # 先校验半径区间，保证 rho 不会变成负数且确实落在 [r-delta, r]。
@@ -70,7 +70,8 @@ def generate_disk_candidates(
     all_rhos = []
     all_angles = []
     for point_index, (point, frame) in enumerate(zip(points, frames, strict=True)):
-        # 用局部法平面的两个基向量参数化半径方向，保证其与切线正交。
+        # 用局部切平面的两个基向量参数化中心偏移方向；这使中心轨迹圆
+        # 与切平面平行，而不是落在法平面内。
         e = (
             np.cos(angles)[:, None] * np.asarray(frame.radial_basis_1)
             + np.sin(angles)[:, None] * np.asarray(frame.radial_basis_2)
@@ -78,9 +79,12 @@ def generate_disk_candidates(
         e /= np.linalg.norm(e, axis=1)[:, None]
         t = np.repeat(np.asarray(frame.tangent)[None, :], angle_count, axis=0)
 
-        # t×e 给出圆盘轴向；这里只表达姿态，不生成有厚度的实体网格。
-        axis = np.cross(t, e)
-        axis /= np.linalg.norm(axis, axis=1)[:, None]
+        # 轴向使用表面法向；这里只表达姿态，不生成有厚度的实体网格。
+        axis_vector = np.asarray(frame.axis if frame.axis is not None else frame.surface_normal, dtype=float)
+        if axis_vector.shape != (3,) or np.linalg.norm(axis_vector) <= 1e-12:
+            raise ValueError("切平面候选必须提供有效的表面法向作为砂轮轴向")
+        axis_vector /= np.linalg.norm(axis_vector)
+        axis = np.repeat(axis_vector[None, :], angle_count, axis=0)
         for rho in radial_values:
             # 每个 rho 都保留同一组角度，便于后续按角度统计可行弧区间。
             all_points.append(np.repeat(np.asarray(point)[None, :], angle_count, axis=0))
@@ -102,8 +106,20 @@ def generate_disk_candidates(
         angles=np.concatenate(all_angles),
         radius=float(radius),
     )
-    # 生成后再次检查 e·t=0，避免局部标架或数值误差破坏工艺几何约束。
-    orthogonality = np.abs(np.einsum("ij,ij->i", candidate_set.radius_directions, candidate_set.tangent_directions))
-    if float(orthogonality.max(initial=0.0)) > 1e-10:
-        raise ValueError("候选砂轮半径方向未满足 e·t=0")
+    # 生成后再次检查完整的局部姿态，避免后续绘图或碰撞模块误用错误方向。
+    # e 与 t 同属切平面，a 是表面法向；因此圆盘平面与切平面平行。
+    radius_tangent_dot = np.abs(
+        np.einsum("ij,ij->i", candidate_set.radius_directions, candidate_set.tangent_directions)
+    )
+    axis_tangent_dot = np.abs(
+        np.einsum("ij,ij->i", candidate_set.axis_directions, candidate_set.tangent_directions)
+    )
+    axis_radius_dot = np.abs(
+        np.einsum("ij,ij->i", candidate_set.axis_directions, candidate_set.radius_directions)
+    )
+    if (
+        float(axis_tangent_dot.max(initial=0.0)) > 1e-10
+        or float(axis_radius_dot.max(initial=0.0)) > 1e-10
+    ):
+        raise ValueError("候选砂轮姿态未满足 a·t=0、a·e=0（圆盘平面平行切平面）")
     return candidate_set

@@ -27,7 +27,7 @@ def export_interactive_demo_html(
     """导出少量可点击采样点的离线 HTML。
 
     左侧是根部线的 X-Z 投影，橙色圆点是本次演示实际导出的可点击点；
-    右侧根据点击结果绘制该点局部法平面内的候选中心和可行圆弧。
+    右侧根据点击结果绘制该点局部切平面内的候选中心和可行圆弧。
     所有局部坐标都由 Python 计算结果提供，网页只负责显示和交互。
     """
 
@@ -176,11 +176,11 @@ def _render_html(payload: dict[str, Any]) -> str:
       <div class="legend">蓝线：root_line；橙色点：可点击采样点；红色点：当前选中点。编号从 0 开始，按分支顺序拼接。</div>
     </section>
     <section class="panel">
-      <h2>当前点的局部法平面放大图</h2>
+      <h2>当前点的局部切平面放大图</h2>
       <svg id="localSvg" viewBox="0 0 640 420" role="img" aria-label="当前采样点的可行半径区域"></svg>
       <div id="details" class="detail" aria-live="polite"></div>
       <div class="legend">黑线：rho=r；蓝色虚线：rho=r-delta；红点：可行中心；灰色叉号：不可行中心；橙色粗线：外半径可行圆弧。</div>
-      <div class="legend">局部坐标：横向正方向为 +b1，纵向正方向为 +b2。生成逻辑：先取根部线切线 t 和与 t 最不平行的参考轴 q，计算 b1=normalize(t×q)，再计算 b2=normalize(t×b1)。候选径向方向为 e(theta)=cos(theta)b1+sin(theta)b2。</div>
+      <div class="legend">局部坐标：横向正方向为 +b1，纵向正方向为 +b2。候选中心在工件局部切平面内生成，砂轮轴向取工件表面法向。候选径向方向为 e(theta)=cos(theta)b1+sin(theta)b2。</div>
     </section>
   </div>
   <script>
@@ -273,7 +273,7 @@ def _render_html(payload: dict[str, Any]) -> str:
       root.replaceChildren();
       const left = 54, right = 600, top = 20, bottom = 370;
       const limit = DATA.radius * 1.35;
-      // 局部法平面必须使用相同的 x/y 像素比例，否则数学圆会被显示成椭圆。
+      // 局部切平面必须使用相同的 x/y 像素比例，否则数学圆会被显示成椭圆。
       const centerX = (left + right) / 2;
       const centerY = (top + bottom) / 2;
       const unitScale = Math.min(right - left, bottom - top) / (2 * limit);

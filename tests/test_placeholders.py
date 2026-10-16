@@ -16,8 +16,8 @@ from feilunqiege.visualization.export_obj import (
 from feilunqiege.visualization.interactive import export_interactive_demo_html
 
 
-def test_candidate_radius_direction_is_orthogonal_to_tangent() -> None:
-    """候选中心生成必须满足砂轮半径方向与曲线切线正交。"""
+def test_candidate_disk_is_parallel_to_tangent_plane() -> None:
+    """候选中心偏移在切平面内，砂轮轴向垂直于该切平面。"""
 
     root_line = RootLineData(
         vertices=np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.5, 0.0]]),
@@ -26,8 +26,23 @@ def test_candidate_radius_direction_is_orthogonal_to_tangent() -> None:
     curve = split_and_resample(root_line, point_count=0)
     frames = build_frames(curve.points, curve.tangents)
     candidates = generate_disk_candidates(curve.points, frames, 0.2, 0.01, 12, 2)
-    dot_products = np.einsum("ij,ij->i", candidates.radius_directions, candidates.tangent_directions)
-    assert np.max(np.abs(dot_products)) < 1e-10
+    axis_tangent = np.einsum("ij,ij->i", candidates.axis_directions, candidates.tangent_directions)
+    axis_radius = np.einsum("ij,ij->i", candidates.axis_directions, candidates.radius_directions)
+    assert np.max(np.abs(axis_tangent)) < 1e-10
+    assert np.max(np.abs(axis_radius)) < 1e-10
+    assert np.allclose(np.linalg.norm(candidates.radius_directions, axis=1), 1.0)
+
+
+def test_explicit_surface_normal_controls_wheel_axis() -> None:
+    """显式工件法向应成为砂轮轴向，候选圆轨迹应留在切平面。"""
+
+    points = np.array([[0.0, 0.0, 0.0]])
+    tangents = np.array([[1.0, 0.0, 0.0]])
+    normals = np.array([[0.0, 0.0, 1.0]])
+    frames = build_frames(points, tangents, normals)
+    candidates = generate_disk_candidates(points, frames, 0.2, 0.01, 16, 1)
+    assert np.allclose(np.abs(candidates.axis_directions[:, 2]), 1.0)
+    assert np.max(np.abs(candidates.radius_directions[:, 2])) < 1e-10
 
 
 def test_curve_loader_keeps_all_vertices_in_all_points_mode() -> None:

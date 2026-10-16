@@ -30,6 +30,10 @@ def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="审计 OBJ 与原始 root_line 的坐标一致性")
     parser.add_argument("--config", default="configs/default.json", help="仓库内配置 JSON 路径")
     parser.add_argument("--case", action="append", dest="cases", help="只审计指定案例，可重复传入")
+    parser.add_argument(
+        "--result-dir",
+        help="审计一个指定结果目录；支持阶段二 stage2_disk_* 的局部根部线 OBJ，不与 --case 同用",
+    )
     parser.add_argument("--output", help="把 JSON 审计报告写入一个尚不存在的正式文件")
     parser.add_argument("--tolerance", type=float, default=1e-8, help="逐坐标最大绝对误差上限")
     return parser.parse_args()
@@ -66,6 +70,35 @@ def _read_obj_header_and_root_vertices(path: Path, root_count: int) -> tuple[str
     if len(vertices) != root_count:
         raise ValueError(f"{path} 的 root_line 顶点数为 {len(vertices)}，预期为 {root_count}")
     return coordinate_frame, np.asarray(vertices, dtype=float)
+
+
+def _read_stage2_context(path: Path) -> tuple[str | None, int, int, np.ndarray]:
+    """读取阶段二局部根部线 OBJ，并保留其在采样曲线中的索引范围。"""
+
+    coordinate_frame: str | None = None
+    start: int | None = None
+    stop: int | None = None
+    vertices: list[list[float]] = []
+    in_context = False
+    with path.open("r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if line.startswith("# coordinate_frame:"):
+                coordinate_frame = line.split(":", maxsplit=1)[1].strip()
+            elif line.startswith("# root_line_context_start:"):
+                start = int(line.split(":", maxsplit=1)[1].strip())
+            elif line.startswith("# root_line_context_stop:"):
+                stop = int(line.split(":", maxsplit=1)[1].strip())
+            elif line == "o root_line_context":
+                in_context = True
+            elif in_context and line.startswith("v "):
+                values = line.split()
+                vertices.append([float(values[1]), float(values[2]), float(values[3])])
+            elif in_context and line.startswith("o "):
+                break
+    if start is None or stop is None or len(vertices) != stop - start:
+        raise ValueError(f"{path} 的阶段二局部 root_line 元数据或顶点数量无效")
+    return coordinate_frame, start, stop, np.asarray(vertices, dtype=float)
 
 
 def _symmetric_nearest_error(source_points: np.ndarray, exported_points: np.ndarray) -> float:
@@ -111,6 +144,37 @@ def audit_case(case_name: str, *, data_root: Path, results_root: Path, tolerance
     }
 
 
+def audit_stage2_directory(result_directory: Path, *, data_root: Path, tolerance: float) -> dict[str, Any]:
+    """审计阶段二显示 OBJ 的局部根部线上下文是否回到 source_obj 坐标。"""
+
+    summary = json.loads((result_directory / "leaf_stage2_disk_summary.json").read_text(encoding="utf-8"))
+    if summary.get("stage") != "stage_2_zero_thickness_disk_continuous_collision":
+        raise ValueError("--result-dir 目前只支持阶段二无厚度圆盘结果目录")
+    display_path = result_directory / "leaf_stage2_disk_audit.obj"
+    frame, start, stop, exported = _read_stage2_context(display_path)
+    source_root = np.asarray(load_root_line(data_root / "leaf" / "root_line.ply").vertices, dtype=float)
+    if stop > len(source_root):
+        raise ValueError("阶段二局部 root_line 索引超出原始 root_line.ply")
+    expected = source_root[start:stop]
+    error = float(np.max(np.abs(expected - exported)))
+    frame_ok = frame == "source_obj"
+    coordinates_ok = error <= tolerance
+    return {
+        "case_name": "leaf",
+        "run_directory": str(result_directory),
+        "display_obj": str(display_path),
+        "coordinate_frame": frame,
+        "root_context_index_range": [start, stop],
+        "root_context_vertex_count": int(len(exported)),
+        "max_root_coordinate_error": error,
+        "tolerance": tolerance,
+        "status": "pass" if frame_ok and coordinates_ok else "fail",
+        "reason": "阶段二局部根部线已在 source_obj 坐标中，与原始 root_line.ply 对应片段一致。"
+        if frame_ok and coordinates_ok
+        else "阶段二 OBJ 未标为 source_obj 坐标，或其局部根部线与原始 root_line.ply 不一致。",
+    }
+
+
 def main() -> int:
     """执行全部目标案例的审计，并在发生坐标错误时返回非零退出码。"""
 
@@ -121,12 +185,16 @@ def main() -> int:
     data_root = (config_path.parent / config["data_root"]).resolve()
     # 配置中的 directory 已经是 results/cases；不再额外拼接一次 cases。
     results_root = repo_root / config["outputs"]["directory"]
-    cases = arguments.cases or sorted(path.name for path in results_root.iterdir() if path.is_dir())
-
-    records = [
-        audit_case(case_name, data_root=data_root, results_root=results_root, tolerance=arguments.tolerance)
-        for case_name in cases
-    ]
+    if arguments.result_dir and arguments.cases:
+        raise ValueError("--result-dir 与 --case 不能同时使用")
+    if arguments.result_dir:
+        records = [audit_stage2_directory(Path(arguments.result_dir).resolve(), data_root=data_root, tolerance=arguments.tolerance)]
+    else:
+        cases = arguments.cases or sorted(path.name for path in results_root.iterdir() if path.is_dir())
+        records = [
+            audit_case(case_name, data_root=data_root, results_root=results_root, tolerance=arguments.tolerance)
+            for case_name in cases
+        ]
     report = {
         "purpose": "Verify source-coordinate alignment for MeshLab OBJ overlays; not a collision-validation certificate.",
         "case_count": len(records),

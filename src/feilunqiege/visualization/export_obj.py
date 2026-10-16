@@ -154,14 +154,15 @@ def export_pose_examples_obj(
                 continue
             center_point = np.asarray(candidates.centers[int(candidate_index)], dtype=float)
             radial = np.asarray(candidates.radius_directions[int(candidate_index)], dtype=float)
-            tangent = np.asarray(candidates.tangent_directions[int(candidate_index)], dtype=float)
             axis = np.asarray(candidates.axis_directions[int(candidate_index)], dtype=float)
+            disk_basis = np.cross(axis, radial)
+            disk_basis /= np.linalg.norm(disk_basis)
             radius = float(candidates.radial_values[int(candidate_index)])
             theta = np.linspace(0.0, 2.0 * np.pi, 32, endpoint=False)
             vertices = []
             for axial in (-width / 2.0, width / 2.0):
                 for angle in theta:
-                    point = center_point + radius * (np.cos(angle) * radial + np.sin(angle) * tangent) + axial * axis
+                    point = center_point + radius * (np.cos(angle) * radial + np.sin(angle) * disk_basis) + axial * axis
                     vertices.append(export_point(point))
             # OBJ 顶点颜色是 MTL 之外的兼容性回退：MeshLab 未启用材质时仍可区分两种姿态。
             material, color = {
@@ -580,6 +581,198 @@ illum 0
 # fallback for future labels
 newmtl other_pose
 Kd 0.55 0.55 0.55
+""",
+        encoding="utf-8",
+    )
+
+
+def export_stage2_disk_audit_obj(
+    sampled_curve: Any,
+    candidates: Any,
+    exact: Any,
+    baseline: Any,
+    output_path: str | Path,
+    *,
+    point_index: int,
+    coordinate_transform: dict[str, Any] | None,
+) -> Path:
+    """导出阶段二单点审计的 MeshLab 叠加层。
+
+    这是零厚度圆盘的显示文件，不是有限厚度砂轮。它将根部线局部片段、
+    全部候选中心的连续判定状态、旧采样 baseline 的差异以及一组通过/碰撞
+    圆盘面写成独立 OBJ 组。所有坐标逆变换到 ``source_obj``，因此可与
+    ``mesh_without_flash.obj`` 直接作为同一工程中的两个图层打开。
+    """
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    centers = np.asarray(candidates.centers, dtype=float)
+    contacts = np.asarray(candidates.contact_points, dtype=float)
+    tangents = np.asarray(candidates.tangent_directions, dtype=float)
+    radials = np.asarray(candidates.radius_directions, dtype=float)
+    axes = np.asarray(candidates.axis_directions, dtype=float)
+    radii = np.asarray(candidates.radial_values, dtype=float)
+    exact_feasible = np.asarray(exact.feasible, dtype=bool)
+    baseline_feasible = np.asarray(baseline.feasible, dtype=bool)
+    witnesses = np.asarray(exact.witness_workpiece, dtype=float)
+    if not (len(centers) == len(exact_feasible) == len(baseline_feasible) == len(radii)):
+        raise ValueError("阶段二 OBJ 导出的候选数组长度不一致")
+    if not 0 <= point_index < len(sampled_curve.points):
+        raise ValueError("point_index 超出根部线范围")
+
+    scale, translation = _parse_coordinate_transform(coordinate_transform)
+    marker_radius = float(np.median(radii)) * scale * 0.075
+    mismatch = exact_feasible != baseline_feasible
+    feasible_indices = np.flatnonzero(exact_feasible)
+    collision_indices = np.flatnonzero(~exact_feasible)
+    # 每一类都固定选最小索引，令每次运行的代表姿态可复现。
+    representatives = [("exact_clear_disk", "exact_clear", feasible_indices), ("exact_collision_disk", "exact_collision", collision_indices)]
+    points = np.asarray(sampled_curve.points, dtype=float)
+    start = max(0, point_index - 20)
+    stop = min(len(points), point_index + 21)
+    mtl_path = output.with_suffix(".mtl")
+    _write_stage2_audit_mtl(mtl_path)
+
+    with output.open("w", encoding="utf-8", newline="\n") as handle:
+        _write_obj_metadata(
+            handle,
+            mtl_path.name,
+            units="source_obj coordinates",
+            radius=float(np.median(radii)) * scale,
+            delta=0.0,
+            description="stage-2 zero-thickness disk audit overlay; disk faces are visual representatives only",
+        )
+        _write_coordinate_metadata(handle, coordinate_transform)
+        handle.write(f"# root_line_point_index: {point_index}\n")
+        handle.write(f"# root_line_context_start: {start}\n")
+        handle.write(f"# root_line_context_stop: {stop}\n")
+        handle.write(f"# exact_clear_count: {len(feasible_indices)}\n")
+        handle.write(f"# exact_collision_count: {len(collision_indices)}\n")
+        handle.write(f"# baseline_difference_count: {int(np.count_nonzero(mismatch))}\n")
+        next_vertex = 1
+
+        # 只写接触点附近的根部线，既给出目标上下文又避免覆盖工件主体视图。
+        handle.write("o root_line_context\nusemtl root_line\ng root_line_context\n")
+        context_ids = []
+        for point in points[start:stop]:
+            handle.write(_colored_vertex_line(_to_export_coordinates(point, scale, translation), (0.05, 0.40, 0.90)))
+            context_ids.append(next_vertex)
+            next_vertex += 1
+        for first, second in zip(context_ids, context_ids[1:], strict=False):
+            handle.write(f"l {first} {second}\n")
+
+        contact = contacts[0]
+        handle.write("o target_root_contact\nusemtl target_point\ng target_root_contact\n")
+        next_vertex = _write_octahedron(
+            handle, _to_export_coordinates(contact, scale, translation), tangents[0], radials[0], axes[0], marker_radius * 1.4, next_vertex
+        )
+
+        # 面片八面体比 OBJ 的 p 原语更稳定，能在 MeshLab 默认点大小下辨认状态。
+        for group, material, indices in (
+            ("exact_clear_centers", "exact_clear", feasible_indices),
+            ("exact_collision_centers", "exact_collision", collision_indices),
+            ("baseline_difference_centers", "baseline_difference", np.flatnonzero(mismatch)),
+        ):
+            handle.write(f"o {group}\nusemtl {material}\ng {group}\n")
+            factor = 0.68 if group == "baseline_difference_centers" else 1.0
+            for candidate_index in indices:
+                next_vertex = _write_octahedron(
+                    handle,
+                    _to_export_coordinates(centers[candidate_index], scale, translation),
+                    tangents[candidate_index], radials[candidate_index], axes[candidate_index], marker_radius * factor, next_vertex,
+                )
+
+        # 将碰撞窄相返回的见证点也导出，帮助人工对照“哪一处三角面”触发了判定。
+        hit_indices = collision_indices[np.all(np.isfinite(witnesses[collision_indices]), axis=1)]
+        handle.write("o collision_witnesses\nusemtl collision_witness\ng collision_witnesses\n")
+        for candidate_index in hit_indices:
+            witness = _to_export_coordinates(witnesses[candidate_index], scale, translation)
+            next_vertex = _write_octahedron(
+                handle, witness, tangents[candidate_index], radials[candidate_index], axes[candidate_index], marker_radius * 0.55, next_vertex
+            )
+
+        # 仅导出一个可行和一个碰撞的完整圆盘面，避免 72 个重叠圆盘遮挡工件。
+        for group, material, indices in representatives:
+            if len(indices) == 0:
+                continue
+            candidate_index = int(indices[0])
+            handle.write(f"o {group}\nusemtl {material}\ng {group}\n")
+            next_vertex = _write_zero_thickness_disk(
+                handle,
+                _to_export_coordinates(centers[candidate_index], scale, translation),
+                radials[candidate_index],
+                _unit_display_vector(np.cross(axes[candidate_index], radials[candidate_index])),
+                float(radii[candidate_index]) * scale,
+                next_vertex,
+            )
+    return output
+
+
+def _write_zero_thickness_disk(
+    handle: Any, center: np.ndarray, basis_1: np.ndarray, basis_2: np.ndarray, radius: float, first_vertex: int, segments: int = 48
+) -> int:
+    """写一个由三角扇组成的数学零厚度圆盘，仅用于阶段二姿态显示。"""
+
+    basis_1 = _unit_display_vector(basis_1)
+    basis_2 = _unit_display_vector(basis_2)
+    handle.write(_vertex_line(center))
+    for angle in np.linspace(0.0, 2.0 * np.pi, segments, endpoint=False):
+        point = center + radius * (np.cos(angle) * basis_1 + np.sin(angle) * basis_2)
+        handle.write(_vertex_line(point))
+    for index in range(segments):
+        following = (index + 1) % segments
+        handle.write(f"f {first_vertex} {first_vertex + index + 1} {first_vertex + following + 1}\n")
+    return first_vertex + segments + 1
+
+
+def _unit_display_vector(vector: Any) -> np.ndarray:
+    """归一化 OBJ 显示用方向，避免砂轮圆盘代理退化。"""
+
+    vector = np.asarray(vector, dtype=float)
+    norm = np.linalg.norm(vector)
+    if norm <= 1e-12:
+        raise ValueError("砂轮显示平面基向量不能退化")
+    return vector / norm
+
+
+def _write_stage2_audit_mtl(path: Path) -> None:
+    """给阶段二 OBJ 写高亮、无光照语义材料，避免 MeshLab 默认灯光压暗颜色。"""
+
+    path.write_text(
+        """# Stage-2 zero-thickness disk audit materials
+# exact_clear: fixed-angle triangle/disk check passed (subject to JSON limitations)
+newmtl exact_clear
+Ka 0.20 0.85 0.48
+Kd 0.20 0.85 0.48
+Ke 0.20 0.85 0.48
+illum 0
+# exact_collision: fixed-angle triangle/disk intersection or tangency
+newmtl exact_collision
+Ka 1.00 0.42 0.30
+Kd 1.00 0.42 0.30
+Ke 1.00 0.42 0.30
+d 0.42
+illum 0
+newmtl baseline_difference
+Ka 0.62 0.25 0.86
+Kd 0.62 0.25 0.86
+Ke 0.62 0.25 0.86
+illum 0
+newmtl collision_witness
+Ka 1.00 0.05 0.05
+Kd 1.00 0.05 0.05
+Ke 1.00 0.05 0.05
+illum 0
+newmtl root_line
+Ka 0.05 0.40 0.90
+Kd 0.05 0.40 0.90
+Ke 0.05 0.40 0.90
+illum 0
+newmtl target_point
+Ka 0.05 0.05 0.05
+Kd 0.05 0.05 0.05
+Ke 0.05 0.05 0.05
+illum 0
 """,
         encoding="utf-8",
     )

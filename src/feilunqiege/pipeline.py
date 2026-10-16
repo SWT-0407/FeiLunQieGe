@@ -15,7 +15,7 @@ from feilunqiege.collision.checker import (
     check_finite_cylinder_candidates,
 )
 from feilunqiege.geometry.curve import split_and_resample
-from feilunqiege.geometry.frame import build_frames
+from feilunqiege.geometry.frame import build_frames, estimate_surface_normals
 from feilunqiege.io.mesh import load_mesh
 from feilunqiege.io.root_line import load_root_line
 from feilunqiege.tooling.grinding_wheel import generate_disk_candidates
@@ -55,7 +55,8 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
 
     # 先按 PLY edge 拆分分支，再按弧长规则获得目标采样点和切线。
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
-    frames = build_frames(sampled.points, sampled.tangents)
+    surface_normals = estimate_surface_normals(sampled.points, workpiece)
+    frames = build_frames(sampled.points, sampled.tangents, surface_normals)
 
     # 完整工件网格只建立一次碰撞索引，半径扫描和最终计算复用同一个 KDTree。
     collision_index = build_collision_index(workpiece)
@@ -72,7 +73,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     wheel["radius"] = radius_selection["selected_radius"]
     wheel["delta"] = radius_selection["selected_delta"]
 
-    # 在每个目标点的切线法平面内生成候选中心，半径方向天然满足 e·t=0。
+    # 在每个目标点的局部切平面内生成候选中心；砂轮轴向取工件表面法向。
     candidates = generate_disk_candidates(
         sampled.points,
         frames,

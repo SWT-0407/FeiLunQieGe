@@ -22,7 +22,7 @@ The older output-list and viewer notes below may mention `interactive_demo.html`
 
 1. 把 `root_line.ply` 作为目标空间曲线 `l`，按 edge 连通关系拆分分支并按弧长采样；
 2. 在每个采样点建立局部切线 `t_i`；
-3. 生成满足砂轮半径方向 `e_i` 与 `t_i` 垂直、砂轮圆周切线与 `t_i` 平行的候选砂轮中心；
+3. 根据工件表面法向建立局部切平面，在切平面内生成砂轮中心偏移方向 `e_i`；砂轮圆盘平面与切平面平行、轴向取表面法向；
 4. 判断候选无厚度圆盘是否与工件本体发生碰撞；
 5. 输出所有采样点对应的可行中心集合/可行圆弧总览图。
 
@@ -31,7 +31,7 @@ The older output-list and viewer notes below may mention `interactive_demo.html`
 ## 当前约定
 
 - `root_line.ply` 暂按飞边与工件本体的根部交线处理，而不是把它当作完整飞边实体。所有有效顶点都应参与分析；多个连通分支应分别保留，不能静默丢弃。
-- 算法计算统一使用 normalized units。批量运行时在内存中将每个工件和对应 `root_line` 共同变换为“工件包围盒中心为原点、最长边为 1”；原始 OBJ/PLY 不修改，具体中心、尺度和源包围盒写入每个案例的 JSON 摘要。为能在 MeshLab 直接叠加原始工件，三个输出 OBJ 会在写入时逆变换回 `source_obj` 坐标；HTML 和 PNG 仍使用 normalized 计算坐标，不能与原始 OBJ 直接叠加。
+- 算法计算统一使用 normalized units。批量运行时在内存中将每个工件和对应 `root_line` 共同变换为“工件包围盒中心为原点、最长边为 1”；原始 OBJ/PLY 不修改，具体中心、尺度和源包围盒写入每个案例的 JSON 摘要。为能在 MeshLab 直接叠加原始工件，三个输出 OBJ 会在写入时逆变换回 `source_obj` 坐标；HTML 和 PNG 仍使用 normalized 计算坐标，不能与原始 OBJ 直接叠加。候选中心圆轨迹位于工件局部切平面，砂轮轴向取工件表面法向。
 - 初版砂轮采用**无厚度圆盘**模型，以减少实现量并验证中心候选和碰撞筛选流程。厚度 `w`、有限圆柱和圆角砂轮只预留接口。
 - `delta` 是归一化单位下的径向候选区间参数，不直接解释为毫米加工公差。
 - `mesh_without_flash.obj` 是默认碰撞对象，但仍需用小案例人工核对其含义和坐标范围。
@@ -86,7 +86,7 @@ python scripts/run_all_cases.py --config configs/default.json --continue-on-erro
 每次运行都会在 `results/cases/<case_name>/run_YYYYMMDD_HHMMSS/` 下创建一个新的结果目录，不覆盖旧运行结果。当前 12 个案例均已成功生成一套最新结果。输出写入以下文件：
 
 - `results/cases/<case_name>/run_.../feasible_centers_overview.png`：带工件表面、根部线、目标点和可行中心的三维总览图；
-- `results/cases/<case_name>/run_.../local_feasibility_explanation.png`：自动放大的局部法平面图，显示 `r`、`delta`、不可行候选、可行中心和可行圆弧；
+- `results/cases/<case_name>/run_.../local_feasibility_explanation.png`：自动放大的局部切平面图，显示 `r`、`delta`、不可行候选、可行中心和可行圆弧；
 - `results/cases/<case_name>/run_.../workpiece_orientation_guide.png`：同一工件的三维透视与 X-Z 正投影对照图，用于解释 T 形外观差异；
 - `results/cases/<case_name>/run_.../feasible_centers.obj`：精确结果 OBJ 点/线文件，MeshLab 可直接打开；其中 `l` 是采样根部线或离散可行弧，`p` 是按目标点分组的可行砂轮中心；
 - `results/cases/<case_name>/run_.../feasible_centers_display.obj`：用于 MeshLab 放大的八面体显示代理；
