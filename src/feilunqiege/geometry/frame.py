@@ -91,6 +91,7 @@ def estimate_surface_normals(points: Any, mesh: Any, neighbor_count: int = 24) -
         raise ValueError("工件网格所有三角形均退化，无法估计表面法向")
     face_normals[valid] /= lengths[valid, None]
     centroids = triangles.mean(axis=1)
+    mesh_center = vertices.mean(axis=0)
     face_tree = cKDTree(centroids[valid])
     query_count = min(int(neighbor_count), int(np.count_nonzero(valid)))
     if query_count < 2:
@@ -112,6 +113,19 @@ def estimate_surface_normals(points: Any, mesh: Any, neighbor_count: int = 24) -
             group_a = np.zeros(query_count, dtype=bool)
             group_a[seed_a] = True
         group_b = ~group_a
+
+        # A strongly imbalanced 1-vs-many neighborhood often means that the
+        # minority face is the true adjacent side while the majority faces
+        # belong to a nearby surface. In that case use mesh-center direction
+        # only to correct the relative sign of the majority family. Balanced
+        # neighborhoods are left untouched, preserving already accepted poses.
+        if min(int(group_a.sum()), int(group_b.sum())) * 4 <= max(int(group_a.sum()), int(group_b.sum())):
+            local_centroids = centroids[valid][nearest_indices]
+            for group in (group_a, group_b):
+                group_center = local_centroids[group].mean(axis=0)
+                group_direction = local_normals[group].mean(axis=0)
+                if float(np.dot(group_direction, group_center - mesh_center)) < 0.0:
+                    local_normals[group] *= -1.0
 
         def mean_direction(values: np.ndarray) -> np.ndarray:
             result = values.mean(axis=0)
