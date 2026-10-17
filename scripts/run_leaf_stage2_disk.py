@@ -223,7 +223,12 @@ def main() -> int:
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
     if not 0 <= arguments.point_index < len(sampled.points):
         raise ValueError(f"point-index 必须在 [0, {len(sampled.points) - 1}] 内")
-    surface_normals = estimate_surface_normals(sampled.points, workpiece)
+    normal_config = config.get("normal_estimation", {})
+    surface_normals = estimate_surface_normals(
+        sampled.points,
+        workpiece,
+        neighbor_count=int(normal_config.get("neighbor_count", 24)),
+    )
     frames = build_frames(sampled.points, sampled.tangents, surface_normals)
     contact = np.asarray(sampled.points[arguments.point_index], dtype=float)
     frame = frames[arguments.point_index]

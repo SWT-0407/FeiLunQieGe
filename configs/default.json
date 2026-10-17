@@ -32,7 +32,7 @@
     "radial_samples": 3
   },
   "normal_estimation": {
-    "method": "local_pca",
+    "method": "two_face_angle_bisector",
     "neighbor_count": 24
   },
   "visualization": {

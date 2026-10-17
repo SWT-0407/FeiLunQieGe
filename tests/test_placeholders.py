@@ -46,8 +46,8 @@ def test_explicit_surface_normal_controls_wheel_axis() -> None:
     assert np.max(np.abs(candidates.radius_directions[:, 2])) < 1e-10
 
 
-def test_local_pca_surface_normal_uses_neighborhood() -> None:
-    """局部平面上的多个顶点应通过 PCA 恢复稳定法向，而不是单面法向。"""
+def test_angle_bisector_surface_normal_uses_two_face_directions() -> None:
+    """平面退化为同一侧时，角平分估计应恢复该平面的法向。"""
 
     vertices = np.array(
         [

@@ -67,8 +67,8 @@ def build_frames(points: Any, tangents: Any, surface_normals: Any | None = None)
     return frames
 
 
-# Estimate each normal from a local vertex neighborhood with PCA. KD Tree is
-# only the neighborhood index; the nearest face is used solely for sign fixing.
+# Estimate the angle bisector of the two local face-normal families around root_line.
+# KD Tree narrows face candidates; it does not define the normal by itself.
 def estimate_surface_normals(points: Any, mesh: Any, neighbor_count: int = 24) -> np.ndarray:
     """用工件网格中最近三角形的面法向估计根部采样点法向。
 
@@ -80,8 +80,8 @@ def estimate_surface_normals(points: Any, mesh: Any, neighbor_count: int = 24) -
     vertices = np.asarray(mesh.vertices, dtype=float)
     faces = np.asarray(mesh.faces, dtype=np.int64)
     triangles = vertices[faces]
-    if int(neighbor_count) < 3:
-        raise ValueError("PCA neighborhood requires at least 3 vertices")
+    if int(neighbor_count) < 2:
+        raise ValueError("Angle-bisector estimation requires at least 2 faces")
     if len(triangles) == 0:
         raise ValueError("工件网格没有三角形，无法估计表面法向")
     face_normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
@@ -91,30 +91,46 @@ def estimate_surface_normals(points: Any, mesh: Any, neighbor_count: int = 24) -
         raise ValueError("工件网格所有三角形均退化，无法估计表面法向")
     face_normals[valid] /= lengths[valid, None]
     centroids = triangles.mean(axis=1)
-    # The nearest face is used only to orient PCA normals consistently.
-    orientation_tree = cKDTree(centroids[valid])
-    vertex_tree = cKDTree(vertices)
-    query_count = min(int(neighbor_count), len(vertices))
-    if query_count < 3:
-        raise ValueError("Mesh has too few vertices for local PCA")
+    face_tree = cKDTree(centroids[valid])
+    query_count = min(int(neighbor_count), int(np.count_nonzero(valid)))
+    if query_count < 2:
+        raise ValueError("Mesh has too few valid faces for angle-bisector estimation")
 
     normals = np.empty((len(points), 3), dtype=float)
     for index, point in enumerate(points):
-        _, vertex_indices = vertex_tree.query(point, k=query_count)
-        neighborhood = vertices[np.asarray(vertex_indices, dtype=np.int64)]
-        centered = neighborhood - neighborhood.mean(axis=0, keepdims=True)
-        covariance = (centered.T @ centered) / float(query_count)
-        eigenvalues, eigenvectors = np.linalg.eigh(covariance)
-        normal = eigenvectors[:, int(np.argmin(eigenvalues))]
-        normal_norm = np.linalg.norm(normal)
-        if normal_norm <= 1e-12:
-            raise ValueError(f"Local PCA is degenerate at point {index}")
-        normal = normal / normal_norm
+        _, nearest_indices = face_tree.query(point, k=query_count)
+        nearest_indices = np.asarray(nearest_indices, dtype=np.int64).reshape(-1)
+        local_normals = np.asarray(face_normals[valid][nearest_indices], dtype=float).reshape(-1, 3)
+        reference = local_normals[0].reshape(3)
 
-        # PCA has an arbitrary sign; align it with the nearest face normal so
-        # neighboring samples do not randomly flip by 180 degrees.
-        _, nearest_face = orientation_tree.query(point)
-        reference = face_normals[valid][int(nearest_face)]
+        # Select the two most different local face directions as side seeds.
+        # The remaining faces are assigned to whichever seed they resemble more.
+        similarity = local_normals @ local_normals.T
+        seed_a, seed_b = np.unravel_index(int(np.argmin(similarity)), similarity.shape)
+        group_a = (local_normals @ local_normals[seed_a]) >= (local_normals @ local_normals[seed_b])
+        if np.all(group_a) or not np.any(group_a):
+            group_a = np.zeros(query_count, dtype=bool)
+            group_a[seed_a] = True
+        group_b = ~group_a
+
+        def mean_direction(values: np.ndarray) -> np.ndarray:
+            result = values.mean(axis=0)
+            length = np.linalg.norm(result)
+            return result / length if length > 1e-12 else np.zeros(3, dtype=float)
+
+        normal_a = mean_direction(local_normals[group_a])
+        normal_b = mean_direction(local_normals[group_b])
+        if np.any(normal_a) and np.any(normal_b):
+            normal = normal_a + normal_b
+            normal_length = np.linalg.norm(normal)
+            normal = normal / normal_length if normal_length > 1e-12 else np.zeros(3, dtype=float)
+        else:
+            normal = mean_direction(local_normals)
+        if not np.any(normal):
+            normal = reference
+        normal = np.asarray(normal, dtype=float).reshape(-1)[:3]
+        reference = np.asarray(reference, dtype=float).reshape(-1)[:3]
+        # Remove the arbitrary global sign caused by OBJ face winding.
         if float(np.dot(normal, reference)) < 0.0:
             normal = -normal
         normals[index] = normal
