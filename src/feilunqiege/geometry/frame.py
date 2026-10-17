@@ -67,7 +67,9 @@ def build_frames(points: Any, tangents: Any, surface_normals: Any | None = None)
     return frames
 
 
-def estimate_surface_normals(points: Any, mesh: Any) -> np.ndarray:
+# Estimate each normal from a local vertex neighborhood with PCA. KD Tree is
+# only the neighborhood index; the nearest face is used solely for sign fixing.
+def estimate_surface_normals(points: Any, mesh: Any, neighbor_count: int = 24) -> np.ndarray:
     """用工件网格中最近三角形的面法向估计根部采样点法向。
 
     这是几何姿态的输入估计，不是法向重建或曲面拟合。使用三角形质心
@@ -78,6 +80,8 @@ def estimate_surface_normals(points: Any, mesh: Any) -> np.ndarray:
     vertices = np.asarray(mesh.vertices, dtype=float)
     faces = np.asarray(mesh.faces, dtype=np.int64)
     triangles = vertices[faces]
+    if int(neighbor_count) < 3:
+        raise ValueError("PCA neighborhood requires at least 3 vertices")
     if len(triangles) == 0:
         raise ValueError("工件网格没有三角形，无法估计表面法向")
     face_normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
@@ -87,6 +91,31 @@ def estimate_surface_normals(points: Any, mesh: Any) -> np.ndarray:
         raise ValueError("工件网格所有三角形均退化，无法估计表面法向")
     face_normals[valid] /= lengths[valid, None]
     centroids = triangles.mean(axis=1)
-    tree = cKDTree(centroids[valid])
-    _, nearest = tree.query(points)
-    return face_normals[valid][np.asarray(nearest, dtype=np.int64)]
+    # The nearest face is used only to orient PCA normals consistently.
+    orientation_tree = cKDTree(centroids[valid])
+    vertex_tree = cKDTree(vertices)
+    query_count = min(int(neighbor_count), len(vertices))
+    if query_count < 3:
+        raise ValueError("Mesh has too few vertices for local PCA")
+
+    normals = np.empty((len(points), 3), dtype=float)
+    for index, point in enumerate(points):
+        _, vertex_indices = vertex_tree.query(point, k=query_count)
+        neighborhood = vertices[np.asarray(vertex_indices, dtype=np.int64)]
+        centered = neighborhood - neighborhood.mean(axis=0, keepdims=True)
+        covariance = (centered.T @ centered) / float(query_count)
+        eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+        normal = eigenvectors[:, int(np.argmin(eigenvalues))]
+        normal_norm = np.linalg.norm(normal)
+        if normal_norm <= 1e-12:
+            raise ValueError(f"Local PCA is degenerate at point {index}")
+        normal = normal / normal_norm
+
+        # PCA has an arbitrary sign; align it with the nearest face normal so
+        # neighboring samples do not randomly flip by 180 degrees.
+        _, nearest_face = orientation_tree.query(point)
+        reference = face_normals[valid][int(nearest_face)]
+        if float(np.dot(normal, reference)) < 0.0:
+            normal = -normal
+        normals[index] = normal
+    return normals

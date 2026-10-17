@@ -31,6 +31,10 @@
     "candidate_angles": 180,
     "radial_samples": 3
   },
+  "normal_estimation": {
+    "method": "local_pca",
+    "neighbor_count": 24
+  },
   "visualization": {
     "max_surface_faces": 20000,
     "pose_examples": {

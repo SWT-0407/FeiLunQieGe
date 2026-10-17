@@ -55,7 +55,12 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
 
     # 先按 PLY edge 拆分分支，再按弧长规则获得目标采样点和切线。
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
-    surface_normals = estimate_surface_normals(sampled.points, workpiece)
+    normal_config = config.get("normal_estimation", {})
+    surface_normals = estimate_surface_normals(
+        sampled.points,
+        workpiece,
+        neighbor_count=int(normal_config.get("neighbor_count", 24)),
+    )
     frames = build_frames(sampled.points, sampled.tangents, surface_normals)
 
     # 完整工件网格只建立一次碰撞索引，半径扫描和最终计算复用同一个 KDTree。

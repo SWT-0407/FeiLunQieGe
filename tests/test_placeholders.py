@@ -4,7 +4,8 @@ import numpy as np
 
 from feilunqiege.collision.checker import CollisionResult
 from feilunqiege.geometry.curve import split_and_resample
-from feilunqiege.geometry.frame import build_frames
+from feilunqiege.geometry.frame import build_frames, estimate_surface_normals
+from feilunqiege.io.mesh import MeshData
 from feilunqiege.io.root_line import RootLineData
 from feilunqiege.tooling.grinding_wheel import CandidateSet, generate_disk_candidates
 from feilunqiege.visualization.export_obj import (
@@ -43,6 +44,22 @@ def test_explicit_surface_normal_controls_wheel_axis() -> None:
     candidates = generate_disk_candidates(points, frames, 0.2, 0.01, 16, 1)
     assert np.allclose(np.abs(candidates.axis_directions[:, 2]), 1.0)
     assert np.max(np.abs(candidates.radius_directions[:, 2])) < 1e-10
+
+
+def test_local_pca_surface_normal_uses_neighborhood() -> None:
+    """局部平面上的多个顶点应通过 PCA 恢复稳定法向，而不是单面法向。"""
+
+    vertices = np.array(
+        [
+            [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0], [1.0, -1.0, 0.0],
+            [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0],
+            [-1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0],
+        ]
+    )
+    faces = np.array([[0, 1, 4], [0, 4, 3], [1, 2, 5], [1, 5, 4], [3, 4, 7], [3, 7, 6], [4, 5, 8], [4, 8, 7]])
+    mesh = MeshData(vertices=vertices, faces=faces)
+    normals = estimate_surface_normals(np.array([[0.0, 0.0, 0.0]]), mesh, neighbor_count=9)
+    assert np.allclose(np.abs(normals[0]), [0.0, 0.0, 1.0], atol=1e-10)
 
 
 def test_curve_loader_keeps_all_vertices_in_all_points_mode() -> None:
