@@ -123,3 +123,76 @@ def generate_disk_candidates(
     ):
         raise ValueError("候选砂轮姿态未满足 a·t=0、a·e=0（圆盘平面平行切平面）")
     return candidate_set
+
+
+def generate_tangent_cylinder_candidates(
+    contact: Any,
+    frame: Any,
+    radius: float,
+    width: float,
+    angles: Any,
+    point_index: int,
+    *,
+    side: float = 1.0,
+    axis_reference: Any | None = None,
+) -> CandidateSet:
+    """生成圆周切线与 root line 平行的有限厚度砂轮姿态。
+
+    阶段二的旧圆盘生成器继续保留。阶段三使用本函数时，接触点到中心的
+    径向方向 ``e`` 必须满足 ``e·t=0``；随后由 ``t×e`` 得到砂轮轴向，
+    并沿该有符号轴向偏移 ``h/2``，保证靠近工件的端面通过接触点。
+    """
+
+    if radius <= 0.0 or width <= 0.0:
+        raise ValueError("radius and width must be positive")
+    if abs(float(side)) != 1.0:
+        raise ValueError("side must be +1 or -1")
+    angle_array = np.asarray(angles, dtype=float)
+    if angle_array.ndim != 1 or len(angle_array) == 0:
+        raise ValueError("angles must be a non-empty one-dimensional array")
+
+    contact_array = np.asarray(contact, dtype=float)
+    if contact_array.shape != (3,):
+        raise ValueError("contact must have shape (3,)")
+    tangent = np.asarray(frame.tangent, dtype=float)
+    tangent_norm = float(np.linalg.norm(tangent))
+    if tangent_norm <= 1e-12:
+        raise ValueError("frame tangent cannot be normalized")
+    tangent = tangent / tangent_norm
+
+    reference = axis_reference
+    if reference is None:
+        reference = frame.axis if frame.axis is not None else frame.surface_normal
+    reference = np.asarray(reference, dtype=float)
+    if reference.shape != (3,):
+        raise ValueError("axis reference must have shape (3,)")
+    # 现有表面法向只用于确定角度零点。去掉它在 t 上的分量后，候选径向
+    # 平面严格落在 t 的正交补空间内。
+    reference = reference - float(np.dot(reference, tangent)) * tangent
+    reference_norm = float(np.linalg.norm(reference))
+    if reference_norm <= 1e-12:
+        raise ValueError("axis reference is parallel to the root-line tangent")
+    basis_1 = reference / reference_norm
+    basis_2 = np.cross(tangent, basis_1)
+    basis_2 /= max(float(np.linalg.norm(basis_2)), 1e-12)
+
+    radial = np.cos(angle_array)[:, None] * basis_1[None, :] + np.sin(angle_array)[:, None] * basis_2[None, :]
+    radial /= np.linalg.norm(radial, axis=1)[:, None]
+    # 每个径向方向都重新计算轴向，而不是复用固定表面法向；side 决定哪一
+    # 个端面与目标切削平面重合。
+    axes = np.cross(np.repeat(tangent[None, :], len(angle_array), axis=0), radial)
+    axes /= np.linalg.norm(axes, axis=1)[:, None]
+    axes *= float(side)
+    centers = contact_array[None, :] + float(radius) * radial + float(width) / 2.0 * axes
+
+    return CandidateSet(
+        contact_points=np.repeat(contact_array[None, :], len(angle_array), axis=0),
+        centers=centers,
+        radius_directions=radial,
+        tangent_directions=np.repeat(tangent[None, :], len(angle_array), axis=0),
+        axis_directions=axes,
+        point_indices=np.full(len(angle_array), int(point_index), dtype=np.int64),
+        radial_values=np.full(len(angle_array), float(radius), dtype=float),
+        angles=angle_array,
+        radius=float(radius),
+    )

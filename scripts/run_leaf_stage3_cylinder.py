@@ -34,7 +34,6 @@ from feilunqiege.collision.checker import build_collision_index, check_finite_cy
 from feilunqiege.collision.cylinder_exact import (
     build_cylinder_triangle_index,
     check_finite_cylinder_candidates_exact,
-    move_candidates_to_lower_face,
 )
 from feilunqiege.geometry.curve import split_and_resample
 from feilunqiege.geometry.frame import build_frames, estimate_surface_normals
@@ -43,7 +42,7 @@ from feilunqiege.io.flash_cloud import load_labeled_flash_cloud
 from feilunqiege.io.mesh import load_mesh
 from feilunqiege.io.root_line import load_root_line
 from feilunqiege.pipeline import _normalize_case_geometry
-from feilunqiege.tooling.grinding_wheel import CandidateSet
+from feilunqiege.tooling.grinding_wheel import CandidateSet, generate_tangent_cylinder_candidates
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -63,25 +62,10 @@ def build_parser() -> argparse.ArgumentParser:
 def _candidate_set(contact: np.ndarray, frame: object, radius: float, width: float, angles: np.ndarray, point_index: int, side: float, axis_override: np.ndarray | None = None) -> CandidateSet:
     """在切平面内生成圆周候选，再统一加入 ``h/2`` 轴向偏置。"""
 
-    tangent = np.asarray(frame.tangent, dtype=float)
-    basis_1 = np.asarray(frame.radial_basis_1, dtype=float)
-    basis_2 = np.asarray(frame.radial_basis_2, dtype=float)
-    axis = np.asarray(axis_override if axis_override is not None else (frame.axis if frame.axis is not None else frame.surface_normal), dtype=float)
-    axis /= np.linalg.norm(axis)
-    radial = np.cos(angles)[:, None] * basis_1[None, :] + np.sin(angles)[:, None] * basis_2[None, :]
-    radial /= np.linalg.norm(radial, axis=1)[:, None]
-    candidates = CandidateSet(
-        contact_points=np.repeat(contact[None, :], len(angles), axis=0),
-        centers=contact[None, :] + float(radius) * radial,
-        radius_directions=radial,
-        tangent_directions=np.repeat(tangent[None, :], len(angles), axis=0),
-        axis_directions=np.repeat(axis[None, :], len(angles), axis=0),
-        point_indices=np.full(len(angles), point_index, dtype=np.int64),
-        radial_values=np.full(len(angles), float(radius), dtype=float),
-        angles=np.asarray(angles, dtype=float),
-        radius=float(radius),
+    return generate_tangent_cylinder_candidates(
+        contact, frame, radius, width, angles, point_index,
+        side=side, axis_reference=axis_override,
     )
-    return move_candidates_to_lower_face(candidates, width, side)
 
 
 def _to_source(point: np.ndarray, normalization: dict[str, object]) -> np.ndarray:
@@ -247,7 +231,7 @@ def _plot_angle(path: Path, candidates: CandidateSet, exact: object, point_index
     plt.close(figure)
 
 
-def _refine_boundaries(contact: np.ndarray, frame: object, radius: float, width: float, side: float, angles: np.ndarray, states: np.ndarray, point_index: int, workpiece: object, cylinder_index: object, clearance: float, epsilon: float, target_contact_tolerance: float, iterations: int, inner_radius: float = 0.0, axis_override: np.ndarray | None = None) -> list[dict[str, float | bool]]:
+def _refine_boundaries(contact: np.ndarray, frame: object, radius: float, width: float, side: float, angles: np.ndarray, states: np.ndarray, point_index: int, workpiece: object, cylinder_index: object, clearance: float, epsilon: float, target_contact_tolerance: float, iterations: int, target_contact_inner_radius: float = 0.0, axis_override: np.ndarray | None = None) -> list[dict[str, float | bool]]:
     """只对初始安全/碰撞状态变化的角区间做二分。"""
 
     boundaries: list[dict[str, float | bool]] = []
@@ -263,7 +247,7 @@ def _refine_boundaries(contact: np.ndarray, frame: object, radius: float, width:
         for _ in range(iterations):
             middle = (left + right) / 2.0
             candidate = _candidate_set(contact, frame, radius, width, np.array([middle % (2.0 * np.pi)]), point_index, side, axis_override)
-            middle_state = bool(check_finite_cylinder_candidates_exact(candidate, workpiece, width, inner_radius=inner_radius, clearance=clearance, epsilon=epsilon, target_contact_tolerance=target_contact_tolerance, cylinder_index=cylinder_index).feasible[0])
+            middle_state = bool(check_finite_cylinder_candidates_exact(candidate, workpiece, width, inner_radius=0.0, target_contact_inner_radius=target_contact_inner_radius, clearance=clearance, epsilon=epsilon, target_contact_tolerance=target_contact_tolerance, cylinder_index=cylinder_index).feasible[0])
             if middle_state == left_state:
                 left = middle
             else:
@@ -339,7 +323,8 @@ def main() -> int:
     cylinder_index = build_cylinder_triangle_index(workpiece)
     exact = check_finite_cylinder_candidates_exact(
         candidates, workpiece, width,
-        inner_radius=radius - delta,
+        inner_radius=0.0,
+        target_contact_inner_radius=radius - delta,
         clearance=float(config["collision"].get("clearance", 0.0)),
         epsilon=arguments.epsilon,
         allow_target_contact=bool(config["collision"].get("allow_target_contact", False)),
@@ -383,7 +368,8 @@ def main() -> int:
         "boundary_bisection_iterations": arguments.boundary_iterations,
         "epsilon": arguments.epsilon,
         "clearance": float(config["collision"].get("clearance", 0.0)),
-        "collision_backend": "exact_triangle_finite_annular_cylinder_aabb",
+        "collision_backend": "exact_triangle_finite_cylinder_with_target_contact_band_aabb",
+        "collision_geometry": "full physical cylinder; target contact exemption restricted to [r-delta, r]",
         "orientation": {"method": "branch_median_flash_body_anchor", "source": str(flash_cloud.source_path), "point": orientation_audit[arguments.point_index]},
         "broad_phase": {"type": "triangle_aabb_tree", "leaf_size": cylinder_index.leaf_size},
         "narrow_phase": "triangle axial clipping plus continuous minimum radial distance",
