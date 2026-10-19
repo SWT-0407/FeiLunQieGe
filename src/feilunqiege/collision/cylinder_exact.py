@@ -78,51 +78,6 @@ def cylinder_aabb(center: np.ndarray, axis: np.ndarray, radius: float, width: fl
     return center - extents, center + extents
 
 
-def _point_triangle_distance(point: np.ndarray, triangle: np.ndarray) -> float:
-    """计算一个点到三角形的精确欧氏距离，用于识别目标接触三角形。"""
-
-    a, b, c = np.asarray(triangle, dtype=float)
-    point = np.asarray(point, dtype=float)
-    ab = b - a
-    ac = c - a
-    ap = point - a
-    d1 = float(np.dot(ab, ap))
-    d2 = float(np.dot(ac, ap))
-    if d1 <= 0.0 and d2 <= 0.0:
-        return float(np.linalg.norm(ap))
-    bp = point - b
-    d3 = float(np.dot(ab, bp))
-    d4 = float(np.dot(ac, bp))
-    if d3 >= 0.0 and d4 <= d3:
-        return float(np.linalg.norm(bp))
-    vc = d1 * d4 - d3 * d2
-    if vc <= 0.0 and d1 >= 0.0 and d3 <= 0.0:
-        projection = a + (d1 / (d1 - d3)) * ab
-        return float(np.linalg.norm(point - projection))
-    cp = point - c
-    d5 = float(np.dot(ab, cp))
-    d6 = float(np.dot(ac, cp))
-    if d6 >= 0.0 and d5 <= d6:
-        return float(np.linalg.norm(cp))
-    vb = d5 * d2 - d1 * d6
-    if vb <= 0.0 and d2 >= 0.0 and d6 <= 0.0:
-        projection = a + (d2 / (d2 - d6)) * ac
-        return float(np.linalg.norm(point - projection))
-    va = d3 * d6 - d5 * d4
-    if va <= 0.0 and (d4 - d3) >= 0.0 and (d5 - d6) >= 0.0:
-        projection = b + ((d4 - d3) / ((d4 - d3) + (d5 - d6))) * (c - b)
-        return float(np.linalg.norm(point - projection))
-    normal = np.cross(ab, ac)
-    normal_norm = float(np.linalg.norm(normal))
-    if normal_norm <= 1e-12:
-        return min(
-            _point_triangle_distance(point, np.array([a, b, b])),
-            _point_triangle_distance(point, np.array([a, c, c])),
-            _point_triangle_distance(point, np.array([b, c, c])),
-        )
-    return abs(float(np.dot(point - a, normal))) / normal_norm
-
-
 def query_cylinder_aabb(index: CylinderTriangleIndex, center: np.ndarray, axis: np.ndarray, radius: float, width: float, *, epsilon: float = 0.0) -> np.ndarray:
     """查询与圆柱 AABB 相交的三角形索引。"""
 
@@ -211,7 +166,6 @@ def check_finite_cylinder_candidates_exact(
     epsilon: float = 1e-10,
     allow_target_contact: bool = False,
     target_contact_tolerance: float = 1e-8,
-    target_contact_inner_radius: float | None = None,
     cylinder_index: CylinderTriangleIndex | None = None,
 ) -> CollisionResult:
     """用 AABB 宽相和三角形连续窄相筛选有限圆柱候选。
@@ -220,7 +174,7 @@ def check_finite_cylinder_candidates_exact(
     间隙的姿态错误地判为可行，但在圆柱棱角处可能比精确欧氏距离更严格。
     """
 
-    if width <= 0 or inner_radius < 0 or clearance < 0 or epsilon < 0 or target_contact_tolerance < 0:
+    if width <= 0 or inner_radius < 0 or clearance < 0 or epsilon < 0:
         raise ValueError("width 必须为正，clearance 和 epsilon 不能为负")
     index = cylinder_index if cylinder_index is not None else build_cylinder_triangle_index(workpiece_mesh)
     centers = np.asarray(candidates.centers, dtype=float)
@@ -233,8 +187,6 @@ def check_finite_cylinder_candidates_exact(
         outer_radius = float(np.max(radii, initial=0.0))
     if inner_radius > outer_radius:
         raise ValueError("inner_radius cannot exceed the nominal outer radius")
-    if target_contact_inner_radius is not None and not 0.0 <= float(target_contact_inner_radius) <= outer_radius:
-        raise ValueError("target_contact_inner_radius must lie in [0, outer_radius]")
     feasible = np.ones(len(centers), dtype=bool)
     witnesses = np.full((len(centers), 3), np.nan, dtype=float)
     tool_witnesses = np.full((len(centers), 3), np.nan, dtype=float)
@@ -256,27 +208,7 @@ def check_finite_cylinder_candidates_exact(
             )
             if not hit:
                 continue
-            # The physical wheel is the full cylinder. A target contact is
-            # exempted only when the contact point lies in the allowed radial
-            # band and the intersecting triangle is adjacent to it. This
-            # avoids selecting a remote annular outer vertex as the witness.
-            relative = contact - center
-            axial_contact = abs(float(np.dot(relative, axis)))
-            radial_contact = float(np.linalg.norm(relative - np.dot(relative, axis) * axis))
-            contact_inner = (
-                float(target_contact_inner_radius)
-                if target_contact_inner_radius is not None
-                else float(inner_radius)
-            )
-            contact_on_band = (
-                axial_contact <= float(width) / 2.0 + target_contact_tolerance
-                and contact_inner - target_contact_tolerance <= radial_contact <= outer_radius + target_contact_tolerance
-            )
-            triangle_near_contact = _point_triangle_distance(
-                contact, index.triangles[int(triangle_index)]
-            ) <= target_contact_tolerance
-            witness_near_contact = witness is not None and np.linalg.norm(witness - contact) <= target_contact_tolerance
-            if allow_target_contact and contact_on_band and triangle_near_contact and witness_near_contact:
+            if allow_target_contact and witness is not None and np.linalg.norm(witness - contact) <= target_contact_tolerance:
                 target_contact_seen = True
                 continue
             feasible[candidate_index] = False
@@ -297,12 +229,7 @@ def check_finite_cylinder_candidates_exact(
         feasible=feasible,
         nearest_distance=np.where(feasible, np.inf, 0.0),
         clearance=np.where(feasible, np.inf, -float(clearance)),
-        method=(
-            "exact_triangle_finite_cylinder_with_target_contact_band_aabb"
-            if target_contact_inner_radius is not None and inner_radius <= epsilon
-            else "exact_triangle_finite_annular_cylinder_aabb" if inner_radius > epsilon
-            else "exact_triangle_finite_cylinder_aabb"
-        ),
+        method="exact_triangle_finite_annular_cylinder_aabb" if inner_radius > epsilon else "exact_triangle_finite_cylinder_aabb",
         candidates=candidates,
         reason=reasons,
         witness_workpiece=witnesses,
