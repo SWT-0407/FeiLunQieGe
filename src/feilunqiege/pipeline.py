@@ -60,6 +60,16 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         sampled.points,
         workpiece,
         neighbor_count=int(normal_config.get("neighbor_count", 24)),
+        candidate_count=int(normal_config.get("candidate_count", 96)),
+        side_count=int(normal_config.get("side_count", 8)),
+        coherence_angle_degrees=float(normal_config.get("coherence_angle_degrees", 25.0)),
+        offset_epsilon=float(normal_config.get("offset_epsilon", 1e-5)),
+        weight_distance_floor=float(normal_config.get("weight_distance_floor", 1e-5)),
+        continuity_jump_threshold_degrees=float(normal_config.get("continuity_jump_threshold_degrees", 20.0)),
+        continuity_normal_weight=float(normal_config.get("continuity_normal_weight", 1.0)),
+        continuity_patch_weight=float(normal_config.get("continuity_patch_weight", 0.15)),
+        continuity_distance_weight=float(normal_config.get("continuity_distance_weight", 0.1)),
+        branch_ids=sampled.branch_ids,
     )
     frames = build_frames(sampled.points, sampled.tangents, surface_normals)
 

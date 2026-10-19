@@ -183,6 +183,238 @@ def export_pose_examples_obj(
     return output
 
 
+def export_wheel_pose_group_obj(
+    sampled_curve: Any,
+    poses: list[dict[str, Any]],
+    output_path: str | Path,
+    *,
+    width: float,
+    coordinate_transform: dict[str, Any] | None = None,
+    segments: int = 48,
+) -> Path:
+    """把多个采样点的砂轮姿态写入同一个 MeshLab OBJ。
+
+    ``poses`` 中每项包含 ``point_index``、``contact``、``center``、
+    ``radial``、``axis`` 和 ``radius``。砂轮用有限圆柱表示，圆柱轴向
+    使用 ``axis``，圆周平面使用 ``radial`` 与 ``axis × radial``。该导出
+    只表达姿态几何，不编码碰撞结论。
+    """
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if width <= 0.0 or segments < 8:
+        raise ValueError("width 必须为正数，segments 至少为 8")
+    curve_points = np.asarray(sampled_curve.points, dtype=float)
+    curve_branches = np.asarray(sampled_curve.branch_ids, dtype=np.int64)
+    scale, center = _parse_coordinate_transform(coordinate_transform)
+    palette = [
+        (0.90, 0.10, 0.10),
+        (0.10, 0.35, 0.90),
+        (0.10, 0.65, 0.25),
+        (0.90, 0.55, 0.05),
+        (0.65, 0.20, 0.75),
+        (0.00, 0.65, 0.75),
+    ]
+
+    def export_point(point: np.ndarray) -> np.ndarray:
+        return np.asarray(point, dtype=float) * scale + center
+
+    def write_vertex(handle: Any, point: np.ndarray, color: tuple[float, float, float]) -> int:
+        handle.write(_colored_vertex_line(export_point(point), color))
+        index = write_vertex.next_index
+        write_vertex.next_index += 1
+        return index
+
+    material_colors = {"root_line": (0.45, 0.45, 0.45), "contact": (0.0, 0.0, 0.0)}
+    for pose_index, _ in enumerate(poses):
+        material_colors[f"wheel_{pose_index:02d}"] = palette[pose_index % len(palette)]
+
+    with output.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write("# FeiLunQieGe grouped wheel pose visualization\n")
+        handle.write("# coordinate_frame: source_obj\n# units: source_obj coordinates\n")
+        handle.write(f"# wheel_width: {width * scale:.12g}\n")
+        handle.write(f"# wheel_pose_count: {len(poses)}\n")
+        handle.write("# visualization_only: true; collision is not encoded\n")
+        handle.write(f"mtllib {output.with_suffix('.mtl').name}\n")
+        write_vertex.next_index = 1
+
+        handle.write("o root_line\nusemtl root_line\ng root_line\n")
+        root_ids = [write_vertex(handle, point, material_colors["root_line"]) for point in curve_points]
+        for start, end in _branch_runs(curve_branches):
+            for index in range(start, end - 1):
+                handle.write(f"l {root_ids[index]} {root_ids[index + 1]}\n")
+
+        for pose_number, pose in enumerate(poses):
+            point_index = int(pose["point_index"])
+            contact = np.asarray(pose["contact"], dtype=float)
+            center_point = np.asarray(pose["center"], dtype=float)
+            radial = np.asarray(pose["radial"], dtype=float)
+            axis = np.asarray(pose["axis"], dtype=float)
+            radius = float(pose["radius"])
+            radial /= max(float(np.linalg.norm(radial)), 1e-12)
+            axis /= max(float(np.linalg.norm(axis)), 1e-12)
+            disk_basis = np.cross(axis, radial)
+            disk_basis /= max(float(np.linalg.norm(disk_basis)), 1e-12)
+            color = material_colors[f"wheel_{pose_number:02d}"]
+            handle.write(f"o wheel_point_{point_index:04d}\nusemtl wheel_{pose_number:02d}\ng wheel_{pose_number:02d}\n")
+            theta = np.linspace(0.0, 2.0 * np.pi, segments, endpoint=False)
+            vertex_ids: list[int] = []
+            for axial in (-width / 2.0, width / 2.0):
+                for angle in theta:
+                    wheel_point = center_point + radius * (
+                        np.cos(angle) * radial + np.sin(angle) * disk_basis
+                    ) + axial * axis
+                    vertex_ids.append(write_vertex(handle, wheel_point, color))
+            for ring in range(segments):
+                following = (ring + 1) % segments
+                a = vertex_ids[ring]
+                b = vertex_ids[following]
+                c = vertex_ids[segments + following]
+                d = vertex_ids[segments + ring]
+                handle.write(f"f {a} {b} {c} {d}\n")
+            handle.write(f"o contact_point_{point_index:04d}\nusemtl contact\ng contact\n")
+            contact_id = write_vertex(handle, contact, material_colors["contact"])
+            handle.write(f"p {contact_id}\n")
+
+        _write_coordinate_metadata(handle, coordinate_transform)
+
+    _write_grouped_wheel_mtl(output.with_suffix(".mtl"), material_colors)
+    return output
+
+
+def _write_grouped_wheel_mtl(path: Path, colors: dict[str, tuple[float, float, float]]) -> None:
+    """写入多姿态砂轮 OBJ 使用的无光照材质。"""
+
+    with path.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write("# FeiLunQieGe grouped wheel pose materials\n")
+        for name, color in colors.items():
+            handle.write(
+                f"newmtl {name}\nKd {color[0]:.6g} {color[1]:.6g} {color[2]:.6g}\n"
+                "Ka 0 0 0\nKs 0 0 0\nillum 0\n\n"
+            )
+
+
+def export_normal_diagnostic_obj(
+    sampled_curve: Any,
+    diagnostics: list[dict[str, Any]],
+    point_indices: list[int],
+    output_path: str | Path,
+    *,
+    coordinate_transform: dict[str, Any] | None = None,
+    arrow_length: float = 0.08,
+) -> Path:
+    """导出问题点的三个法向箭头，供 MeshLab 直接叠加工件查看。
+
+    每个采样点只输出 ``n1``、``n2`` 和最终内角平分法向三个向量：
+    红色为第一侧面法向，蓝色为第二侧面法向，绿色为
+    ``normalize(n1 + n2)``。箭头采用 OBJ 的 ``l`` 原语，颜色通过顶点
+    RGB 和 MTL 双重记录；坐标在导出时恢复为 source_obj 坐标。这只是
+    法向估计诊断图，不参与碰撞判定。
+    """
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    curve_points = np.asarray(sampled_curve.points, dtype=float)
+    scale, center = _parse_coordinate_transform(coordinate_transform)
+    point_indices = [int(index) for index in point_indices]
+    if len(diagnostics) != len(curve_points):
+        raise ValueError("diagnostics 与 sampled_curve 点数不一致")
+    if any(index < 0 or index >= len(curve_points) for index in point_indices):
+        raise ValueError("point_indices 包含越界采样点")
+    if arrow_length <= 0:
+        raise ValueError("arrow_length 必须为正数")
+
+    colors = {
+        "root_line": (0.55, 0.55, 0.55),
+        "sample_point": (0.0, 0.0, 0.0),
+        "n1": (0.90, 0.10, 0.10),
+        "n2": (0.10, 0.25, 0.90),
+        "normal": (0.05, 0.65, 0.25),
+    }
+
+    def export_point(point: np.ndarray) -> np.ndarray:
+        return np.asarray(point, dtype=float) * scale + center
+
+    def write_vertex(handle: Any, point: np.ndarray, color: tuple[float, float, float]) -> int:
+        value = export_point(point)
+        handle.write(_colored_vertex_line(value, color))
+        return write_vertex.next_index
+
+    write_vertex.next_index = 1
+
+    with output.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write("# FeiLunQieGe normal diagnostic export\n")
+        handle.write("# units: source_obj coordinates\n")
+        handle.write("# coordinate_frame: source_obj\n")
+        handle.write("# diagnostic_only: true; no collision result is encoded\n")
+        handle.write(f"# issue_point_indices: {','.join(str(index) for index in point_indices)}\n")
+        handle.write(f"mtllib {output.with_suffix('.mtl').name}\n")
+
+        handle.write("o root_line\nusemtl root_line\ng root_line\n")
+        root_vertex_ids = []
+        for point in curve_points:
+            root_vertex_ids.append(write_vertex(handle, point, colors["root_line"]))
+            write_vertex.next_index += 1
+        for start, end in _branch_runs(np.asarray(sampled_curve.branch_ids, dtype=np.int64)):
+            for index in range(start, end - 1):
+                handle.write(f"l {root_vertex_ids[index]} {root_vertex_ids[index + 1]}\n")
+
+        for point_index in point_indices:
+            point = curve_points[point_index]
+            item = diagnostics[point_index]
+            handle.write(f"o diagnostic_point_{point_index:04d}\n")
+            handle.write("usemtl sample_point\ng sample_point\n")
+            point_id = write_vertex(handle, point, colors["sample_point"])
+            write_vertex.next_index += 1
+            handle.write(f"p {point_id}\n")
+
+            arrows: list[tuple[str, np.ndarray, float]] = []
+            for label, side_number in (("n1", 0), ("n2", 1)):
+                sides = item.get("side_details", [])
+                if side_number < len(sides):
+                    arrows.append((label, np.asarray(sides[side_number]["normal"], dtype=float), arrow_length))
+            normal = np.asarray(item.get("selected_normal", [0.0, 0.0, 0.0]), dtype=float)
+            if np.linalg.norm(normal) > 1e-12:
+                arrows.append(("normal", normal, arrow_length * 1.12))
+
+            for label, direction, length in arrows:
+                direction = direction / max(float(np.linalg.norm(direction)), 1e-12)
+                color = colors[label]
+                handle.write(f"o point_{point_index:04d}_{label}\nusemtl {label}\ng {label}\n")
+                end = point + length * direction
+                end_id = write_vertex(handle, end, color)
+                write_vertex.next_index += 1
+                handle.write(f"l {point_id} {end_id}\n")
+                # 用短箭头翼标出方向，避免 MeshLab 默认线宽过细时难以辨认。
+                helper = np.cross(direction, np.array([1.0, 0.0, 0.0]))
+                if np.linalg.norm(helper) <= 1e-8:
+                    helper = np.cross(direction, np.array([0.0, 1.0, 0.0]))
+                helper /= max(float(np.linalg.norm(helper)), 1e-12)
+                wing = end - direction * length * 0.16
+                wing_a = wing + helper * length * 0.06
+                wing_b = wing - helper * length * 0.06
+                wing_a_id = write_vertex(handle, wing_a, color)
+                write_vertex.next_index += 1
+                wing_b_id = write_vertex(handle, wing_b, color)
+                write_vertex.next_index += 1
+                handle.write(f"l {end_id} {wing_a_id}\n")
+                handle.write(f"l {end_id} {wing_b_id}\n")
+
+        _write_coordinate_metadata(handle, coordinate_transform)
+
+    _write_normal_diagnostic_mtl(output.with_suffix(".mtl"), colors)
+    return output
+
+
+def _write_normal_diagnostic_mtl(path: Path, colors: dict[str, tuple[float, float, float]]) -> None:
+    """写入法向诊断对象的非光照颜色材质。"""
+
+    with path.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write("# FeiLunQieGe normal diagnostic materials\n")
+        for name, color in colors.items():
+            handle.write(f"newmtl {name}\nKd {color[0]:.6g} {color[1]:.6g} {color[2]:.6g}\nKa 0 0 0\nKs 0 0 0\nillum 0\n\n")
+
+
 def _branch_runs(branch_ids: np.ndarray) -> list[tuple[int, int]]:
     """把连续的 branch_id 转成半开区间，供 ``l`` 原语逐段连接。"""
 

@@ -33,7 +33,16 @@
   },
   "normal_estimation": {
     "method": "two_face_angle_bisector",
-    "neighbor_count": 24
+    "neighbor_count": 24,
+    "candidate_count": 96,
+    "side_count": 8,
+    "coherence_angle_degrees": 25.0,
+    "offset_epsilon": 1e-5,
+    "weight_distance_floor": 1e-5,
+    "continuity_jump_threshold_degrees": 20.0,
+    "continuity_normal_weight": 1.0,
+    "continuity_patch_weight": 0.15,
+    "continuity_distance_weight": 0.1
   },
   "visualization": {
     "max_surface_faces": 20000,

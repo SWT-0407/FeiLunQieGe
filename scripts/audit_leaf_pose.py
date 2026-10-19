@@ -115,6 +115,11 @@ def main() -> int:
         sampled.points,
         workpiece,
         neighbor_count=int(normal_config.get("neighbor_count", 24)),
+        candidate_count=int(normal_config.get("candidate_count", 96)),
+        side_count=int(normal_config.get("side_count", 8)),
+        coherence_angle_degrees=float(normal_config.get("coherence_angle_degrees", 25.0)),
+        offset_epsilon=float(normal_config.get("offset_epsilon", 1e-5)),
+        weight_distance_floor=float(normal_config.get("weight_distance_floor", 1e-5)),
     )
     frames = build_frames(sampled.points, sampled.tangents, surface_normals)
 
