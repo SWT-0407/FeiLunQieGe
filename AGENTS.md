@@ -7,9 +7,9 @@
 - 禁止执行任何删除操作。需要淘汰的文件只能在人工确认后移动到 `__cache__`。
 - 缓存、临时提取物和中间文件只放入 `__cache__` 或 `__pycache__`；不要把正式代码、结果和报告放入缓存。
 - 不覆盖原始论文和模型数据，不把父目录的约 930 MB 原始 OBJ/PLY 材料复制进仓库。
-- 当前已实现一个最小几何闭环：读取 ASCII `root_line.ply` 和 OBJ 工件网格，生成无厚度砂轮候选，执行基于表面采样点的近似筛选，并输出独立运行目录、全局总览图、局部半径解释图、JSON 摘要和可由 MeshLab 直接打开的 OBJ。运行目录不覆盖旧结果。精确 OBJ 中 `p` 表示可行中心点，`l` 表示采样根部线或离散可行弧，不是带厚度的砂轮实体网格；另有带三角面标记的全局/局部显示代理 OBJ，不能代替精确数据。未获明确授权不得扩展为更复杂的实体碰撞或工艺优化。
+- 当前主流程读取 ASCII `root_line.ply`、`mesh_without_flash.obj` 和带标签的 `original_flash_cloud.obj`；后者的红色飞边点用于对每个局部三角面法向按 `dot(n, F-O) >= 0` 定正负。候选中心位于局部切平面，有限圆柱主判定使用三角形 AABB 宽相与连续窄相。运行目录不覆盖旧结果；OBJ 是 MeshLab 可检查的可视化/审计材料，仍不能代替设备可达性或真实加工验收。
 - 当前还生成离线 `interactive_demo.html`：默认导出全部离散采样点，点击根部线投影中的点后，右侧显示该点局部切平面内的可行半径区域；`interactive_demo.max_points > 0` 可限制为少量演示点。它是交互式显示层，不改变精确 OBJ、JSON 或碰撞结果。
-- 交互页面中的“全红”只表示当前离散候选通过了近似碰撞筛选，不表示连续角度、精确三角面距离或有厚度砂轮一定安全。当前筛选使用工件表面顶点、三角形质心和边中点的离散采样加球形包络，可能漏检大三角面内部的碰撞；升级精确网格距离前，所有结果只能作为 preliminary geometry run。
+- 候选角度和径向位置仍是离散采样；“全红/全绿”不等于连续角度范围或真实加工一定安全。当前固定姿态下使用三角形 AABB 宽相与连续有限圆柱窄相，能发现三角形内部穿入，但非封闭网格仍无法证明实体包含关系；所有结果仍是 preliminary geometry run。
 - 算法计算坐标使用输入数据的归一化单位，文档中写作 `normalized units`，不能擅自标注为毫米。为了供 MeshLab 与原始 OBJ 叠加，`feasible_centers.obj`、`feasible_centers_display.obj` 和 `local_feasible_centers.obj` 必须在导出时逆变换为 `source_obj` 坐标，并在 OBJ 文件头和 JSON 摘要中明确标注；HTML 与 PNG 保持 normalized 计算坐标。
 - 批量运行默认在内存中对每个工件及其 `root_line` 施加同一个包围盒最长边归一化变换；原始材料不改写，变换中心、尺度和源包围盒必须进入 JSON 摘要。
 
@@ -47,7 +47,7 @@
 
 后续修改压缩为四个有明确验收门的阶段。这里的主碰撞视角是“工件三角面/工件实体是否进入砂轮实体”，而不是只遍历砂轮采样点；已有表面采样方法保留为 baseline 和快速预筛，不能作为连续无碰撞证明。
 
-1. **姿态与输入契约冻结**：选取一个小案例和合成几何，核对 root line 分支、归一化坐标、工件网格封闭性，明确 `t/e/n`、切平面、法平面、砂轮圆盘平面和轴向。自动检查 `n·t≈0`、`n·e≈0`、`||e||≈1`，人工确认砂轮圆盘与切平面平行、与法平面垂直。
+1. **姿态与输入契约冻结**：选取一个小案例和合成几何，核对 root line 分支、归一化坐标、工件网格封闭性，明确 `t/e/n`、切平面、法平面、砂轮圆盘平面和轴向。自动检查 `n·t≈0`、`n·e≈0`、`||e||≈1`；不检查 `e·t≈0`，因为当前模型允许 `e` 在局部切平面内转动。人工确认砂轮圆盘与切平面平行、与法平面垂直。
 2. **无厚度圆盘连续碰撞基线**：实现三角形与圆盘的连续判定，加入 BVH/AABB broad phase；用三角形内部穿入、相切、顶点均在外部和闭合工件内部嵌入等合成案例验收，再运行一个真实小案例。输出连续可行角区间及边界复核结果。
 3. **有限厚度圆柱连续碰撞**：扩展为半径 `r`、轴向宽度 `w` 的圆柱实体，连续检查侧面、端面、边缘和实体包含；记录 `epsilon`、碰撞原因、最小间隙和见证几何。人工确认安全姿态和至少两类碰撞姿态，并核对 OBJ/PNG/JSON 一致。
 4. **单案例回归与批量推广**：完成新旧方法对照、坐标审计和输出契约检查后，才运行 12 个案例。批量完成后停止，等待 PNG、OBJ/MTL、JSON 和 alignment audit 的人工检查。
@@ -56,7 +56,7 @@
 ## Current acceptance gate
 
 - New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is high-lightness mint green (`feasible_pose`, RGB `0.60, 1.00, 0.80`), collision pose is high-lightness coral red (`collision_pose`, RGB `1.00, 0.78, 0.70`). This coral red must remain visually distinct from the deep-red feasible-center display markers. The OBJ vertex records and MTL must carry the same colors. The MTL sets matching `Ka`/`Kd`/`Ke` plus `illum 0`, so its semantic colors are not darkened by directional lighting in MeshLab.
-- Finite-cylinder collision filtering uses 2048 nearest workpiece surface samples per candidate by default. This is a stricter sampled-surface approximation than the earlier 12-sample run and is intended to reduce triangle-interior misses; it remains preliminary geometry evidence, not an exact triangle-cylinder boolean certificate.
+- Finite-cylinder collision filtering now uses a triangle AABB tree as broad phase and an axial-clipping/continuous radial-distance narrow phase for each fixed pose. The `finite_nearest_samples` setting is retained only for historical baseline comparisons; it no longer decides the primary feasible set.
 - `226633` 的姿态示例绿色环固定使用候选索引 `135`：它与红色碰撞姿态位于同一目标点，并经过更高密度表面样本复核；该覆盖只影响展示姿态，不改变全体候选筛选。
 - New runs must not generate `interactive_demo.html`; existing historical HTML outputs are retained and must not be deleted.
 - New run directories contain only `feasible_centers_overview.png`, `feasible_centers_summary.json`, `pose_examples.obj`/`.mtl`, `feasible_centers_display.obj`/`.mtl`, and `local_feasible_centers.obj`/`.mtl`. Do not generate other PNG files or `feasible_centers.obj`.

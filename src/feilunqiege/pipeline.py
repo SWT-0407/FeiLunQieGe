@@ -12,11 +12,16 @@ import numpy as np
 from feilunqiege.collision.checker import (
     build_collision_index,
     check_candidates,
-    check_finite_cylinder_candidates,
+)
+from feilunqiege.collision.cylinder_exact import (
+    build_cylinder_triangle_index,
+    check_finite_cylinder_candidates_exact,
+    move_candidates_to_lower_face,
 )
 from feilunqiege.geometry.curve import split_and_resample
 from feilunqiege.geometry.frame import build_frames, estimate_surface_normals
 from feilunqiege.io.mesh import load_mesh
+from feilunqiege.io.flash_cloud import load_labeled_flash_cloud
 from feilunqiege.io.root_line import load_root_line
 from feilunqiege.tooling.grinding_wheel import generate_disk_candidates
 from feilunqiege.visualization.export_obj import (
@@ -49,9 +54,13 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     # 读取根部线和工件本体，保留输入坐标，不在这里做毫米换算或缩放。
     root_line = load_root_line(case_root / config["inputs"]["root_line"])
     workpiece = load_mesh(case_root / config["inputs"]["workpiece_mesh"])
+    flash_cloud = load_labeled_flash_cloud(case_root / config["inputs"].get("flash_cloud", "original_flash_cloud.obj"))
     # 统一把每个案例变换到以工件包围盒中心为原点、最长边为 1 的 normalized units。
     # 变换只发生在内存中，外部原始 OBJ/PLY 保持不变；摘要会记录中心和缩放因子。
     root_line, workpiece, normalization = _normalize_case_geometry(root_line, workpiece, config)
+    source_center = np.asarray(normalization["center"], dtype=float)
+    source_scale = float(normalization["scale"])
+    flash_points = (np.asarray(flash_cloud.flash_points, dtype=float) - source_center) / source_scale
 
     # 先按 PLY edge 拆分分支，再按弧长规则获得目标采样点和切线。
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
@@ -70,6 +79,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         continuity_patch_weight=float(normal_config.get("continuity_patch_weight", 0.15)),
         continuity_distance_weight=float(normal_config.get("continuity_distance_weight", 0.1)),
         branch_ids=sampled.branch_ids,
+        flash_points=flash_points,
     )
     frames = build_frames(sampled.points, sampled.tangents, surface_normals)
 
@@ -88,7 +98,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     wheel["radius"] = radius_selection["selected_radius"]
     wheel["delta"] = radius_selection["selected_delta"]
 
-    # 在每个目标点的局部切平面内生成候选中心；砂轮轴向取工件表面法向。
+    # 在每个目标点的局部切平面内生成候选中心；砂轮轴向由带标签飞边点云定向。
     candidates = generate_disk_candidates(
         sampled.points,
         frames,
@@ -98,7 +108,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         int(config["sampling"]["radial_samples"]),
     )
 
-    # 当前使用表面采样点的保守球形包络做快速碰撞筛选，结果必须标注为近似。
+    # 旧的 KDTree 球形包络仅保留作半径扫描/对照，不再决定最终可行域。
     baseline_collisions = check_candidates(
         candidates,
         workpiece,
@@ -108,14 +118,18 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     width = float(wheel.get("width") or 0.0)
     if width <= 0:
         raise ValueError("第二阶段要求 wheel.width 为正数")
-    collisions = check_finite_cylinder_candidates(
+    # 将切平面中的候选圆心移动到有限圆柱几何中心；指定端面仍与接触切平面共面。
+    candidates = move_candidates_to_lower_face(candidates, width, side=1.0)
+    cylinder_index = build_cylinder_triangle_index(workpiece)
+    # AABB 树只剔除不相交三角面，连续窄相再裁剪三角形并计算到圆柱轴的真实横向距离。
+    collisions = check_finite_cylinder_candidates_exact(
         candidates,
         workpiece,
-        float(config["collision"]["clearance"]),
         width,
-        collision_index=collision_index,
-        nearest_samples=int(config["collision"].get("finite_nearest_samples", 12)),
-        chunk_size=int(config["collision"].get("finite_chunk_size", 20000)),
+        inner_radius=max(0.0, float(wheel["radius"]) - float(wheel["delta"])),
+        clearance=float(config["collision"]["clearance"]),
+        allow_target_contact=bool(config["collision"].get("allow_target_contact", False)),
+        cylinder_index=cylinder_index,
     )
     # 每次运行建立独立目录，避免用户正在 MeshLab/图片查看器中打开旧文件时
     # Windows 锁住目标文件，也避免新的实验覆盖旧结果；旧目录绝不删除。
@@ -265,12 +279,18 @@ def _build_summary(
         "inputs": {
             "root_line": str(Path(config["data_root"]) / config["case_name"] / config["inputs"]["root_line"]),
             "root_line_vertex_count": int(len(root_line.vertices)),
+            "flash_cloud": str(Path(config["data_root"]) / config["case_name"] / config["inputs"].get("flash_cloud", "original_flash_cloud.obj")),
         },
         "coordinate_frames": {
             "computation": "normalized_bbox_longest_side",
             "meshlab_obj_export": "source_obj; directly overlay with the original case OBJ files",
             "png_and_json": "normalized computation coordinates",
             "source_transform": "source = normalized * scale + center",
+        },
+        "normal_orientation": {
+            "method": "nearest_labelled_flash_point_per_face",
+            "formula": "choose sign(n) so dot(n, F-O) >= 0",
+            "dynamic_programming": "not applied when labelled flash points are available",
         },
         "parameters": {
             "radius": candidates.radius,
@@ -307,8 +327,9 @@ def _build_summary(
         ],
         "per_point": per_point,
         "limitations": [
-            "第一阶段 spherical-envelope 结果作为 baseline_collision_method 保留；主结果使用有限圆柱表面采样，仍可能漏检三角面内部。",
-            "有限圆柱碰撞原因和见证点来自 sampled_surface_nearest，不是精确实体布尔碰撞。",
+            "spherical-envelope 结果仅作为半径扫描/历史 baseline 保留；主结果使用三角形 AABB 宽相和固定姿态下的连续有限圆柱窄相。",
+            "候选角度与径向位置仍为离散采样；固定姿态连续相交不等于所有连续角度均已证明安全。",
+            "非封闭网格只能给出三角面相交结论，不能完成砂轮整体位于工件内部的实体包含证明。",
             "算法计算使用 normalized units，不能直接解释为毫米加工公差；MeshLab OBJ 仅为便于叠加而逆变换到 source_obj 坐标。",
         ],
     }

@@ -115,3 +115,38 @@ def test_annular_cylinder_detects_triangle_in_contact_band() -> None:
     )
     assert hit
     assert witness is not None
+
+
+def test_annular_collision_reason_uses_contact_band_witness_radius() -> None:
+    triangle = np.array([[0.7, 0.0, 0.0], [1.0, 0.0, 0.0], [0.85, 0.05, 0.0]])
+    hit, witness, reason = triangle_intersects_cylinder(
+        triangle,
+        np.zeros(3),
+        np.array([0.0, 0.0, 1.0]),
+        np.array([1.0, 0.0, 0.0]),
+        np.array([0.0, 1.0, 0.0]),
+        1.0,
+        0.4,
+        inner_radius=0.8,
+    )
+    assert hit
+    assert witness is not None
+    assert reason == "cylinder_side_collision"
+
+
+def test_nonorthogonal_candidate_directions_do_not_distort_radial_distance() -> None:
+    """e/t 不正交时，横向距离必须由去轴向分量的长度给出。"""
+
+    triangle = np.array([[1.0, -1.0, -0.1], [1.01, -1.0, -0.1], [1.0, -1.01, 0.1]])
+    hit, witness, reason = triangle_intersects_cylinder(
+        triangle,
+        np.zeros(3),
+        np.array([0.0, 0.0, 1.0]),
+        np.array([1.0, 0.0, 0.0]),
+        np.array([1.0, 1.0, 0.0]),  # Deliberately non-orthogonal to basis_1.
+        1.2,
+        0.4,
+    )
+    assert not hit
+    assert witness is None
+    assert reason == "separated_by_cylinder_side"

@@ -4,6 +4,7 @@
   "inputs": {
     "root_line": "root_line.ply",
     "workpiece_mesh": "mesh_without_flash.obj",
+    "flash_cloud": "original_flash_cloud.obj",
     "surface_mesh": "surface.obj"
   },
   "units": "normalized",

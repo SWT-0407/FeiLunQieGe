@@ -62,6 +62,30 @@ def test_angle_bisector_surface_normal_uses_two_face_directions() -> None:
     assert np.allclose(np.abs(normals[0]), [0.0, 0.0, 1.0], atol=1e-10)
 
 
+def test_labelled_flash_point_sets_normal_sign_without_branch_dynamic_programming() -> None:
+    """飞边标签应按 O->F 对每个局部面法向定正负。"""
+
+    vertices = np.array(
+        [
+            [-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [0.0, 1.0, 0.0],
+            [2.0, -1.0, 0.0], [3.0, -1.0, 0.0], [2.5, 1.0, 0.0],
+        ]
+    )
+    # 两个三角形都刻意使用朝 -z 的绕序，验证代码会用 F-O 翻转它们。
+    mesh = MeshData(vertices=vertices, faces=np.array([[0, 2, 1], [3, 5, 4]], dtype=np.int64))
+    normals, diagnostics = estimate_surface_normals(
+        np.array([[0.0, 0.0, 0.0]]),
+        mesh,
+        neighbor_count=2,
+        candidate_count=2,
+        flash_points=np.array([[0.0, 0.0, 1.0]]),
+        return_diagnostics=True,
+    )
+    assert float(np.dot(normals[0], [0.0, 0.0, 1.0])) > 0.999
+    assert diagnostics[0]["orientation_rule"] == "nearest_flash_OF_smaller_angle"
+    assert not diagnostics[0]["continuity_state"]["applied"]
+
+
 def test_curve_loader_keeps_all_vertices_in_all_points_mode() -> None:
     """point_count=0 时不丢弃输入顶点。"""
 

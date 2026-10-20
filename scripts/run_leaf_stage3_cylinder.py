@@ -38,7 +38,6 @@ from feilunqiege.collision.cylinder_exact import (
 )
 from feilunqiege.geometry.curve import split_and_resample
 from feilunqiege.geometry.frame import build_frames, estimate_surface_normals
-from feilunqiege.geometry.orientation import orient_axes_to_flash_side
 from feilunqiege.io.flash_cloud import load_labeled_flash_cloud
 from feilunqiege.io.mesh import load_mesh
 from feilunqiege.io.root_line import load_root_line
@@ -309,6 +308,9 @@ def main() -> int:
     if not 0 <= arguments.point_index < len(sampled.points):
         raise ValueError(f"point-index 必须在 [0, {len(sampled.points) - 1}] 内")
     normal_config = config.get("normal_estimation", {})
+    center_source = np.asarray(normalization.get("center", [0.0, 0.0, 0.0]), dtype=float)
+    scale_source = float(normalization.get("scale", 1.0))
+    flash_points = (flash_cloud.flash_points - center_source) / scale_source
     normals = estimate_surface_normals(
         sampled.points, workpiece,
         neighbor_count=int(normal_config.get("neighbor_count", 24)),
@@ -317,6 +319,7 @@ def main() -> int:
         coherence_angle_degrees=float(normal_config.get("coherence_angle_degrees", 25.0)),
         offset_epsilon=float(normal_config.get("offset_epsilon", 1e-5)),
         weight_distance_floor=float(normal_config.get("weight_distance_floor", 1e-5)),
+        flash_points=flash_points,
     )
     frames = build_frames(sampled.points, sampled.tangents, normals)
     width = float(arguments.width if arguments.width is not None else config["wheel"].get("width", 0.004))
@@ -324,18 +327,9 @@ def main() -> int:
     delta = float(config["wheel"].get("delta", 0.0))
     if not (0.0 <= delta < radius):
         raise ValueError("wheel.delta must satisfy 0 <= delta < radius")
-    center_source = np.asarray(normalization.get("center", [0.0, 0.0, 0.0]), dtype=float)
-    scale_source = float(normalization.get("scale", 1.0))
-    oriented_axes, orientation_audit = orient_axes_to_flash_side(
-        sampled.points, sampled.tangents,
-        np.asarray([frame.axis if frame.axis is not None else frame.surface_normal for frame in frames]),
-        (flash_cloud.flash_points - center_source) / scale_source,
-        (flash_cloud.body_points - center_source) / scale_source,
-        sampled.branch_ids,
-    )
     contact = np.asarray(sampled.points[arguments.point_index], dtype=float)
     angles = np.linspace(0.0, 2.0 * np.pi, arguments.angle_count, endpoint=False)
-    candidates = _candidate_set(contact, frames[arguments.point_index], radius, width, angles, arguments.point_index, arguments.side, oriented_axes[arguments.point_index])
+    candidates = _candidate_set(contact, frames[arguments.point_index], radius, width, angles, arguments.point_index, arguments.side)
     cylinder_index = build_cylinder_triangle_index(workpiece)
     exact = check_finite_cylinder_candidates_exact(
         candidates, workpiece, width,
@@ -350,7 +344,7 @@ def main() -> int:
     boundary_refinements = _refine_boundaries(
         contact, frames[arguments.point_index], radius, width, arguments.side, angles, exact_states,
         arguments.point_index, workpiece, cylinder_index, float(config["collision"].get("clearance", 0.0)),
-        arguments.epsilon, arguments.target_contact_tolerance, arguments.boundary_iterations, radius - delta, oriented_axes[arguments.point_index],
+        arguments.epsilon, arguments.target_contact_tolerance, arguments.boundary_iterations, radius - delta,
     )
     baseline = check_finite_cylinder_candidates(
         candidates, workpiece, float(config["collision"].get("clearance", 0.0)), width,
@@ -384,7 +378,7 @@ def main() -> int:
         "epsilon": arguments.epsilon,
         "clearance": float(config["collision"].get("clearance", 0.0)),
         "collision_backend": "exact_triangle_finite_annular_cylinder_aabb",
-        "orientation": {"method": "branch_median_flash_body_anchor", "source": str(flash_cloud.source_path), "point": orientation_audit[arguments.point_index]},
+        "orientation": {"method": "nearest_labelled_flash_point_per_face", "formula": "choose sign(n) so dot(n, F-O) >= 0", "source": str(flash_cloud.source_path)},
         "broad_phase": {"type": "triangle_aabb_tree", "leaf_size": cylinder_index.leaf_size},
         "narrow_phase": "triangle axial clipping plus continuous minimum radial distance",
         "mesh": {"triangle_count": int(len(workpiece.faces)), "edge_manifold_closed": cylinder_index.mesh_is_closed, "containment_check": "vectorized ray parity when edge_manifold_closed=true"},

@@ -223,6 +223,23 @@ def _point_triangle_distance(point: np.ndarray, triangle: np.ndarray) -> float:
     return abs(float(np.dot(point - a, normal))) / normal_length
 
 
+def _estimate_tangents_for_normal_projection(points: np.ndarray) -> np.ndarray:
+    """用与曲线模块一致的差分切线投影最终法向。"""
+
+    tangents = np.empty_like(points)
+    if len(points) == 1:
+        tangents[0] = np.array([1.0, 0.0, 0.0])
+    else:
+        tangents[0] = points[1] - points[0]
+        tangents[-1] = points[-1] - points[-2]
+        if len(points) > 2:
+            tangents[1:-1] = points[2:] - points[:-2]
+    lengths = np.linalg.norm(tangents, axis=1)
+    tangents[lengths > 1e-12] /= lengths[lengths > 1e-12, None]
+    tangents[lengths <= 1e-12] = np.array([1.0, 0.0, 0.0])
+    return tangents
+
+
 def _estimate_surface_normals_local(
     points: Any,
     mesh: Any,
@@ -233,6 +250,7 @@ def _estimate_surface_normals_local(
     coherence_angle_degrees: float = 25.0,
     offset_epsilon: float = 1e-5,
     weight_distance_floor: float = 1e-5,
+    flash_points: Any | None = None,
     return_diagnostics: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, list[dict[str, Any]]]:
     """估计 root_line 两侧面的法向及其内角平分法向。
@@ -267,6 +285,15 @@ def _estimate_surface_normals_local(
     valid_indices = np.flatnonzero(valid)
     valid_triangles = triangles[valid]
     valid_centroids = valid_triangles.mean(axis=1)
+    # ``flash_points`` carries the semantic label that an OBJ triangle mesh
+    # lacks.  When it is present, every nearby face normal is oriented using
+    # the closest labelled flash point F: choose the sign with n dot (F - O)
+    # positive.  This is a local geometric rule, not a branch-wide smoothing
+    # or a mesh-centre heuristic.
+    flash = None if flash_points is None else np.asarray(flash_points, dtype=float)
+    if flash is not None and (flash.ndim != 2 or flash.shape[1] != 3 or len(flash) == 0):
+        raise ValueError("flash_points 必须是非空的 (n, 3) 飞边点数组")
+    flash_tree = cKDTree(flash) if flash is not None else None
     mesh_center = vertices.mean(axis=0)
     tree = cKDTree(valid_centroids)
     broad_count = min(int(candidate_count or max(64, neighbor_count * 4)), len(valid_centroids))
@@ -319,9 +346,10 @@ def _estimate_surface_normals_local(
             return None
         seed = local_face_normals[best_seed]
         selected_normals = local_face_normals[selected].copy()
-        signs = np.sign(selected_normals @ seed)
-        signs[signs == 0.0] = 1.0
-        selected_normals *= signs[:, None]
+        if flash_tree is None:
+            signs = np.sign(selected_normals @ seed)
+            signs[signs == 0.0] = 1.0
+            selected_normals *= signs[:, None]
         # 距离下限至少取当前面片距离中位数，避免 d=0 时单个面片权重达到 1e10。
         distance_floor = max(float(weight_distance_floor), float(np.median(distances[selected])))
         weights = 1.0 / (distances[selected] + distance_floor)
@@ -330,10 +358,10 @@ def _estimate_surface_normals_local(
         if length <= 1e-12:
             return None
         normal = weighted / length
-        # 输入网格的三角形绕向可能在局部不一致。用整体工件中心只做
-        # 最终符号校正，不参与两侧面的分组，避免把空间邻近面混在一起。
+        # 没有飞边标签的旧调用才使用网格中心作为回退符号规则。正式流程
+        # 由 O->F 逐面确定正方向，不能再用这一全局启发式覆盖它。
         patch_center = valid_centroids[indices[candidate_positions[selected]]].mean(axis=0)
-        if float(np.dot(normal, patch_center - mesh_center)) < 0.0:
+        if flash_tree is None and float(np.dot(normal, patch_center - mesh_center)) < 0.0:
             normal = -normal
             selected_normals *= -1.0
         detail = {
@@ -359,6 +387,25 @@ def _estimate_surface_normals_local(
         indices = indices[order]
         distances = distances[order]
         local_normals = face_normals[valid][indices].copy()
+        flash_point = None
+        flash_direction = None
+        face_alignment_scores = None
+        if flash_tree is not None:
+            # O is the root-line sample and F is its nearest labelled flash
+            # point.  The included angle alone is ambiguous because both n
+            # and -n usually make an angle below 180 degrees with OF; the
+            # smaller-angle condition is exactly n dot OF > 0.
+            _, flash_index = flash_tree.query(point, k=1)
+            flash_point = flash[int(flash_index)]
+            flash_direction = flash_point - point
+            direction_norm = float(np.linalg.norm(flash_direction))
+            if direction_norm > 1e-12:
+                flash_direction /= direction_norm
+                face_alignment_scores = local_normals @ flash_direction
+                local_normals[face_alignment_scores < 0.0] *= -1.0
+            else:
+                flash_direction = np.zeros(3, dtype=float)
+                face_alignment_scores = np.zeros(len(local_normals), dtype=float)
         offsets = valid_centroids[indices] - point
         offsets -= np.einsum("ij,j->i", offsets, tangent)[:, None] * tangent[None, :]
         offset_lengths = np.linalg.norm(offsets, axis=1)
@@ -443,6 +490,10 @@ def _estimate_surface_normals_local(
                 "grouping_method": grouping_method,
                 "nearest_face_index": int(valid_indices[indices[0]]),
                 "selected_normal": final_normal.astype(float).tolist(),
+                "orientation_rule": "nearest_flash_OF_smaller_angle" if flash_tree is not None else "mesh_center_fallback",
+                "flash_point": flash_point.astype(float).tolist() if flash_point is not None else None,
+                "OF_unit": flash_direction.astype(float).tolist() if flash_direction is not None else None,
+                "nearest_face_alignment_before_sign": float(face_alignment_scores[0]) if face_alignment_scores is not None else None,
             }
         )
     # 保留每个采样点由 n1+n2 得到的有向结果。法向平面虽然对 n 与 -n
@@ -473,6 +524,7 @@ def estimate_surface_normals(
     branch_ids: Any | None = None,
     side_direction_hints: Any | None = None,
     side_direction_weight: float = 2.0,
+    flash_points: Any | None = None,
     return_diagnostics: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, list[dict[str, Any]]]:
     """在局部两侧面法向基础上执行 root_line 分支级连续性修正。
@@ -501,10 +553,35 @@ def estimate_surface_normals(
         coherence_angle_degrees=coherence_angle_degrees,
         offset_epsilon=offset_epsilon,
         weight_distance_floor=weight_distance_floor,
+        flash_points=flash_points,
         return_diagnostics=True,
     )
     if len(points_array) == 0:
         return (local_result, local_diagnostics) if return_diagnostics else local_result
+
+    if flash_points is not None:
+        # The labelled O->F rule supplies the absolute normal direction at
+        # every point.  Do not send it through the historical dynamic program:
+        # that program can exchange/flip signs to improve cross-point
+        # smoothness and would therefore override the requested local rule.
+        tangents = _estimate_tangents_for_normal_projection(points_array)
+        result = np.asarray(local_result, dtype=float).copy()
+        flash = np.asarray(flash_points, dtype=float)
+        flash_tree = cKDTree(flash)
+        for index, (point, tangent) in enumerate(zip(points_array, tangents, strict=True)):
+            normal = result[index] - float(np.dot(result[index], tangent)) * tangent
+            if float(np.linalg.norm(normal)) <= 1e-12:
+                normal = result[index]
+            normal /= max(float(np.linalg.norm(normal)), 1e-12)
+            _, flash_index = flash_tree.query(point, k=1)
+            of = flash[int(flash_index)] - point
+            if float(np.dot(normal, of)) < 0.0:
+                normal = -normal
+            result[index] = normal
+            local_diagnostics[index]["selected_normal"] = normal.tolist()
+            local_diagnostics[index]["normal_method"] = "two_side_internal_bisector_signed_by_nearest_flash_OF"
+            local_diagnostics[index]["continuity_state"] = {"applied": False, "reason": "direct_local_flash_orientation"}
+        return (result, local_diagnostics) if return_diagnostics else result
 
     if continuity_jump_threshold_degrees <= 0.0 or continuity_jump_threshold_degrees >= 90.0:
         raise ValueError("continuity_jump_threshold_degrees must be in (0, 90)")

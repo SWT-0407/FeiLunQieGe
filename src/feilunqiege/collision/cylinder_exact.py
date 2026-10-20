@@ -120,14 +120,23 @@ def triangle_intersects_cylinder(
     triangle = np.asarray(triangle, dtype=float)
     center = np.asarray(center, dtype=float)
     axis = _unit(axis)
+    # ``basis_1`` is kept only to choose a stable orientation for a true
+    # orthonormal cross-section basis.  Candidate direction e and tangent t
+    # need not be orthogonal, so treating their two dot products as Cartesian
+    # coordinates would distort the radial distance.
+    basis_1 = np.array(basis_1, dtype=float, copy=True)
+    basis_1 -= float(np.dot(basis_1, axis)) * axis
     basis_1 = _unit(basis_1)
-    basis_2 = _unit(basis_2)
+    basis_2 = np.cross(axis, basis_1)
     if radius < 0 or width < 0 or inner_radius < 0 or inner_radius > radius or epsilon < 0:
         raise ValueError("radius、width 和 epsilon 不能为负")
     half = float(width) / 2.0 + float(epsilon)
     clipped = _clip_polygon_axis(triangle, center, axis, half, epsilon)
     if len(clipped) == 0:
         return False, None, "separated_by_cylinder_caps"
+    # For each point P, remove its axial component z*a first.  The remaining
+    # vector r_p = (P-C) - ((P-C) dot a)*a lies in the wheel cross-section;
+    # its Euclidean length is the physical distance to the wheel axis.
     local = np.column_stack(((clipped - center) @ basis_1, (clipped - center) @ basis_2))
     distance2, position = _closest_point_to_origin_in_convex_polygon(local)
     if distance2 > (float(radius) + float(epsilon)) ** 2:
@@ -141,7 +150,9 @@ def triangle_intersects_cylinder(
         position = (outer_index, local[outer_index])
     # position 返回的是多边形上的局部二维点；用重心坐标插值恢复三维见证点。
     witness = _recover_polygon_point(clipped, local, position[1])
-    radial = float(np.sqrt(max(0.0, distance2)))
+    # Use the selected witness radius (which may have been moved out of the
+    # inner contact void) when assigning a collision cause.
+    radial = float(np.linalg.norm(position[1]))
     axial = abs(float(np.dot(witness - center, axis)))
     on_side = abs(radial - float(radius)) <= float(epsilon) * 2.0
     on_cap = abs(axial - float(width) / 2.0) <= float(epsilon) * 2.0
@@ -337,12 +348,15 @@ def _unique_polygon_points(points: list[np.ndarray], epsilon: float) -> list[np.
 
 def _project_to_cylinder(point: np.ndarray, center: np.ndarray, axis: np.ndarray, basis_1: np.ndarray, basis_2: np.ndarray, radius: float, width: float) -> np.ndarray:
     delta = np.asarray(point, dtype=float) - center
+    axis = _unit(np.asarray(axis, dtype=float))
     axial = np.clip(float(np.dot(delta, axis)), -float(width) / 2.0, float(width) / 2.0)
-    radial = float(np.hypot(np.dot(delta, basis_1), np.dot(delta, basis_2)))
+    # Do not reconstruct the radial vector from e/t coordinates: e and t
+    # are generally non-orthogonal in the current tangent-plane model.
+    radial_vector = delta - float(np.dot(delta, axis)) * axis
+    radial = float(np.linalg.norm(radial_vector))
     if radial <= 1e-12:
         return center + axial * axis
-    radial_vector = (np.dot(delta, basis_1) * basis_1 + np.dot(delta, basis_2) * basis_2) / radial
-    return center + axial * axis + float(radius) * radial_vector
+    return center + axial * axis + float(radius) * radial_vector / radial
 
 
 def _point_inside_closed_mesh_vectorized(point: np.ndarray, triangles: np.ndarray, epsilon: float) -> bool:

@@ -36,7 +36,6 @@ from feilunqiege.collision.cylinder_exact import (
 )
 from feilunqiege.geometry.curve import split_and_resample
 from feilunqiege.geometry.frame import build_frames, estimate_surface_normals
-from feilunqiege.geometry.orientation import estimate_flash_body_directions, orient_axes_to_flash_side
 from feilunqiege.io.flash_cloud import load_labeled_flash_cloud
 from feilunqiege.io.mesh import load_mesh
 from feilunqiege.io.root_line import load_root_line
@@ -409,8 +408,7 @@ def main() -> int:
     root_line, workpiece, normalization = _normalize_case_geometry(root_line, workpiece, config)
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
     normal_config = config.get("normal_estimation", {})
-    normal_kwargs = {key: normal_config[key] for key in ("neighbor_count", "candidate_count", "side_count", "coherence_angle_degrees", "offset_epsilon", "weight_distance_floor", "continuity_jump_threshold_degrees", "continuity_normal_weight", "continuity_patch_weight", "continuity_distance_weight") if key in normal_config}
-    normal_kwargs["branch_ids"] = sampled.branch_ids
+    normal_kwargs = {key: normal_config[key] for key in ("neighbor_count", "candidate_count", "side_count", "coherence_angle_degrees", "offset_epsilon", "weight_distance_floor") if key in normal_config}
     width = float(arguments.width if arguments.width is not None else config["wheel"].get("width", 0.004))
     radius = float(arguments.radius if arguments.radius is not None else config["wheel"]["radius"])
     delta = float(config["wheel"].get("delta", 0.0))
@@ -420,24 +418,18 @@ def main() -> int:
     scale_source = float(normalization.get("scale", 1.0))
     flash_points = (flash_cloud.flash_points - center_source) / scale_source
     body_points = (flash_cloud.body_points - center_source) / scale_source
-    side_hints, side_hint_diagnostics = estimate_flash_body_directions(
-        sampled.points, sampled.tangents, flash_points, body_points,
-        neighbor_count=int(normal_config.get("flash_neighbor_count", 32)),
+    # ``original_flash_cloud.obj`` is the authoritative source of F because
+    # mesh_with_flash.obj has no face-level flash/body label.  The estimator
+    # signs each nearby triangle normal toward its nearest F with n dot OF > 0;
+    # it intentionally bypasses the former branch dynamic-programming flip.
+    normals, normal_diagnostics = estimate_surface_normals(
+        sampled.points,
+        workpiece,
+        flash_points=flash_points,
+        return_diagnostics=True,
+        **normal_kwargs,
     )
-    normal_kwargs["side_direction_hints"] = side_hints
-    normal_kwargs["side_direction_weight"] = float(normal_config.get("side_direction_weight", 2.0))
-    normals, normal_diagnostics = estimate_surface_normals(sampled.points, workpiece, return_diagnostics=True, **normal_kwargs)
     frames = build_frames(sampled.points, sampled.tangents, normals)
-    frame_axes = np.asarray([frame.axis if frame.axis is not None else frame.surface_normal for frame in frames], dtype=float)
-    oriented_axes, orientation_audit = orient_axes_to_flash_side(
-        sampled.points, sampled.tangents, frame_axes, flash_points, body_points, sampled.branch_ids,
-        neighbor_count=int(normal_config.get("flash_neighbor_count", 32)),
-        confidence_threshold=float(normal_config.get("flash_confidence_threshold", 0.08)),
-    )
-    # Axis orientation and both radial basis vectors must come from the same
-    # final normal field; mixing an old basis with a flipped axis changes angle
-    # labels and can make a correct pose appear rotated.
-    frames = build_frames(sampled.points, sampled.tangents, oriented_axes)
     angles = np.linspace(0.0, 2.0 * np.pi, arguments.angle_count, endpoint=False)
     cylinder_index = build_cylinder_triangle_index(workpiece)
     audits: list[PointAudit] = []
@@ -480,8 +472,7 @@ def main() -> int:
         "continuity_threshold_degrees": normal_config.get("continuity_jump_threshold_degrees", 20.0),
         "low_confidence_point_count": sum(bool(item.get("continuity_state", {}).get("low_confidence", False)) for item in normal_diagnostics),
         "points": normal_diagnostics,
-        "flash_side_hint_diagnostics": side_hint_diagnostics,
-        "flash_side_orientation": orientation_audit,
+        "orientation_rule": "per_face_choose_normal_with_positive_dot_OF",
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     summary = {
         "case_name": "leaf", "stage": "stage_3_batch_visualization", "units": "normalized",
@@ -492,7 +483,7 @@ def main() -> int:
         "collision_backend": "exact_triangle_finite_annular_cylinder_aabb",
         "candidate_center_radius": radius,
         "wheel_visualization": {"center_material": "circle_center_yellow", "feasible_material": "feasible_green", "collision_material": "collision_red", "random_seed": 20261018, "random_wheel_count": len(wheel_records)},
-        "orientation": {"method": "branch_median_flash_body_anchor", "source": str(flash_cloud.source_path), "reference_mesh": str(case_root / "mesh_with_flash.obj"), "reference_mesh_vertex_count": int(len(flash_reference_mesh.vertices))},
+        "orientation": {"method": "nearest_labelled_flash_point_per_face", "formula": "choose sign(n) so dot(n, F-O) >= 0", "source": str(flash_cloud.source_path), "reference_mesh": str(case_root / "mesh_with_flash.obj"), "reference_mesh_vertex_count": int(len(flash_reference_mesh.vertices)), "flash_point_count": int(len(flash_points)), "body_point_count": int(len(body_points))},
         "branch_representatives": representatives,
         "random_wheels": wheel_records,
         "outputs": {"circle_centers_obj": str(centers_obj_path.relative_to(REPO_ROOT)), "center_domains_obj": str(domains_obj_path.relative_to(REPO_ROOT)), "random_wheels_obj": str(wheels_obj_path.relative_to(REPO_ROOT)), "png": str(png_path.relative_to(REPO_ROOT)), "normal_diagnostics": str(normal_diagnostics_path.relative_to(REPO_ROOT)), "summary": str(summary_path.relative_to(REPO_ROOT))},
