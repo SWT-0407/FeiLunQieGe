@@ -65,6 +65,10 @@
   "collision": {
     "clearance": 0.0,
     "allow_target_contact": true,
+    "contact_patch_enabled": true,
+    "contact_patch_radius_ratio": 2.0,
+    "contact_patch_max_penetration_ratio": 0.025,
+    "contact_patch_normal_tolerance_degrees": 30.0,
     "check_flash_mesh": false,
     "finite_nearest_samples": 2048,
     "finite_chunk_size": 20000

@@ -31,6 +31,12 @@ class CollisionResult:
     witness_workpiece: Any | None = None
     witness_tool: Any | None = None
     witness_region: Any | None = None
+    # Contact-patch diagnostics: maximum shallow penetration accepted as
+    # contact, maximum distance of the contact region from the target point,
+    # and number of triangles treated as allowed contact.
+    contact_max_penetration: Any | None = None
+    contact_patch_max_distance: Any | None = None
+    contact_triangle_count: Any | None = None
 
 
 @dataclass(frozen=True)

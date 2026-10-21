@@ -72,6 +72,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-bisector-deviation-degrees", type=float, default=None)
     parser.add_argument("--tangent-normal-threshold", type=float, default=None)
     parser.add_argument("--continuity-repair-degrees", type=float, default=None)
+    parser.add_argument(
+        "--contact-patch",
+        dest="contact_patch",
+        action="store_true",
+        default=None,
+        help="启用接触斑模型；默认读取 collision.contact_patch_enabled",
+    )
+    parser.add_argument(
+        "--no-contact-patch",
+        dest="contact_patch",
+        action="store_false",
+        help="禁用接触斑模型，退回纯相交判定",
+    )
+    parser.add_argument("--contact-patch-radius-ratio", type=float, default=None)
+    parser.add_argument("--contact-patch-max-penetration-ratio", type=float, default=None)
+    parser.add_argument("--contact-patch-normal-tolerance-degrees", type=float, default=None)
     parser.add_argument("--continuity-repair-iterations", type=int, default=None)
     parser.add_argument("--angle-count", type=int, default=72)
     parser.add_argument("--width", type=float, default=None)
@@ -511,15 +527,43 @@ def main() -> int:
     )
     angles = np.linspace(0.0, 2.0 * np.pi, arguments.angle_count, endpoint=False)
     cylinder_index = build_cylinder_triangle_index(workpiece)
+    collision_config = config.get("collision", {})
+    contact_patch_enabled = (
+        bool(arguments.contact_patch)
+        if arguments.contact_patch is not None
+        else bool(collision_config.get("contact_patch_enabled", True))
+    )
+    contact_patch_radius_ratio = float(
+        arguments.contact_patch_radius_ratio
+        if arguments.contact_patch_radius_ratio is not None
+        else collision_config.get("contact_patch_radius_ratio", 2.0)
+    )
+    contact_patch_max_penetration_ratio = float(
+        arguments.contact_patch_max_penetration_ratio
+        if arguments.contact_patch_max_penetration_ratio is not None
+        else collision_config.get("contact_patch_max_penetration_ratio", 0.025)
+    )
+    contact_normal_tolerance_degrees = float(
+        arguments.contact_patch_normal_tolerance_degrees
+        if arguments.contact_patch_normal_tolerance_degrees is not None
+        else collision_config.get("contact_patch_normal_tolerance_degrees", 30.0)
+    )
+    contact_patch_radius = contact_patch_radius_ratio * radius
+    max_contact_penetration = contact_patch_max_penetration_ratio * radius
     audits: list[PointAudit] = []
     for point_index, (point, frame) in enumerate(zip(sampled.points, frames, strict=True)):
         candidates = _candidate_set(np.asarray(point), frame, radius, width, angles, point_index, arguments.side)
         result = check_finite_cylinder_candidates_exact(
             candidates, workpiece, width,
-            inner_radius=radius - delta,
-            clearance=float(config["collision"].get("clearance", 0.0)), epsilon=arguments.epsilon,
-            allow_target_contact=bool(config["collision"].get("allow_target_contact", False)),
-            target_contact_tolerance=arguments.target_contact_tolerance, cylinder_index=cylinder_index,
+            inner_radius=0.0,
+            clearance=float(collision_config.get("clearance", 0.0)), epsilon=arguments.epsilon,
+            allow_target_contact=bool(collision_config.get("allow_target_contact", False)),
+            target_contact_tolerance=arguments.target_contact_tolerance,
+            contact_patch_enabled=contact_patch_enabled,
+            contact_patch_radius=contact_patch_radius,
+            max_contact_penetration=max_contact_penetration,
+            contact_normal_tolerance_degrees=contact_normal_tolerance_degrees,
+            cylinder_index=cylinder_index,
         )
         audits.append(PointAudit(point_index, candidates, result))
         if (point_index + 1) % 25 == 0:
@@ -561,7 +605,34 @@ def main() -> int:
         "angle_count_per_point": arguments.angle_count, "candidate_center_count": candidate_count,
         "feasible_center_count": feasible_count, "collision_center_count": candidate_count - feasible_count,
         "radius": radius, "delta": delta, "contact_band": [radius - delta, radius], "width_h": width, "lower_face_offset": width / 2.0,
-        "collision_backend": "exact_triangle_finite_annular_cylinder_aabb",
+        "collision_backend": audits[0].result.method if audits else "unknown",
+        "collision_body": "solid_cylinder",
+        "contact_patch": {
+            "enabled": contact_patch_enabled,
+            "radius": contact_patch_radius,
+            "radius_ratio": contact_patch_radius_ratio,
+            "max_penetration": max_contact_penetration,
+            "max_penetration_ratio": contact_patch_max_penetration_ratio,
+            "normal_tolerance_degrees": contact_normal_tolerance_degrees,
+        },
+        "contact_patch_only_count": int(
+            sum(
+                1
+                for audit in audits
+                for reason in np.asarray(audit.result.reason, dtype=object)
+                if str(reason).startswith("contact_patch_only")
+            )
+        ),
+        "collision_reason_counts": {
+            str(key): int(value)
+            for key, value in zip(
+                *np.unique(
+                    np.concatenate([np.asarray(audit.result.reason, dtype=object) for audit in audits]),
+                    return_counts=True,
+                ),
+                strict=True,
+            )
+        },
         "candidate_center_radius": radius,
         "normal_estimation": {
             "method": normal_method,

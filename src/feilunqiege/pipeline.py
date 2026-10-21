@@ -135,14 +135,27 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     # 将切平面中的候选圆心移动到有限圆柱几何中心；指定端面仍与接触切平面共面。
     candidates = move_candidates_to_lower_face(candidates, width, side=1.0)
     cylinder_index = build_cylinder_triangle_index(workpiece)
+    # 砂轮是实心圆柱：delta 不再参与碰撞体几何，只保留在候选中心半径带中。
+    wheel_radius = float(wheel["radius"])
+    collision_config = config["collision"]
+    contact_patch_enabled = bool(collision_config.get("contact_patch_enabled", True))
+    contact_patch_radius = float(collision_config.get("contact_patch_radius_ratio", 2.0)) * wheel_radius
+    max_contact_penetration = float(collision_config.get("contact_patch_max_penetration_ratio", 0.025)) * wheel_radius
+    contact_normal_tolerance_degrees = float(
+        collision_config.get("contact_patch_normal_tolerance_degrees", 30.0)
+    )
     # AABB 树只剔除不相交三角面，连续窄相再裁剪三角形并计算到圆柱轴的真实横向距离。
     collisions = check_finite_cylinder_candidates_exact(
         candidates,
         workpiece,
         width,
-        inner_radius=max(0.0, float(wheel["radius"]) - float(wheel["delta"])),
-        clearance=float(config["collision"]["clearance"]),
-        allow_target_contact=bool(config["collision"].get("allow_target_contact", False)),
+        inner_radius=0.0,
+        clearance=float(collision_config["clearance"]),
+        allow_target_contact=bool(collision_config.get("allow_target_contact", False)),
+        contact_patch_enabled=contact_patch_enabled,
+        contact_patch_radius=contact_patch_radius,
+        max_contact_penetration=max_contact_penetration,
+        contact_normal_tolerance_degrees=contact_normal_tolerance_degrees,
         cylinder_index=cylinder_index,
     )
     # 每次运行建立独立目录，避免用户正在 MeshLab/图片查看器中打开旧文件时
@@ -314,6 +327,11 @@ def _build_summary(
             "candidate_angles": int(config["sampling"]["candidate_angles"]),
             "radial_samples": int(config["sampling"]["radial_samples"]),
             "collision_clearance": float(config["collision"]["clearance"]),
+            "collision_body": "solid_cylinder",
+            "contact_patch_enabled": contact_patch_enabled,
+            "contact_patch_radius": contact_patch_radius,
+            "contact_patch_max_penetration": max_contact_penetration,
+            "contact_patch_normal_tolerance_degrees": contact_normal_tolerance_degrees,
             "finite_nearest_samples": int(config["collision"].get("finite_nearest_samples", 2048)),
             "finite_chunk_size": int(config["collision"].get("finite_chunk_size", 20000)),
             "normalization": normalization,
@@ -327,6 +345,9 @@ def _build_summary(
         "feasible_ratio": feasible_count / len(candidates.centers) if len(candidates.centers) else 0.0,
         "baseline_feasible_ratio": float(np.asarray(baseline_collisions.feasible, dtype=bool).mean()) if len(baseline_collisions.feasible) else 0.0,
         "collision_reason_counts": reason_counts,
+        "contact_patch_candidate_count": int(
+            np.sum([str(value).startswith("contact_patch_only") for value in reason_values])
+        ),
         "pose_examples": pose_examples,
         "output_directory": str(relative_output_root),
         "overview_image": str(relative_output_root / image_path.name),

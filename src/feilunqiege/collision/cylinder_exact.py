@@ -28,6 +28,27 @@ class CylinderTriangleIndex:
     mesh_is_closed: bool
 
 
+@dataclass(frozen=True)
+class CylinderContactState:
+    """一次三角形-圆柱相交的接触斑诊断。
+
+    ``penetration`` 是三角形进入实心圆柱的最大深度上界；
+    ``axial_penetration`` 是越过近端面的深度；
+    ``radial_penetration`` 是越过外圆柱面的深度；
+    ``patch_max_distance`` 是相交区域到目标接触点的最大距离；
+    ``normal_alignment`` 是三角形法向与砂轮轴线的 |cos|。
+    """
+
+    hit: bool
+    witness: np.ndarray | None
+    kind: str
+    penetration: float
+    axial_penetration: float
+    radial_penetration: float
+    patch_max_distance: float
+    normal_alignment: float
+
+
 def build_cylinder_triangle_index(workpiece_mesh: Any, *, leaf_size: int = 32) -> CylinderTriangleIndex:
     """为工件三角形建立 AABB 树，并记录拓扑封闭性。"""
 
@@ -167,6 +188,127 @@ def triangle_intersects_cylinder(
     return True, witness, kind
 
 
+def triangle_cylinder_contact_state(
+    triangle: np.ndarray,
+    center: np.ndarray,
+    axis: np.ndarray,
+    basis_1: np.ndarray,
+    basis_2: np.ndarray,
+    radius: float,
+    width: float,
+    *,
+    inner_radius: float = 0.0,
+    epsilon: float = 1e-10,
+    contact_point: np.ndarray | None = None,
+) -> CylinderContactState:
+    """计算三角形进入圆柱的深度和接触斑信息。
+
+    与 ``triangle_intersects_cylinder`` 使用同一套裁剪和连续距离判定，
+    但额外返回：
+
+    - ``penetration``：进入实心圆柱的深度上界；
+    - ``axial_penetration``：越过近端面（z=-w/2）的最大距离；
+    - ``radial_penetration``：越过外圆柱面的最大距离；
+    - ``patch_max_distance``：相交区域到目标点的最大距离；
+    - ``normal_alignment``：三角形法向与砂轮轴线的 |cos|。
+
+    这些量用于“接触斑模型”：只有浅穿透、法向接近砂轮端面、且位于
+    目标点附近 patch 内的相交才允许作为接触；其余仍是碰撞。
+    """
+
+    triangle = np.asarray(triangle, dtype=float)
+    center = np.asarray(center, dtype=float)
+    axis = _unit(axis)
+    basis_1 = np.array(basis_1, dtype=float, copy=True)
+    basis_1 -= float(np.dot(basis_1, axis)) * axis
+    basis_1 = _unit(basis_1)
+    basis_2 = np.cross(axis, basis_1)
+    if radius < 0 or width < 0 or inner_radius < 0 or inner_radius > radius or epsilon < 0:
+        raise ValueError("radius、width 和 epsilon 不能为负")
+
+    half = float(width) / 2.0 + float(epsilon)
+    clipped = _clip_polygon_axis(triangle, center, axis, half, epsilon)
+    if len(clipped) == 0:
+        return CylinderContactState(False, None, "separated_by_cylinder_caps", 0.0, 0.0, 0.0, 0.0, 0.0)
+
+    local = np.column_stack(((clipped - center) @ basis_1, (clipped - center) @ basis_2))
+    distance2, position = _closest_point_to_origin_in_convex_polygon(local)
+    if distance2 > (float(radius) + float(epsilon)) ** 2:
+        return CylinderContactState(False, None, "separated_by_cylinder_side", 0.0, 0.0, 0.0, 0.0, 0.0)
+    if inner_radius > 0.0:
+        radial2_at_vertices = np.sum(local * local, axis=1)
+        if float(np.max(radial2_at_vertices, initial=0.0)) < (float(inner_radius) - float(epsilon)) ** 2:
+            return CylinderContactState(False, None, "inside_inner_contact_void", 0.0, 0.0, 0.0, 0.0, 0.0)
+        outer_index = int(np.argmax(radial2_at_vertices))
+        position = (outer_index, local[outer_index])
+
+    witness = _recover_polygon_point(clipped, local, position[1])
+    delta = clipped - center
+    axial_coords = delta @ axis
+    radial_vectors = delta - axial_coords[:, None] * axis[None, :]
+    radial_coords = np.linalg.norm(radial_vectors, axis=1)
+
+    # 三角形越过近端面（z=-w/2）和外圆柱面的最大深度。取两者较小值作为
+    # 进入实心圆柱的深度上界；两者都为正时才使用 min，否则退回 witness。
+    axial_penetration = float(np.max(axial_coords + float(width) / 2.0, initial=0.0))
+    radial_penetration = float(np.max(float(radius) - radial_coords, initial=0.0))
+    witness_delta = witness - center
+    witness_axial = float(np.dot(witness_delta, axis))
+    witness_radial = float(np.linalg.norm(witness_delta - witness_axial * axis))
+    witness_penetration = min(
+        float(radius) - witness_radial,
+        float(width) / 2.0 - abs(witness_axial),
+    )
+    if axial_penetration > 0.0 and radial_penetration > 0.0:
+        penetration = min(axial_penetration, radial_penetration)
+    else:
+        penetration = max(0.0, witness_penetration)
+
+    # 接触斑距离只统计真正位于圆柱内的裁剪顶点；若没有顶点在内，则用
+    # 最近点 witness。不能直接用外环 witness 的远顶点，否则会高估 patch。
+    inside = (radial_coords <= float(radius) + float(epsilon)) & (
+        np.abs(axial_coords) <= float(width) / 2.0 + float(epsilon)
+    )
+    if contact_point is not None:
+        contact_point = np.asarray(contact_point, dtype=float)
+        if np.any(inside):
+            patch_max_distance = float(np.max(np.linalg.norm(clipped[inside] - contact_point, axis=1)))
+        else:
+            patch_max_distance = float(np.linalg.norm(witness - contact_point))
+    else:
+        patch_max_distance = 0.0
+
+    triangle_normal = np.cross(triangle[1] - triangle[0], triangle[2] - triangle[0])
+    normal_length = float(np.linalg.norm(triangle_normal))
+    normal_alignment = (
+        abs(float(np.dot(triangle_normal / normal_length, axis))) if normal_length > 1e-12 else 0.0
+    )
+
+    radial = witness_radial
+    axial = abs(witness_axial)
+    on_side = abs(radial - float(radius)) <= float(epsilon) * 2.0
+    on_cap = abs(axial - float(width) / 2.0) <= float(epsilon) * 2.0
+    if on_side and on_cap:
+        kind = "cylinder_edge_collision"
+    elif on_side:
+        kind = "cylinder_side_collision"
+    elif on_cap:
+        kind = "cylinder_cap_collision"
+    else:
+        kind = "triangle_interior_collision"
+
+    return CylinderContactState(
+        True,
+        witness,
+        kind,
+        float(penetration),
+        float(axial_penetration),
+        float(radial_penetration),
+        float(patch_max_distance),
+        float(normal_alignment),
+    )
+
+
 def check_finite_cylinder_candidates_exact(
     candidates: Any,
     workpiece_mesh: Any,
@@ -177,16 +319,33 @@ def check_finite_cylinder_candidates_exact(
     epsilon: float = 1e-10,
     allow_target_contact: bool = False,
     target_contact_tolerance: float = 1e-8,
+    contact_patch_enabled: bool = False,
+    contact_patch_radius: float | None = None,
+    max_contact_penetration: float = 0.0,
+    contact_normal_tolerance_degrees: float = 30.0,
     cylinder_index: CylinderTriangleIndex | None = None,
 ) -> CollisionResult:
     """用 AABB 宽相和三角形连续窄相筛选有限圆柱候选。
 
     ``clearance`` 采用保守膨胀：同时扩大半径和半宽。这样不会把需要安全
     间隙的姿态错误地判为可行，但在圆柱棱角处可能比精确欧氏距离更严格。
+
+    ``contact_patch_enabled`` 启用接触斑模型：如果相交三角形同时满足
+    “浅穿透 <= max_contact_penetration”、“相交区域距目标点 <=
+    contact_patch_radius”和“三角形法向与砂轮轴线的夹角 <=
+    contact_normal_tolerance_degrees”，则把它视为允许的接触斑，而不是碰撞。
+    其余相交仍然判为碰撞。
     """
 
     if width <= 0 or inner_radius < 0 or clearance < 0 or epsilon < 0:
         raise ValueError("width 必须为正，clearance 和 epsilon 不能为负")
+    if contact_patch_enabled:
+        if max_contact_penetration < 0.0:
+            raise ValueError("max_contact_penetration 不能为负")
+        if contact_patch_radius is not None and contact_patch_radius <= 0.0:
+            raise ValueError("contact_patch_radius 必须为正")
+        if not 0.0 <= contact_normal_tolerance_degrees <= 90.0:
+            raise ValueError("contact_normal_tolerance_degrees 必须位于 [0, 90]")
     index = cylinder_index if cylinder_index is not None else build_cylinder_triangle_index(workpiece_mesh)
     centers = np.asarray(candidates.centers, dtype=float)
     axes = np.asarray(candidates.axis_directions, dtype=float)
@@ -198,11 +357,21 @@ def check_finite_cylinder_candidates_exact(
         outer_radius = float(np.max(radii, initial=0.0))
     if inner_radius > outer_radius:
         raise ValueError("inner_radius cannot exceed the nominal outer radius")
+    if contact_patch_enabled and contact_patch_radius is None:
+        # 默认 patch 覆盖整个砂轮端面 footprint：目标点在端面边缘，
+        # 端面最远点距目标点约 2r。
+        contact_patch_radius = 2.0 * outer_radius
+    contact_patch_radius_value = float(contact_patch_radius) if contact_patch_radius is not None else 0.0
+    cos_normal_tolerance = float(np.cos(np.deg2rad(float(contact_normal_tolerance_degrees))))
+
     feasible = np.ones(len(centers), dtype=bool)
     witnesses = np.full((len(centers), 3), np.nan, dtype=float)
     tool_witnesses = np.full((len(centers), 3), np.nan, dtype=float)
     reasons = np.full(len(centers), "safe", dtype=object)
     triangle_counts = np.zeros(len(centers), dtype=np.int64)
+    contact_max_penetrations = np.zeros(len(centers), dtype=float)
+    contact_patch_distances = np.zeros(len(centers), dtype=float)
+    contact_triangle_counts = np.zeros(len(centers), dtype=np.int64)
     for candidate_index, (center, axis, tangent, radial, radius) in enumerate(zip(centers, axes, tangents, radials, radii, strict=True)):
         axis = _unit(axis)
         tangent = _unit(tangent)
@@ -210,22 +379,41 @@ def check_finite_cylinder_candidates_exact(
         nearby = query_cylinder_aabb(index, center, axis, outer_radius + clearance, width + 2.0 * clearance, epsilon=epsilon)
         triangle_counts[candidate_index] = len(nearby)
         target_contact_seen = False
+        contact_patch_seen = False
         contact = np.asarray(candidates.contact_points[candidate_index], dtype=float)
         for triangle_index in nearby:
-            hit, witness, kind = triangle_intersects_cylinder(
+            state = triangle_cylinder_contact_state(
                 index.triangles[int(triangle_index)], center, axis, tangent, radial,
                 outer_radius + clearance, width + 2.0 * clearance,
                 inner_radius=max(0.0, inner_radius - clearance), epsilon=epsilon,
+                contact_point=contact,
             )
-            if not hit:
+            if not state.hit:
                 continue
+            witness = state.witness
             if allow_target_contact and witness is not None and np.linalg.norm(witness - contact) <= target_contact_tolerance:
                 target_contact_seen = True
                 continue
+            if contact_patch_enabled:
+                # 接触斑允许条件：浅穿透 + 位于目标 patch 内 + 法向接近
+                # 砂轮端面法向。三个条件必须同时满足。
+                normal_ok = state.normal_alignment >= cos_normal_tolerance - 1e-12
+                patch_ok = state.patch_max_distance <= contact_patch_radius_value + epsilon
+                depth_ok = state.penetration <= float(max_contact_penetration) + epsilon
+                if normal_ok and patch_ok and depth_ok:
+                    contact_patch_seen = True
+                    contact_max_penetrations[candidate_index] = max(
+                        contact_max_penetrations[candidate_index], float(state.penetration)
+                    )
+                    contact_patch_distances[candidate_index] = max(
+                        contact_patch_distances[candidate_index], float(state.patch_max_distance)
+                    )
+                    contact_triangle_counts[candidate_index] += 1
+                    continue
             feasible[candidate_index] = False
             witnesses[candidate_index] = witness
             tool_witnesses[candidate_index] = _project_to_cylinder(witness, center, axis, radial, tangent, outer_radius, width)
-            reasons[candidate_index] = kind
+            reasons[candidate_index] = state.kind
             break
         if feasible[candidate_index] and inner_radius <= epsilon and index.mesh_is_closed and _point_inside_closed_mesh_vectorized(center, index.triangles, epsilon):
             feasible[candidate_index] = False
@@ -233,19 +421,32 @@ def check_finite_cylinder_candidates_exact(
             tool_witnesses[candidate_index] = center
             reasons[candidate_index] = "workpiece_contains_wheel"
         elif feasible[candidate_index] and not index.mesh_is_closed:
-            reasons[candidate_index] = "target_contact_only_surface_only_non_closed_mesh" if target_contact_seen else "safe_surface_only_non_closed_mesh"
+            if contact_patch_seen:
+                reasons[candidate_index] = "contact_patch_only_surface_only_non_closed_mesh"
+            elif target_contact_seen:
+                reasons[candidate_index] = "target_contact_only_surface_only_non_closed_mesh"
+            else:
+                reasons[candidate_index] = "safe_surface_only_non_closed_mesh"
+        elif feasible[candidate_index] and contact_patch_seen:
+            reasons[candidate_index] = "contact_patch_only"
         elif feasible[candidate_index] and target_contact_seen:
             reasons[candidate_index] = "target_contact_only"
+    method = "exact_triangle_finite_annular_cylinder_aabb" if inner_radius > epsilon else "exact_triangle_finite_cylinder_aabb"
+    if contact_patch_enabled:
+        method += "_contact_patch"
     return CollisionResult(
         feasible=feasible,
         nearest_distance=np.where(feasible, np.inf, 0.0),
         clearance=np.where(feasible, np.inf, -float(clearance)),
-        method="exact_triangle_finite_annular_cylinder_aabb" if inner_radius > epsilon else "exact_triangle_finite_cylinder_aabb",
+        method=method,
         candidates=candidates,
         reason=reasons,
         witness_workpiece=witnesses,
         witness_tool=tool_witnesses,
         witness_region=triangle_counts,
+        contact_max_penetration=contact_max_penetrations,
+        contact_patch_max_distance=contact_patch_distances,
+        contact_triangle_count=contact_triangle_counts,
     )
 
 

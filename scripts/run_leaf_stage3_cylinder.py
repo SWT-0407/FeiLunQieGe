@@ -246,7 +246,7 @@ def _plot_angle(path: Path, candidates: CandidateSet, exact: object, point_index
     plt.close(figure)
 
 
-def _refine_boundaries(contact: np.ndarray, frame: object, radius: float, width: float, side: float, angles: np.ndarray, states: np.ndarray, point_index: int, workpiece: object, cylinder_index: object, clearance: float, epsilon: float, target_contact_tolerance: float, iterations: int, inner_radius: float = 0.0, axis_override: np.ndarray | None = None) -> list[dict[str, float | bool]]:
+def _refine_boundaries(contact: np.ndarray, frame: object, radius: float, width: float, side: float, angles: np.ndarray, states: np.ndarray, point_index: int, workpiece: object, cylinder_index: object, clearance: float, epsilon: float, target_contact_tolerance: float, iterations: int, inner_radius: float = 0.0, axis_override: np.ndarray | None = None, contact_patch_enabled: bool = False, contact_patch_radius: float | None = None, max_contact_penetration: float = 0.0, contact_normal_tolerance_degrees: float = 30.0) -> list[dict[str, float | bool]]:
     """只对初始安全/碰撞状态变化的角区间做二分。"""
 
     boundaries: list[dict[str, float | bool]] = []
@@ -262,7 +262,7 @@ def _refine_boundaries(contact: np.ndarray, frame: object, radius: float, width:
         for _ in range(iterations):
             middle = (left + right) / 2.0
             candidate = _candidate_set(contact, frame, radius, width, np.array([middle % (2.0 * np.pi)]), point_index, side, axis_override)
-            middle_state = bool(check_finite_cylinder_candidates_exact(candidate, workpiece, width, inner_radius=inner_radius, clearance=clearance, epsilon=epsilon, target_contact_tolerance=target_contact_tolerance, cylinder_index=cylinder_index).feasible[0])
+            middle_state = bool(check_finite_cylinder_candidates_exact(candidate, workpiece, width, inner_radius=inner_radius, clearance=clearance, epsilon=epsilon, target_contact_tolerance=target_contact_tolerance, contact_patch_enabled=contact_patch_enabled, contact_patch_radius=contact_patch_radius, max_contact_penetration=max_contact_penetration, contact_normal_tolerance_degrees=contact_normal_tolerance_degrees, cylinder_index=cylinder_index).feasible[0])
             if middle_state == left_state:
                 left = middle
             else:
@@ -344,20 +344,35 @@ def main() -> int:
     angles = np.linspace(0.0, 2.0 * np.pi, arguments.angle_count, endpoint=False)
     candidates = _candidate_set(contact, frames[arguments.point_index], radius, width, angles, arguments.point_index, arguments.side)
     cylinder_index = build_cylinder_triangle_index(workpiece)
+    collision_config = config.get("collision", {})
+    contact_patch_enabled = bool(collision_config.get("contact_patch_enabled", True))
+    contact_patch_radius = float(collision_config.get("contact_patch_radius_ratio", 2.0)) * radius
+    max_contact_penetration = float(collision_config.get("contact_patch_max_penetration_ratio", 0.025)) * radius
+    contact_normal_tolerance_degrees = float(
+        collision_config.get("contact_patch_normal_tolerance_degrees", 30.0)
+    )
     exact = check_finite_cylinder_candidates_exact(
         candidates, workpiece, width,
-        inner_radius=radius - delta,
-        clearance=float(config["collision"].get("clearance", 0.0)),
+        inner_radius=0.0,
+        clearance=float(collision_config.get("clearance", 0.0)),
         epsilon=arguments.epsilon,
-        allow_target_contact=bool(config["collision"].get("allow_target_contact", False)),
+        allow_target_contact=bool(collision_config.get("allow_target_contact", False)),
         target_contact_tolerance=arguments.target_contact_tolerance,
+        contact_patch_enabled=contact_patch_enabled,
+        contact_patch_radius=contact_patch_radius,
+        max_contact_penetration=max_contact_penetration,
+        contact_normal_tolerance_degrees=contact_normal_tolerance_degrees,
         cylinder_index=cylinder_index,
     )
     exact_states = np.asarray(exact.feasible, dtype=bool)
     boundary_refinements = _refine_boundaries(
         contact, frames[arguments.point_index], radius, width, arguments.side, angles, exact_states,
-        arguments.point_index, workpiece, cylinder_index, float(config["collision"].get("clearance", 0.0)),
-        arguments.epsilon, arguments.target_contact_tolerance, arguments.boundary_iterations, radius - delta,
+        arguments.point_index, workpiece, cylinder_index, float(collision_config.get("clearance", 0.0)),
+        arguments.epsilon, arguments.target_contact_tolerance, arguments.boundary_iterations, 0.0,
+        contact_patch_enabled=contact_patch_enabled,
+        contact_patch_radius=contact_patch_radius,
+        max_contact_penetration=max_contact_penetration,
+        contact_normal_tolerance_degrees=contact_normal_tolerance_degrees,
     )
     baseline = check_finite_cylinder_candidates(
         candidates, workpiece, float(config["collision"].get("clearance", 0.0)), width,
@@ -390,7 +405,17 @@ def main() -> int:
         "boundary_bisection_iterations": arguments.boundary_iterations,
         "epsilon": arguments.epsilon,
         "clearance": float(config["collision"].get("clearance", 0.0)),
-        "collision_backend": "exact_triangle_finite_annular_cylinder_aabb",
+        "collision_backend": exact.method,
+        "collision_body": "solid_cylinder",
+        "contact_patch": {
+            "enabled": contact_patch_enabled,
+            "radius": contact_patch_radius,
+            "max_penetration": max_contact_penetration,
+            "normal_tolerance_degrees": contact_normal_tolerance_degrees,
+        },
+        "contact_patch_only_count": int(
+            np.sum([str(reason).startswith("contact_patch_only") for reason in np.asarray(exact.reason, dtype=object)])
+        ),
         "orientation": {"method": "nearest_labelled_flash_point_per_face", "formula": "choose sign(n) so dot(n, F-O) >= 0", "source": str(flash_cloud.source_path)},
         "broad_phase": {"type": "triangle_aabb_tree", "leaf_size": cylinder_index.leaf_size},
         "narrow_phase": "triangle axial clipping plus continuous minimum radial distance",
