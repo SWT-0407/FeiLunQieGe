@@ -320,8 +320,21 @@ def main() -> int:
         offset_epsilon=float(normal_config.get("offset_epsilon", 1e-5)),
         weight_distance_floor=float(normal_config.get("weight_distance_floor", 1e-5)),
         flash_points=flash_points,
+        normal_method=str(normal_config.get("method", "two_face_angle_bisector")),
+        surface_patch_neighbors=int(normal_config.get("surface_patch_neighbors", 32)),
+        surface_patch_distance_factor=float(normal_config.get("surface_patch_distance_factor", 3.0)),
+        surface_patch_coherence_degrees=float(normal_config.get("surface_patch_coherence_degrees", 25.0)),
+        max_bisector_deviation_degrees=float(normal_config.get("max_bisector_deviation_degrees", 10.0)),
+        continuity_repair_degrees=float(normal_config.get("continuity_repair_degrees", 30.0)),
+        continuity_repair_iterations=int(normal_config.get("continuity_repair_iterations", 3)),
     )
-    frames = build_frames(sampled.points, sampled.tangents, normals)
+    frames = build_frames(
+        sampled.points,
+        sampled.tangents,
+        normals,
+        normal_is_reliable=(str(normal_config.get("method", "two_face_angle_bisector")) == "surface_patch_continuity"),
+        tangent_normal_threshold=float(normal_config.get("tangent_normal_threshold", 0.2)),
+    )
     width = float(arguments.width if arguments.width is not None else config["wheel"].get("width", 0.004))
     radius = float(arguments.radius if arguments.radius is not None else config["wheel"]["radius"])
     delta = float(config["wheel"].get("delta", 0.0))

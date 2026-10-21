@@ -65,6 +65,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     # 先按 PLY edge 拆分分支，再按弧长规则获得目标采样点和切线。
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
     normal_config = config.get("normal_estimation", {})
+    normal_method = str(normal_config.get("method", "two_face_angle_bisector"))
     surface_normals = estimate_surface_normals(
         sampled.points,
         workpiece,
@@ -80,8 +81,21 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         continuity_distance_weight=float(normal_config.get("continuity_distance_weight", 0.1)),
         branch_ids=sampled.branch_ids,
         flash_points=flash_points,
+        normal_method=normal_method,
+        surface_patch_neighbors=int(normal_config.get("surface_patch_neighbors", 32)),
+        surface_patch_distance_factor=float(normal_config.get("surface_patch_distance_factor", 3.0)),
+        surface_patch_coherence_degrees=float(normal_config.get("surface_patch_coherence_degrees", 25.0)),
+        max_bisector_deviation_degrees=float(normal_config.get("max_bisector_deviation_degrees", 10.0)),
+        continuity_repair_degrees=float(normal_config.get("continuity_repair_degrees", 30.0)),
+        continuity_repair_iterations=int(normal_config.get("continuity_repair_iterations", 3)),
     )
-    frames = build_frames(sampled.points, sampled.tangents, surface_normals)
+    frames = build_frames(
+        sampled.points,
+        sampled.tangents,
+        surface_normals,
+        normal_is_reliable=(normal_method == "surface_patch_continuity"),
+        tangent_normal_threshold=float(normal_config.get("tangent_normal_threshold", 0.2)),
+    )
 
     # 完整工件网格只建立一次碰撞索引，半径扫描和最终计算复用同一个 KDTree。
     collision_index = build_collision_index(workpiece)

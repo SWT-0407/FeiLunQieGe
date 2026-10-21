@@ -60,6 +60,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="工件本体 OBJ 文件名；默认读取配置中的 inputs.workpiece_mesh，可用简化网格替代",
     )
+    parser.add_argument(
+        "--normal-method",
+        default=None,
+        choices=("two_face_angle_bisector", "surface_patch_continuity"),
+        help="法向估计方法；默认读取 normal_estimation.method",
+    )
+    parser.add_argument("--surface-patch-neighbors", type=int, default=None)
+    parser.add_argument("--surface-patch-distance-factor", type=float, default=None)
+    parser.add_argument("--surface-patch-coherence-degrees", type=float, default=None)
+    parser.add_argument("--max-bisector-deviation-degrees", type=float, default=None)
+    parser.add_argument("--tangent-normal-threshold", type=float, default=None)
+    parser.add_argument("--continuity-repair-degrees", type=float, default=None)
+    parser.add_argument("--continuity-repair-iterations", type=int, default=None)
     parser.add_argument("--angle-count", type=int, default=72)
     parser.add_argument("--width", type=float, default=None)
     parser.add_argument("--radius", type=float, default=None)
@@ -428,6 +441,47 @@ def main() -> int:
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
     normal_config = config.get("normal_estimation", {})
     normal_kwargs = {key: normal_config[key] for key in ("neighbor_count", "candidate_count", "side_count", "coherence_angle_degrees", "offset_epsilon", "weight_distance_floor") if key in normal_config}
+    normal_method = str(arguments.normal_method or normal_config.get("method", "two_face_angle_bisector"))
+    normal_kwargs.update(
+        {
+            "normal_method": normal_method,
+            "surface_patch_neighbors": int(
+                arguments.surface_patch_neighbors
+                if arguments.surface_patch_neighbors is not None
+                else normal_config.get("surface_patch_neighbors", 32)
+            ),
+            "surface_patch_distance_factor": float(
+                arguments.surface_patch_distance_factor
+                if arguments.surface_patch_distance_factor is not None
+                else normal_config.get("surface_patch_distance_factor", 3.0)
+            ),
+            "surface_patch_coherence_degrees": float(
+                arguments.surface_patch_coherence_degrees
+                if arguments.surface_patch_coherence_degrees is not None
+                else normal_config.get("surface_patch_coherence_degrees", 25.0)
+            ),
+            "max_bisector_deviation_degrees": float(
+                arguments.max_bisector_deviation_degrees
+                if arguments.max_bisector_deviation_degrees is not None
+                else normal_config.get("max_bisector_deviation_degrees", 10.0)
+            ),
+            "continuity_repair_degrees": float(
+                arguments.continuity_repair_degrees
+                if arguments.continuity_repair_degrees is not None
+                else normal_config.get("continuity_repair_degrees", 30.0)
+            ),
+            "continuity_repair_iterations": int(
+                arguments.continuity_repair_iterations
+                if arguments.continuity_repair_iterations is not None
+                else normal_config.get("continuity_repair_iterations", 3)
+            ),
+        }
+    )
+    tangent_normal_threshold = float(
+        arguments.tangent_normal_threshold
+        if arguments.tangent_normal_threshold is not None
+        else normal_config.get("tangent_normal_threshold", 0.2)
+    )
     width = float(arguments.width if arguments.width is not None else config["wheel"].get("width", 0.004))
     radius = float(arguments.radius if arguments.radius is not None else config["wheel"]["radius"])
     delta = float(config["wheel"].get("delta", 0.0))
@@ -448,7 +502,13 @@ def main() -> int:
         return_diagnostics=True,
         **normal_kwargs,
     )
-    frames = build_frames(sampled.points, sampled.tangents, normals)
+    frames = build_frames(
+        sampled.points,
+        sampled.tangents,
+        normals,
+        normal_is_reliable=(normal_method == "surface_patch_continuity"),
+        tangent_normal_threshold=tangent_normal_threshold,
+    )
     angles = np.linspace(0.0, 2.0 * np.pi, arguments.angle_count, endpoint=False)
     cylinder_index = build_cylinder_triangle_index(workpiece)
     audits: list[PointAudit] = []
@@ -503,6 +563,16 @@ def main() -> int:
         "radius": radius, "delta": delta, "contact_band": [radius - delta, radius], "width_h": width, "lower_face_offset": width / 2.0,
         "collision_backend": "exact_triangle_finite_annular_cylinder_aabb",
         "candidate_center_radius": radius,
+        "normal_estimation": {
+            "method": normal_method,
+            "surface_patch_neighbors": normal_kwargs["surface_patch_neighbors"],
+            "surface_patch_distance_factor": normal_kwargs["surface_patch_distance_factor"],
+            "surface_patch_coherence_degrees": normal_kwargs["surface_patch_coherence_degrees"],
+            "max_bisector_deviation_degrees": normal_kwargs["max_bisector_deviation_degrees"],
+            "tangent_normal_threshold": tangent_normal_threshold,
+            "continuity_repair_degrees": normal_kwargs["continuity_repair_degrees"],
+            "continuity_repair_iterations": normal_kwargs["continuity_repair_iterations"],
+        },
         "workpiece_mesh": str(workpiece_path),
         "workpiece_triangle_count": int(len(workpiece.faces)),
         "wheel_visualization": {"center_material": "circle_center_yellow", "feasible_material": "feasible_green", "collision_material": "collision_red", "random_seed": 20261018, "random_wheel_count": len(wheel_records)},

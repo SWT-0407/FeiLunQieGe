@@ -34,6 +34,13 @@
   },
   "normal_estimation": {
     "method": "two_face_angle_bisector",
+    "surface_patch_neighbors": 32,
+    "surface_patch_distance_factor": 3.0,
+    "surface_patch_coherence_degrees": 25.0,
+    "max_bisector_deviation_degrees": 10.0,
+    "tangent_normal_threshold": 0.2,
+    "continuity_repair_degrees": 30.0,
+    "continuity_repair_iterations": 3,
     "neighbor_count": 24,
     "candidate_count": 96,
     "side_count": 8,
