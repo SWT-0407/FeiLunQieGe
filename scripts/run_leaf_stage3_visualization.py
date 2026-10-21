@@ -53,6 +53,13 @@ class PointAudit:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="批量导出阶段三中心点和代表砂轮可视化")
     parser.add_argument("--config", default="configs/default.json")
+    # 默认行为保持与原 leaf 入口一致；指定 --case 可对其它工件运行完全相同的算法。
+    parser.add_argument("--case", default=None, help="工件案例名；默认读取配置中的 case_name")
+    parser.add_argument(
+        "--workpiece-mesh",
+        default=None,
+        help="工件本体 OBJ 文件名；默认读取配置中的 inputs.workpiece_mesh，可用简化网格替代",
+    )
     parser.add_argument("--angle-count", type=int, default=72)
     parser.add_argument("--width", type=float, default=None)
     parser.add_argument("--radius", type=float, default=None)
@@ -355,8 +362,8 @@ def _plot_centers(path: Path, sampled: object, audits: list[PointAudit]) -> None
     plt.close(figure)
 
 
-def _plot_leaf_projection(path: Path, workpiece: object, sampled: object) -> None:
-    """绘制 leaf 工件投影，并标注每条 root_line 的首尾采样编号。"""
+def _plot_leaf_projection(path: Path, workpiece: object, sampled: object, *, title_prefix: str = "Leaf") -> None:
+    """绘制工件投影，并标注每条 root_line 的首尾采样编号。"""
     vertices = np.asarray(workpiece.vertices, dtype=float)
     faces = np.asarray(workpiece.faces, dtype=np.int64)
     center = vertices.mean(axis=0)
@@ -383,7 +390,7 @@ def _plot_leaf_projection(path: Path, workpiece: object, sampled: object) -> Non
     axis.set_xlim(low[0] - margin, high[0] + margin)
     axis.set_ylim(low[1] - margin, high[1] + margin)
     axis.set_aspect("equal")
-    axis.set_title("Leaf workpiece projection with root_line branch endpoints")
+    axis.set_title(f"{title_prefix} workpiece projection with root_line branch endpoints")
     axis.set_xlabel("PCA projection axis 1 (normalized units)")
     axis.set_ylabel("PCA projection axis 2 (normalized units)")
     axis.grid(True, linewidth=0.4, alpha=0.35)
@@ -397,13 +404,25 @@ def main() -> int:
         raise ValueError("angle-count 至少为 8，cylinder-segments 至少为 16")
     config_path = (REPO_ROOT / arguments.config).resolve()
     config = json.loads(config_path.read_text(encoding="utf-8"))
-    if config.get("case_name") != "leaf":
-        raise ValueError("批量阶段三入口固定使用 leaf")
-    case_root = (config_path.parent / config["data_root"]).resolve() / "leaf"
+    # 默认仍为 leaf；通过命令行可对 circle 等其它案例运行完全相同的算法。
+    case_name = str(arguments.case or config.get("case_name", "leaf"))
+    case_root = (config_path.parent / config["data_root"]).resolve() / case_name
+    if not case_root.is_dir():
+        raise FileNotFoundError(f"案例目录不存在: {case_root}")
+    workpiece_name = str(arguments.workpiece_mesh or config["inputs"]["workpiece_mesh"])
+    workpiece_path = case_root / workpiece_name
+    if not workpiece_path.is_file():
+        raise FileNotFoundError(f"工件网格不存在: {workpiece_path}")
     root_line = load_root_line(case_root / config["inputs"]["root_line"])
-    workpiece = load_mesh(case_root / config["inputs"]["workpiece_mesh"])
-    # 飞边网格用于结果叠加/来源记录；碰撞主体仍保持为 mesh_without_flash。
-    flash_reference_mesh = load_mesh(case_root / "mesh_with_flash.obj")
+    workpiece = load_mesh(workpiece_path)
+    # 飞边网格只用于来源记录，不参与碰撞；优先使用简化版本以避免无谓的大网格解析。
+    reference_path = None
+    for candidate_name in ("mesh_with_flash_simplified.obj", "mesh_with_flash.obj"):
+        candidate_path = case_root / candidate_name
+        if candidate_path.is_file():
+            reference_path = candidate_path
+            break
+    flash_reference_vertices = int(len(load_mesh(reference_path).vertices)) if reference_path is not None else None
     flash_cloud = load_labeled_flash_cloud(case_root / "original_flash_cloud.obj")
     root_line, workpiece, normalization = _normalize_case_geometry(root_line, workpiece, config)
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
@@ -452,18 +471,20 @@ def main() -> int:
         point_index, feasible_index, collision_index = _select_branch_point(list(range(start, end)), audits)
         representatives.append({"branch_id": branch_id, "point_index": point_index, "feasible_index": feasible_index, "collision_index": collision_index})
 
-    output_root = REPO_ROOT / "results" / "cases" / "leaf" / datetime.now().strftime("stage3_visualization_%Y%m%d_%H%M%S_%f")
+    output_root = REPO_ROOT / "results" / "cases" / case_name / datetime.now().strftime("stage3_visualization_%Y%m%d_%H%M%S_%f")
     output_root.mkdir(parents=True, exist_ok=False)
-    centers_obj_path = output_root / "leaf_rootline_circle_centers.obj"
-    domains_obj_path = output_root / "leaf_feasible_center_domains.obj"
-    wheels_obj_path = output_root / "leaf_random_wheel_shapes.obj"
-    png_path = output_root / "leaf_rootline_projection.png"
+    centers_obj_path = output_root / f"{case_name}_rootline_circle_centers.obj"
+    domains_obj_path = output_root / f"{case_name}_feasible_center_domains.obj"
+    wheels_obj_path = output_root / f"{case_name}_random_wheel_shapes.obj"
+    png_path = output_root / f"{case_name}_rootline_projection.png"
     summary_path = output_root / "stage3_visualization_summary.json"
     normal_diagnostics_path = output_root / "normal_continuity_diagnostics.json"
     _export_circle_centers(centers_obj_path, sampled, audits, branches, normalization, radius)
     _export_center_domains(domains_obj_path, sampled, audits, branches, normalization, radius)
     wheel_records = _export_random_wheels(wheels_obj_path, sampled, audits, branches, normalization, radius, width, arguments.cylinder_segments)
-    _plot_leaf_projection(png_path, workpiece, sampled)
+    # 按项目规范，PNG 只在显式传入 --png 时生成；OBJ/MTL/JSON 始终输出。
+    if arguments.png:
+        _plot_leaf_projection(png_path, workpiece, sampled, title_prefix=case_name)
     feasible_count = sum(int(np.count_nonzero(a.result.feasible)) for a in audits)
     candidate_count = sum(len(a.result.feasible) for a in audits)
     normal_diagnostics_path.write_text(json.dumps({
@@ -475,25 +496,30 @@ def main() -> int:
         "orientation_rule": "per_face_choose_normal_with_positive_dot_OF",
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     summary = {
-        "case_name": "leaf", "stage": "stage_3_batch_visualization", "units": "normalized",
+        "case_name": case_name, "stage": "stage_3_batch_visualization", "units": "normalized",
         "sampled_point_count": len(audits), "root_line_branch_count": len(branches),
         "angle_count_per_point": arguments.angle_count, "candidate_center_count": candidate_count,
         "feasible_center_count": feasible_count, "collision_center_count": candidate_count - feasible_count,
         "radius": radius, "delta": delta, "contact_band": [radius - delta, radius], "width_h": width, "lower_face_offset": width / 2.0,
         "collision_backend": "exact_triangle_finite_annular_cylinder_aabb",
         "candidate_center_radius": radius,
+        "workpiece_mesh": str(workpiece_path),
+        "workpiece_triangle_count": int(len(workpiece.faces)),
         "wheel_visualization": {"center_material": "circle_center_yellow", "feasible_material": "feasible_green", "collision_material": "collision_red", "random_seed": 20261018, "random_wheel_count": len(wheel_records)},
-        "orientation": {"method": "nearest_labelled_flash_point_per_face", "formula": "choose sign(n) so dot(n, F-O) >= 0", "source": str(flash_cloud.source_path), "reference_mesh": str(case_root / "mesh_with_flash.obj"), "reference_mesh_vertex_count": int(len(flash_reference_mesh.vertices)), "flash_point_count": int(len(flash_points)), "body_point_count": int(len(body_points))},
+        "orientation": {"method": "nearest_labelled_flash_point_per_face", "formula": "choose sign(n) so dot(n, F-O) >= 0", "source": str(flash_cloud.source_path), "reference_mesh": str(reference_path) if reference_path is not None else None, "reference_mesh_vertex_count": flash_reference_vertices, "flash_point_count": int(len(flash_points)), "body_point_count": int(len(body_points))},
         "branch_representatives": representatives,
         "random_wheels": wheel_records,
-        "outputs": {"circle_centers_obj": str(centers_obj_path.relative_to(REPO_ROOT)), "center_domains_obj": str(domains_obj_path.relative_to(REPO_ROOT)), "random_wheels_obj": str(wheels_obj_path.relative_to(REPO_ROOT)), "png": str(png_path.relative_to(REPO_ROOT)), "normal_diagnostics": str(normal_diagnostics_path.relative_to(REPO_ROOT)), "summary": str(summary_path.relative_to(REPO_ROOT))},
+        "outputs": {"circle_centers_obj": str(centers_obj_path.relative_to(REPO_ROOT)), "center_domains_obj": str(domains_obj_path.relative_to(REPO_ROOT)), "random_wheels_obj": str(wheels_obj_path.relative_to(REPO_ROOT)), "normal_diagnostics": str(normal_diagnostics_path.relative_to(REPO_ROOT)), "summary": str(summary_path.relative_to(REPO_ROOT))},
         "human_review_status": "waiting_for_manual_review",
         "limitations": ["OBJ 使用多边形面表达标准圆柱曲面，但每个砂轮对象只有一种材质颜色。", "连续碰撞结果仍受当前网格封闭性、容差和固定角度候选集限制。"],
     }
+    if arguments.png:
+        summary["outputs"]["png"] = str(png_path.relative_to(REPO_ROOT))
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"status=completed points={len(audits)} branches={len(branches)} centers={candidate_count} feasible={feasible_count}")
+    print(f"status=completed case={case_name} points={len(audits)} branches={len(branches)} centers={candidate_count} feasible={feasible_count}")
     print(f"circle_centers_obj={centers_obj_path}\ncenter_domains_obj={domains_obj_path}\nrandom_wheels_obj={wheels_obj_path}\nsummary={summary_path}")
-    print(f"png={png_path}")
+    if arguments.png:
+        print(f"png={png_path}")
     return 0
 
 
