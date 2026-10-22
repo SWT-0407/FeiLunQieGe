@@ -56,6 +56,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--side", type=float, default=1.0, choices=(-1.0, 1.0), help="下表面相对切平面的轴向侧向")
     parser.add_argument("--epsilon", type=float, default=1e-10)
     parser.add_argument("--target-contact-tolerance", type=float, default=1e-4)
+    parser.add_argument(
+        "--narrow-phase",
+        default=None,
+        choices=("analytic_closest_point_flat", "analytic_closest_point", "clipped_polygon"),
+        help="窄相算法；默认读取 collision.narrow_phase",
+    )
     return parser
 
 
@@ -246,7 +252,7 @@ def _plot_angle(path: Path, candidates: CandidateSet, exact: object, point_index
     plt.close(figure)
 
 
-def _refine_boundaries(contact: np.ndarray, frame: object, radius: float, width: float, side: float, angles: np.ndarray, states: np.ndarray, point_index: int, workpiece: object, cylinder_index: object, clearance: float, epsilon: float, target_contact_tolerance: float, iterations: int, inner_radius: float = 0.0, axis_override: np.ndarray | None = None, contact_patch_enabled: bool = False, contact_patch_radius: float | None = None, max_contact_penetration: float = 0.0, contact_normal_tolerance_degrees: float = 30.0) -> list[dict[str, float | bool]]:
+def _refine_boundaries(contact: np.ndarray, frame: object, radius: float, width: float, side: float, angles: np.ndarray, states: np.ndarray, point_index: int, workpiece: object, cylinder_index: object, clearance: float, epsilon: float, target_contact_tolerance: float, iterations: int, inner_radius: float = 0.0, axis_override: np.ndarray | None = None, contact_patch_enabled: bool = False, contact_patch_radius: float | None = None, max_contact_penetration: float = 0.0, contact_normal_tolerance_degrees: float = 30.0, narrow_phase: str = "analytic_closest_point_flat") -> list[dict[str, float | bool]]:
     """只对初始安全/碰撞状态变化的角区间做二分。"""
 
     boundaries: list[dict[str, float | bool]] = []
@@ -262,7 +268,7 @@ def _refine_boundaries(contact: np.ndarray, frame: object, radius: float, width:
         for _ in range(iterations):
             middle = (left + right) / 2.0
             candidate = _candidate_set(contact, frame, radius, width, np.array([middle % (2.0 * np.pi)]), point_index, side, axis_override)
-            middle_state = bool(check_finite_cylinder_candidates_exact(candidate, workpiece, width, inner_radius=inner_radius, clearance=clearance, epsilon=epsilon, target_contact_tolerance=target_contact_tolerance, contact_patch_enabled=contact_patch_enabled, contact_patch_radius=contact_patch_radius, max_contact_penetration=max_contact_penetration, contact_normal_tolerance_degrees=contact_normal_tolerance_degrees, cylinder_index=cylinder_index).feasible[0])
+            middle_state = bool(check_finite_cylinder_candidates_exact(candidate, workpiece, width, inner_radius=inner_radius, clearance=clearance, epsilon=epsilon, target_contact_tolerance=target_contact_tolerance, contact_patch_enabled=contact_patch_enabled, contact_patch_radius=contact_patch_radius, max_contact_penetration=max_contact_penetration, contact_normal_tolerance_degrees=contact_normal_tolerance_degrees, narrow_phase=narrow_phase, cylinder_index=cylinder_index).feasible[0])
             if middle_state == left_state:
                 left = middle
             else:
@@ -351,6 +357,11 @@ def main() -> int:
     contact_normal_tolerance_degrees = float(
         collision_config.get("contact_patch_normal_tolerance_degrees", 30.0)
     )
+    narrow_phase = str(
+        arguments.narrow_phase
+        if arguments.narrow_phase is not None
+        else collision_config.get("narrow_phase", "analytic_closest_point_flat")
+    )
     exact = check_finite_cylinder_candidates_exact(
         candidates, workpiece, width,
         inner_radius=0.0,
@@ -362,6 +373,7 @@ def main() -> int:
         contact_patch_radius=contact_patch_radius,
         max_contact_penetration=max_contact_penetration,
         contact_normal_tolerance_degrees=contact_normal_tolerance_degrees,
+        narrow_phase=narrow_phase,
         cylinder_index=cylinder_index,
     )
     exact_states = np.asarray(exact.feasible, dtype=bool)
@@ -373,6 +385,7 @@ def main() -> int:
         contact_patch_radius=contact_patch_radius,
         max_contact_penetration=max_contact_penetration,
         contact_normal_tolerance_degrees=contact_normal_tolerance_degrees,
+        narrow_phase=narrow_phase,
     )
     baseline = check_finite_cylinder_candidates(
         candidates, workpiece, float(config["collision"].get("clearance", 0.0)), width,
@@ -407,6 +420,8 @@ def main() -> int:
         "clearance": float(config["collision"].get("clearance", 0.0)),
         "collision_backend": exact.method,
         "collision_body": "solid_cylinder",
+        "narrow_phase": narrow_phase,
+        "broad_phase": {"type": "aabb_bvh", "leaf_size": cylinder_index.leaf_size},
         "contact_patch": {
             "enabled": contact_patch_enabled,
             "radius": contact_patch_radius,

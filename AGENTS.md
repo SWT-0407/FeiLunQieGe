@@ -7,7 +7,7 @@
 - 禁止执行任何删除操作。需要淘汰的文件只能在人工确认后移动到 `__cache__`。
 - 缓存、临时提取物和中间文件只放入 `__cache__` 或 `__pycache__`；不要把正式代码、结果和报告放入缓存。
 - 不覆盖原始论文和模型数据，不把父目录的约 930 MB 原始 OBJ/PLY 材料复制进仓库。
-- 当前主流程读取 ASCII `root_line.ply`、`mesh_without_flash.obj` 和带标签的 `original_flash_cloud.obj`；后者的红色飞边点用于对每个局部三角面法向按 `dot(n, F-O) >= 0` 定正负。候选中心位于局部切平面，有限圆柱主判定使用三角形 AABB 宽相与连续窄相。运行目录不覆盖旧结果；OBJ 是 MeshLab 可检查的可视化/审计材料，仍不能代替设备可达性或真实加工验收。
+- 当前主流程读取 ASCII `root_line.ply`、`mesh_without_flash.obj` 和带标签的 `original_flash_cloud.obj`；后者的红色飞边点用于对每个局部三角面法向按 `dot(n, F-O) >= 0` 定正负。候选中心位于局部切平面，有限圆柱主判定使用三角形 AABB BVH 宽相与解析窄相（平端面模式：精确裁剪相交 + 三角形-轴线段最近点法向）。运行目录不覆盖旧结果；OBJ 是 MeshLab 可检查的可视化/审计材料，仍不能代替设备可达性或真实加工验收。
 - 当前还生成离线 `interactive_demo.html`：默认导出全部离散采样点，点击根部线投影中的点后，右侧显示该点局部切平面内的可行半径区域；`interactive_demo.max_points > 0` 可限制为少量演示点。它是交互式显示层，不改变精确 OBJ、JSON 或碰撞结果。
 - 候选角度和径向位置仍是离散采样；“全红/全绿”不等于连续角度范围或真实加工一定安全。当前固定姿态下使用三角形 AABB 宽相与连续有限圆柱窄相，能发现三角形内部穿入，但非封闭网格仍无法证明实体包含关系；所有结果仍是 preliminary geometry run。
 - 算法计算坐标使用输入数据的归一化单位，文档中写作 `normalized units`，不能擅自标注为毫米。为了供 MeshLab 与原始 OBJ 叠加，`feasible_centers.obj`、`feasible_centers_display.obj` 和 `local_feasible_centers.obj` 必须在导出时逆变换为 `source_obj` 坐标，并在 OBJ 文件头和 JSON 摘要中明确标注；HTML 与 PNG 保持 normalized 计算坐标。
@@ -17,7 +17,9 @@
 
 - `root_line.ply` 暂作为飞边与工件本体根部交线 `l`；全部有效点参与分析。多个 edge 连通分支必须分别保留并记录。
 - 在采样点 `x_i` 处，曲线切线为 `t_i`，工件表面法向为 `n_i`。砂轮中心偏移方向 `e_i` 在局部切平面内，砂轮轴向取 `n_i`；砂轮圆盘平面与切平面平行、与法平面垂直。`e_i` 不再强制与 `t_i` 垂直。
-- 初版工具是无厚度圆盘，半径 `r`，候选半径范围为 `rho ∈ [r - delta, r]`。厚度圆盘/圆柱只保留扩展接口。
+- 当前工具是**实心有限圆柱**，半径 `r`、轴向宽度 `w`；`delta` 只用于候选中心半径带 `[r-delta, r]`，不再参与碰撞体几何。
+- 窄相由 `collision.narrow_phase` 选择：默认 `analytic_closest_point_flat`（精确平端面裁剪 + 解析最近点法向）；`analytic_closest_point` 是胶囊/球端帽模型，仅用于对照；`clipped_polygon` 是历史回归基线。
+- 接触斑模型由 `collision.contact_patch_*` 控制：只有浅穿透、法向接近砂轮端面、且位于目标点附近 patch 内的相交才允许为接触；其余仍为碰撞。
 - `r` 不是全项目固定常数。批量运行可扫描多个归一化候选半径并按覆盖规则为每个案例选择主半径，也可通过 `radius_selection.case_overrides` 人工指定；扫描表、规则、最终值和源坐标等效值必须写入 JSON。
 - 默认碰撞对象是 `mesh_without_flash.obj`，但实现前需用小案例人工核对。
 
@@ -56,7 +58,7 @@
 ## Current acceptance gate
 
 - New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is high-lightness mint green (`feasible_pose`, RGB `0.60, 1.00, 0.80`), collision pose is high-lightness coral red (`collision_pose`, RGB `1.00, 0.78, 0.70`). This coral red must remain visually distinct from the deep-red feasible-center display markers. The OBJ vertex records and MTL must carry the same colors. The MTL sets matching `Ka`/`Kd`/`Ke` plus `illum 0`, so its semantic colors are not darkened by directional lighting in MeshLab.
-- Finite-cylinder collision filtering now uses a triangle AABB tree as broad phase and an axial-clipping/continuous radial-distance narrow phase for each fixed pose. The `finite_nearest_samples` setting is retained only for historical baseline comparisons; it no longer decides the primary feasible set.
+- Finite-cylinder collision filtering now uses a triangle AABB BVH as broad phase. The default narrow phase (`analytic_closest_point_flat`) uses exact flat-capped clipping for intersection/penetration plus a triangle-to-axis-segment closest point for the contact normal. `analytic_closest_point` is the strict capsule variant for comparison; `clipped_polygon` remains the regression baseline.
 - `226633` 的姿态示例绿色环固定使用候选索引 `135`：它与红色碰撞姿态位于同一目标点，并经过更高密度表面样本复核；该覆盖只影响展示姿态，不改变全体候选筛选。
 - New runs must not generate `interactive_demo.html`; existing historical HTML outputs are retained and must not be deleted.
 - New run directories contain only `feasible_centers_overview.png`, `feasible_centers_summary.json`, `pose_examples.obj`/`.mtl`, `feasible_centers_display.obj`/`.mtl`, and `local_feasible_centers.obj`/`.mtl`. Do not generate other PNG files or `feasible_centers.obj`.

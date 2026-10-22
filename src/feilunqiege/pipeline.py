@@ -144,6 +144,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     contact_normal_tolerance_degrees = float(
         collision_config.get("contact_patch_normal_tolerance_degrees", 30.0)
     )
+    narrow_phase = str(collision_config.get("narrow_phase", "analytic_closest_point_flat"))
     # AABB 树只剔除不相交三角面，连续窄相再裁剪三角形并计算到圆柱轴的真实横向距离。
     collisions = check_finite_cylinder_candidates_exact(
         candidates,
@@ -156,6 +157,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         contact_patch_radius=contact_patch_radius,
         max_contact_penetration=max_contact_penetration,
         contact_normal_tolerance_degrees=contact_normal_tolerance_degrees,
+        narrow_phase=narrow_phase,
         cylinder_index=cylinder_index,
     )
     # 每次运行建立独立目录，避免用户正在 MeshLab/图片查看器中打开旧文件时
@@ -332,6 +334,8 @@ def _build_summary(
             "contact_patch_radius": contact_patch_radius,
             "contact_patch_max_penetration": max_contact_penetration,
             "contact_patch_normal_tolerance_degrees": contact_normal_tolerance_degrees,
+            "narrow_phase": narrow_phase,
+            "broad_phase": "aabb_bvh",
             "finite_nearest_samples": int(config["collision"].get("finite_nearest_samples", 2048)),
             "finite_chunk_size": int(config["collision"].get("finite_chunk_size", 20000)),
             "normalization": normalization,

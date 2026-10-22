@@ -88,6 +88,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--contact-patch-radius-ratio", type=float, default=None)
     parser.add_argument("--contact-patch-max-penetration-ratio", type=float, default=None)
     parser.add_argument("--contact-patch-normal-tolerance-degrees", type=float, default=None)
+    parser.add_argument(
+        "--narrow-phase",
+        default=None,
+        choices=("analytic_closest_point_flat", "analytic_closest_point", "clipped_polygon"),
+        help="窄相算法；默认读取 collision.narrow_phase",
+    )
     parser.add_argument("--continuity-repair-iterations", type=int, default=None)
     parser.add_argument("--angle-count", type=int, default=72)
     parser.add_argument("--width", type=float, default=None)
@@ -550,6 +556,11 @@ def main() -> int:
     )
     contact_patch_radius = contact_patch_radius_ratio * radius
     max_contact_penetration = contact_patch_max_penetration_ratio * radius
+    narrow_phase = str(
+        arguments.narrow_phase
+        if arguments.narrow_phase is not None
+        else collision_config.get("narrow_phase", "analytic_closest_point_flat")
+    )
     audits: list[PointAudit] = []
     for point_index, (point, frame) in enumerate(zip(sampled.points, frames, strict=True)):
         candidates = _candidate_set(np.asarray(point), frame, radius, width, angles, point_index, arguments.side)
@@ -563,6 +574,7 @@ def main() -> int:
             contact_patch_radius=contact_patch_radius,
             max_contact_penetration=max_contact_penetration,
             contact_normal_tolerance_degrees=contact_normal_tolerance_degrees,
+            narrow_phase=narrow_phase,
             cylinder_index=cylinder_index,
         )
         audits.append(PointAudit(point_index, candidates, result))
@@ -607,6 +619,8 @@ def main() -> int:
         "radius": radius, "delta": delta, "contact_band": [radius - delta, radius], "width_h": width, "lower_face_offset": width / 2.0,
         "collision_backend": audits[0].result.method if audits else "unknown",
         "collision_body": "solid_cylinder",
+        "narrow_phase": narrow_phase,
+        "broad_phase": {"type": "aabb_bvh", "leaf_size": cylinder_index.leaf_size},
         "contact_patch": {
             "enabled": contact_patch_enabled,
             "radius": contact_patch_radius,

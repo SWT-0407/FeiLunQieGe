@@ -9,6 +9,7 @@ from feilunqiege.collision.cylinder_exact import (
     check_finite_cylinder_candidates_exact,
     move_candidates_to_lower_face,
     triangle_cylinder_contact_state,
+    triangle_cylinder_contact_state_analytic,
     triangle_intersects_cylinder,
 )
 from feilunqiege.tooling.grinding_wheel import CandidateSet
@@ -266,3 +267,80 @@ def test_contact_patch_rejects_contact_far_from_target() -> None:
         contact_normal_tolerance_degrees=30.0,
     )
     assert not bool(result.feasible[0])
+
+
+def test_analytic_flat_matches_clipped_on_side_contact() -> None:
+    """解析最近点法的平端面模式应与裁剪法在侧面接触上一致。"""
+
+    triangle = np.array([[1.0, -0.1, -0.1], [1.0, 0.1, -0.1], [1.0, 0.0, 0.1]])
+    clipped = triangle_cylinder_contact_state(
+        triangle, np.zeros(3), np.array([0.0, 0.0, 1.0]),
+        np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]), 1.0, 0.4,
+    )
+    analytic = triangle_cylinder_contact_state_analytic(
+        triangle, np.zeros(3), np.array([0.0, 0.0, 1.0]), 1.0, 0.4,
+        penetration_model="flat_cylinder",
+    )
+    assert clipped.hit and analytic.hit
+    assert analytic.kind == clipped.kind == "cylinder_side_collision"
+    assert abs(analytic.penetration - clipped.penetration) <= 1e-12
+    assert analytic.contact_normal is not None
+    assert abs(float(np.dot(analytic.contact_normal, [1.0, 0.0, 0.0]))) > 0.9
+
+
+def test_analytic_capsule_and_flat_disagree_on_coplanar_cap_contact() -> None:
+    """共面端面接触：胶囊模型给出 R-D 大穿透，平端面模式给出零穿透。"""
+
+    triangle = np.array([[0.2, 0.0, -0.2], [0.4, 0.0, -0.2], [0.3, 0.2, -0.2]])
+    capsule = triangle_cylinder_contact_state_analytic(
+        triangle, np.zeros(3), np.array([0.0, 0.0, 1.0]), 1.0, 0.4,
+        penetration_model="capsule",
+    )
+    flat = triangle_cylinder_contact_state_analytic(
+        triangle, np.zeros(3), np.array([0.0, 0.0, 1.0]), 1.0, 0.4,
+        penetration_model="flat_cylinder",
+    )
+    assert capsule.hit and flat.hit
+    assert capsule.kind == flat.kind == "cylinder_cap_collision"
+    assert capsule.penetration > 0.5
+    assert flat.penetration <= 1e-12
+    assert flat.contact_normal is not None
+    assert abs(float(np.dot(flat.contact_normal, [0.0, 0.0, 1.0]))) > 0.99
+
+
+def test_checker_capsule_mode_rejects_coplanar_cap_that_flat_mode_allows() -> None:
+    """窄相模式选择应决定共面端面接触是否被接触斑豁免。"""
+
+    common = dict(
+        width=2.0,
+        inner_radius=0.0,
+        contact_patch_enabled=True,
+        contact_patch_radius=2.0,
+        max_contact_penetration=0.01,
+        contact_normal_tolerance_degrees=30.0,
+    )
+    flat = check_finite_cylinder_candidates_exact(
+        _candidate(np.array([1.0, 0.0, 1.0]), radius=1.0),
+        _plane_mesh(),
+        narrow_phase="analytic_closest_point_flat",
+        **common,
+    )
+    clipped = check_finite_cylinder_candidates_exact(
+        _candidate(np.array([1.0, 0.0, 1.0]), radius=1.0),
+        _plane_mesh(),
+        narrow_phase="clipped_polygon",
+        **common,
+    )
+    capsule = check_finite_cylinder_candidates_exact(
+        _candidate(np.array([1.0, 0.0, 1.0]), radius=1.0),
+        _plane_mesh(),
+        narrow_phase="analytic_closest_point",
+        **common,
+    )
+    assert bool(flat.feasible[0])
+    assert bool(clipped.feasible[0])
+    assert not bool(capsule.feasible[0])
+    assert str(flat.reason[0]).startswith("contact_patch_only")
+    assert "analytic_closest_point_flat" in flat.method
+    assert "clipped_polygon" in clipped.method
+    assert "analytic_closest_point_capsule" in capsule.method
