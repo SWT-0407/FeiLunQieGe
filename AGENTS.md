@@ -18,7 +18,7 @@
 - `root_line.ply` 暂作为飞边与工件本体根部交线 `l`；全部有效点参与分析。多个 edge 连通分支必须分别保留并记录。
 - 在采样点 `x_i` 处，曲线切线为 `t_i`，工件表面法向为 `n_i`。砂轮中心偏移方向 `e_i` 在局部切平面内，砂轮轴向取 `n_i`；砂轮圆盘平面与切平面平行、与法平面垂直。`e_i` 不再强制与 `t_i` 垂直。
 - 当前工具是**实心有限圆柱**，半径 `r`、轴向宽度 `w`；`delta` 只用于候选中心半径带 `[r-delta, r]`，不再参与碰撞体几何。
-- 窄相由 `collision.narrow_phase` 选择：默认 `analytic_closest_point_flat`（精确平端面裁剪 + 解析最近点法向）；`analytic_closest_point` 是胶囊/球端帽模型，仅用于对照；`clipped_polygon` 是历史回归基线。
+- 窄相由 `collision.narrow_phase` 选择：默认 `analytic_closest_point_flat`（精确平端面裁剪 + 解析最近点法向）；`clipped_polygon` 是历史回归基线。胶囊/球端帽模型已移除，因为它会把共面端面接触误算成 `R-D` 的大穿透。
 - 接触斑模型由 `collision.contact_patch_*` 控制：只有浅穿透、法向接近砂轮端面、且位于目标点附近 patch 内的相交才允许为接触；其余仍为碰撞。
 - `r` 不是全项目固定常数。批量运行可扫描多个归一化候选半径并按覆盖规则为每个案例选择主半径，也可通过 `radius_selection.case_overrides` 人工指定；扫描表、规则、最终值和源坐标等效值必须写入 JSON。
 - 默认碰撞对象是 `mesh_without_flash.obj`，但实现前需用小案例人工核对。
@@ -58,7 +58,7 @@
 ## Current acceptance gate
 
 - New runs must export `pose_examples.obj` with adjacent `pose_examples.mtl`: feasible pose is high-lightness mint green (`feasible_pose`, RGB `0.60, 1.00, 0.80`), collision pose is high-lightness coral red (`collision_pose`, RGB `1.00, 0.78, 0.70`). This coral red must remain visually distinct from the deep-red feasible-center display markers. The OBJ vertex records and MTL must carry the same colors. The MTL sets matching `Ka`/`Kd`/`Ke` plus `illum 0`, so its semantic colors are not darkened by directional lighting in MeshLab.
-- Finite-cylinder collision filtering now uses a triangle AABB BVH as broad phase. The default narrow phase (`analytic_closest_point_flat`) uses exact flat-capped clipping for intersection/penetration plus a triangle-to-axis-segment closest point for the contact normal. `analytic_closest_point` is the strict capsule variant for comparison; `clipped_polygon` remains the regression baseline.
+- Finite-cylinder collision filtering now uses a triangle AABB BVH as broad phase. The default narrow phase (`analytic_closest_point_flat`) uses exact flat-capped clipping for intersection/penetration plus a triangle-to-axis-segment closest point for the contact normal. `clipped_polygon` remains the regression baseline. The capsule/round-cap model has been removed because it misclassifies coplanar cap contact.
 - `226633` 的姿态示例绿色环固定使用候选索引 `135`：它与红色碰撞姿态位于同一目标点，并经过更高密度表面样本复核；该覆盖只影响展示姿态，不改变全体候选筛选。
 - New runs must not generate `interactive_demo.html`; existing historical HTML outputs are retained and must not be deleted.
 - New run directories contain only `feasible_centers_overview.png`, `feasible_centers_summary.json`, `pose_examples.obj`/`.mtl`, `feasible_centers_display.obj`/`.mtl`, and `local_feasible_centers.obj`/`.mtl`. Do not generate other PNG files or `feasible_centers.obj`.

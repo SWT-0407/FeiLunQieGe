@@ -279,7 +279,6 @@ def test_analytic_flat_matches_clipped_on_side_contact() -> None:
     )
     analytic = triangle_cylinder_contact_state_analytic(
         triangle, np.zeros(3), np.array([0.0, 0.0, 1.0]), 1.0, 0.4,
-        penetration_model="flat_cylinder",
     )
     assert clipped.hit and analytic.hit
     assert analytic.kind == clipped.kind == "cylinder_side_collision"
@@ -288,28 +287,22 @@ def test_analytic_flat_matches_clipped_on_side_contact() -> None:
     assert abs(float(np.dot(analytic.contact_normal, [1.0, 0.0, 0.0]))) > 0.9
 
 
-def test_analytic_capsule_and_flat_disagree_on_coplanar_cap_contact() -> None:
-    """共面端面接触：胶囊模型给出 R-D 大穿透，平端面模式给出零穿透。"""
+def test_analytic_flat_coplanar_cap_contact_has_zero_penetration() -> None:
+    """平端面模型必须把共面端面接触算成零穿透。"""
 
     triangle = np.array([[0.2, 0.0, -0.2], [0.4, 0.0, -0.2], [0.3, 0.2, -0.2]])
-    capsule = triangle_cylinder_contact_state_analytic(
-        triangle, np.zeros(3), np.array([0.0, 0.0, 1.0]), 1.0, 0.4,
-        penetration_model="capsule",
-    )
     flat = triangle_cylinder_contact_state_analytic(
         triangle, np.zeros(3), np.array([0.0, 0.0, 1.0]), 1.0, 0.4,
-        penetration_model="flat_cylinder",
     )
-    assert capsule.hit and flat.hit
-    assert capsule.kind == flat.kind == "cylinder_cap_collision"
-    assert capsule.penetration > 0.5
+    assert flat.hit
+    assert flat.kind == "cylinder_cap_collision"
     assert flat.penetration <= 1e-12
     assert flat.contact_normal is not None
     assert abs(float(np.dot(flat.contact_normal, [0.0, 0.0, 1.0]))) > 0.99
 
 
-def test_checker_capsule_mode_rejects_coplanar_cap_that_flat_mode_allows() -> None:
-    """窄相模式选择应决定共面端面接触是否被接触斑豁免。"""
+def test_checker_flat_and_clipped_modes_agree_on_coplanar_cap() -> None:
+    """默认解析平端面模式与裁剪基线在共面端面接触上应一致。"""
 
     common = dict(
         width=2.0,
@@ -331,16 +324,15 @@ def test_checker_capsule_mode_rejects_coplanar_cap_that_flat_mode_allows() -> No
         narrow_phase="clipped_polygon",
         **common,
     )
-    capsule = check_finite_cylinder_candidates_exact(
+    default = check_finite_cylinder_candidates_exact(
         _candidate(np.array([1.0, 0.0, 1.0]), radius=1.0),
         _plane_mesh(),
-        narrow_phase="analytic_closest_point",
         **common,
     )
     assert bool(flat.feasible[0])
     assert bool(clipped.feasible[0])
-    assert not bool(capsule.feasible[0])
+    assert bool(default.feasible[0])
     assert str(flat.reason[0]).startswith("contact_patch_only")
     assert "analytic_closest_point_flat" in flat.method
     assert "clipped_polygon" in clipped.method
-    assert "analytic_closest_point_capsule" in capsule.method
+    assert "analytic_closest_point_flat" in default.method

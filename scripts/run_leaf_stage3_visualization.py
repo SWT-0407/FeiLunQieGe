@@ -91,7 +91,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--narrow-phase",
         default=None,
-        choices=("analytic_closest_point_flat", "analytic_closest_point", "clipped_polygon"),
+        choices=("analytic_closest_point_flat", "clipped_polygon"),
         help="窄相算法；默认读取 collision.narrow_phase",
     )
     parser.add_argument("--continuity-repair-iterations", type=int, default=None)

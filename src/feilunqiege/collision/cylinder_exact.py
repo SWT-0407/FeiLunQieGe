@@ -516,20 +516,17 @@ def triangle_cylinder_contact_state_analytic(
     *,
     contact_point: np.ndarray | None = None,
     epsilon: float = 1e-10,
-    penetration_model: str = "flat_cylinder",
 ) -> CylinderContactState:
-    """解析法：三角形与有限圆柱的最近点/穿透状态。
+    """解析法：三角形与平端面实心圆柱的接触状态。
 
-    第一步：把圆柱表示为轴线线段 ``[c - h/2*a, c + h/2*a]``。
-    第二步：求三角形与轴线段之间的精确最近点对 ``P_tri``、``P_axis``。
-    第三步：``D = |P_tri - P_axis|``；``D <= R`` 时三角形进入圆柱的
-    轴向范围/半径范围。接触法向取 ``(P_tri - P_axis)/D``。
+    砂轮是平端面实心圆柱，不是胶囊/球端帽。处理步骤：
 
-    ``penetration_model``：
-    - ``capsule``：``d = R - D``，对应“轴线 + 球形端帽”的胶囊模型；
-    - ``flat_cylinder``：先沿用三角形裁剪得到的平端面圆柱相交判定，再用
-      ``min(R-rho, h/2-|z|)`` 计算平端面穿透深度。后者与真实砂轮端面一致，
-      不会把共面端面接触误算成 ``R-D`` 的大穿透。
+    1. 用精确轴向裁剪判断三角形是否进入平端面圆柱；
+    2. 用三角形上见证点到轴线段的最近点构造解析接触法向；
+    3. 穿透深度使用平端面定义 ``min(R-rho, h/2-|z|)``。
+
+    不再包含“轴线 + 球形端帽”的胶囊模型。胶囊模型会把共面端面接触
+    误算成 ``R-D`` 的大穿透，从而错误拒绝平端面砂轮的贴面姿态。
     """
 
     triangle = np.asarray(triangle, dtype=float)
@@ -537,8 +534,6 @@ def triangle_cylinder_contact_state_analytic(
     axis = _unit(axis)
     if radius < 0 or width < 0 or epsilon < 0:
         raise ValueError("radius、width 和 epsilon 不能为负")
-    if penetration_model not in ("capsule", "flat_cylinder"):
-        raise ValueError(f"不支持的 penetration_model: {penetration_model}")
 
     half = float(width) / 2.0
     segment_start = center - half * axis
@@ -550,98 +545,45 @@ def triangle_cylinder_contact_state_analytic(
         abs(float(np.dot(triangle_normal / normal_length, axis))) if normal_length > 1e-12 else 0.0
     )
 
-    if penetration_model == "flat_cylinder":
-        # 平端面圆柱的精确相交判定和穿透深度仍由裁剪法给出；最近点只
-        # 用来构造解析接触法向。这样既保持平端面语义，又避免把共面端面
-        # 接触误算成 R-D 的大穿透。
-        reference = np.array([1.0, 0.0, 0.0]) if abs(float(axis[0])) < 0.9 else np.array([0.0, 1.0, 0.0])
-        clipped = triangle_cylinder_contact_state(
-            triangle, center, axis, reference, np.cross(axis, reference),
-            radius, width, inner_radius=0.0, epsilon=epsilon, contact_point=contact_point,
-        )
-        if not clipped.hit:
-            return CylinderContactState(False, None, clipped.kind, 0.0, 0.0, 0.0, 0.0, 0.0)
-        triangle_point = (
-            np.asarray(clipped.witness, dtype=float)
-            if clipped.witness is not None
-            else triangle.mean(axis=0)
-        )
-        axis_point = _closest_point_on_segment(triangle_point, segment_start, segment_end)
-        distance = float(np.linalg.norm(triangle_point - axis_point))
-        kind = clipped.kind
-        penetration = clipped.penetration
-        axial_penetration = clipped.axial_penetration
-        radial_penetration = clipped.radial_penetration
-        patch_max_distance = clipped.patch_max_distance
-        normal_alignment = clipped.normal_alignment
-        closest_normal = (
-            (triangle_point - axis_point) / distance
-            if distance > 1e-12
-            else triangle_normal / max(normal_length, 1e-12)
-        )
-        if kind in ("cylinder_cap_collision", "cylinder_edge_collision"):
-            cap_sign = 1.0 if float(np.dot(triangle_point - center, axis)) >= 0.0 else -1.0
-            cap_normal = cap_sign * axis
-            if kind == "cylinder_edge_collision":
-                combined = cap_normal + closest_normal
-                combined_length = float(np.linalg.norm(combined))
-                contact_normal = combined / combined_length if combined_length > 1e-12 else cap_normal
-            else:
-                contact_normal = cap_normal
-        else:
-            contact_normal = closest_normal
-        return CylinderContactState(
-            True,
-            triangle_point,
-            kind,
-            float(penetration),
-            float(axial_penetration),
-            float(radial_penetration),
-            float(patch_max_distance),
-            float(normal_alignment),
-            contact_normal,
-        )
-
-    # 胶囊模型：直接用三角形-轴线段的精确最近点。
-    triangle_point, axis_point, distance = _closest_points_triangle_segment(
-        triangle, segment_start, segment_end
+    # 平端面圆柱的精确相交判定和穿透深度由裁剪法给出；最近点只用来
+    # 构造解析接触法向。这样既保持平端面语义，又避免把共面端面接触
+    # 误算成 R-D 的大穿透。
+    reference = np.array([1.0, 0.0, 0.0]) if abs(float(axis[0])) < 0.9 else np.array([0.0, 1.0, 0.0])
+    clipped = triangle_cylinder_contact_state(
+        triangle, center, axis, reference, np.cross(axis, reference),
+        radius, width, inner_radius=0.0, epsilon=epsilon, contact_point=contact_point,
     )
-    if distance > float(radius) + epsilon:
-        return CylinderContactState(False, None, "separated_by_cylinder_side", 0.0, 0.0, 0.0, 0.0, 0.0)
-    penetration = max(0.0, float(radius) - distance)
-    axial = abs(float(np.dot(axis_point - center, axis)))
-    on_side = abs(distance - float(radius)) <= float(epsilon) * 2.0
-    on_cap = abs(axial - half) <= float(epsilon) * 2.0
-    if on_side and on_cap:
-        kind = "cylinder_edge_collision"
-    elif on_side:
-        kind = "cylinder_side_collision"
-    elif on_cap:
-        kind = "cylinder_cap_collision"
-    else:
-        kind = "triangle_interior_collision"
-    axial_penetration = max(
-        0.0, max(abs(float(np.dot(vertex - center, axis))) - half for vertex in triangle)
+    if not clipped.hit:
+        return CylinderContactState(False, None, clipped.kind, 0.0, 0.0, 0.0, 0.0, 0.0)
+    triangle_point = (
+        np.asarray(clipped.witness, dtype=float)
+        if clipped.witness is not None
+        else triangle.mean(axis=0)
     )
-    radial_penetration = max(0.0, float(radius) - distance)
-
-    patch_points = [triangle_point]
-    for vertex in triangle:
-        if _point_segment_distance(vertex, segment_start, segment_end) <= float(radius) + epsilon:
-            patch_points.append(vertex)
-    if contact_point is not None:
-        contact_point = np.asarray(contact_point, dtype=float)
-        patch_max_distance = float(
-            np.max([np.linalg.norm(point - contact_point) for point in patch_points])
-        )
-    else:
-        patch_max_distance = 0.0
-
-    contact_normal = (
+    axis_point = _closest_point_on_segment(triangle_point, segment_start, segment_end)
+    distance = float(np.linalg.norm(triangle_point - axis_point))
+    kind = clipped.kind
+    penetration = clipped.penetration
+    axial_penetration = clipped.axial_penetration
+    radial_penetration = clipped.radial_penetration
+    patch_max_distance = clipped.patch_max_distance
+    normal_alignment = clipped.normal_alignment
+    closest_normal = (
         (triangle_point - axis_point) / distance
         if distance > 1e-12
         else triangle_normal / max(normal_length, 1e-12)
     )
+    if kind in ("cylinder_cap_collision", "cylinder_edge_collision"):
+        cap_sign = 1.0 if float(np.dot(triangle_point - center, axis)) >= 0.0 else -1.0
+        cap_normal = cap_sign * axis
+        if kind == "cylinder_edge_collision":
+            combined = cap_normal + closest_normal
+            combined_length = float(np.linalg.norm(combined))
+            contact_normal = combined / combined_length if combined_length > 1e-12 else cap_normal
+        else:
+            contact_normal = cap_normal
+    else:
+        contact_normal = closest_normal
     return CylinderContactState(
         True,
         triangle_point,
@@ -686,7 +628,7 @@ def check_finite_cylinder_candidates_exact(
 
     if width <= 0 or inner_radius < 0 or clearance < 0 or epsilon < 0:
         raise ValueError("width 必须为正，clearance 和 epsilon 不能为负")
-    if narrow_phase not in ("analytic_closest_point", "analytic_closest_point_flat", "clipped_polygon"):
+    if narrow_phase not in ("analytic_closest_point_flat", "clipped_polygon"):
         raise ValueError(f"不支持的 narrow_phase: {narrow_phase}")
     if contact_patch_enabled:
         if max_contact_penetration < 0.0:
@@ -744,9 +686,6 @@ def check_finite_cylinder_candidates_exact(
                     index.triangles[int(triangle_index)], center, axis,
                     outer_radius + clearance, width + 2.0 * clearance,
                     contact_point=contact, epsilon=epsilon,
-                    penetration_model=(
-                        "capsule" if narrow_phase == "analytic_closest_point" else "flat_cylinder"
-                    ),
                 )
             if not state.hit:
                 continue
@@ -796,8 +735,6 @@ def check_finite_cylinder_candidates_exact(
         method += "_contact_patch"
     if inner_radius > epsilon or narrow_phase == "clipped_polygon":
         method += "_clipped_polygon"
-    elif narrow_phase == "analytic_closest_point":
-        method += "_analytic_closest_point_capsule"
     else:
         method += "_analytic_closest_point_flat"
     return CollisionResult(
