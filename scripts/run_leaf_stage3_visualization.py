@@ -23,6 +23,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
+from matplotlib.lines import Line2D
 import numpy as np
 
 
@@ -397,38 +398,123 @@ def _plot_centers(path: Path, sampled: object, audits: list[PointAudit]) -> None
     plt.close(figure)
 
 
-def _plot_leaf_projection(path: Path, workpiece: object, sampled: object, *, title_prefix: str = "Leaf") -> None:
-    """绘制工件投影，并标注每条 root_line 的首尾采样编号。"""
+def _plot_leaf_projection(
+    path: Path,
+    workpiece: object,
+    sampled: object,
+    *,
+    normalization: dict[str, object] | None = None,
+    title_prefix: str = "Leaf",
+) -> None:
+    """绘制与工件 OBJ 同轴向的投影，并用侧栏区分分支首尾。
+
+    投影不再使用 PCA 轴，而是选择工件包围盒中跨度最大的两个**原始坐标轴**
+    （X/Y/Z 中选两个），并直接使用 ``source_obj`` 坐标。这样图中的轴线方向
+    和数值与 MeshLab 中打开的工件 OBJ 一致。
+
+    分支首尾不再逐点写文字，避免多条分支端点重合时互相遮挡。改为：
+    - 每条分支线用独立颜色；
+    - 起点用圆点、终点用方点；
+    - 右侧栏列出每个 branch 的起止编号和点数；
+    - 分支中点标一个 ``B0``、``B1`` 等短标签。
+    """
+
     vertices = np.asarray(workpiece.vertices, dtype=float)
     faces = np.asarray(workpiece.faces, dtype=np.int64)
-    center = vertices.mean(axis=0)
-    _, _, vh = np.linalg.svd(vertices - center, full_matrices=False)
-    basis = vh[:2]
-    projected_vertices = (vertices - center) @ basis.T
-    projected_root = (np.asarray(sampled.points, dtype=float) - center) @ basis.T
+    root_points = np.asarray(sampled.points, dtype=float)
+    if normalization is not None:
+        scale = float(normalization["scale"])
+        center = np.asarray(normalization["center"], dtype=float)
+        vertices = vertices * scale + center
+        root_points = root_points * scale + center
+        units = "source_obj coordinates"
+    else:
+        units = "normalized units"
+
+    # 选择包围盒跨度最大的两个原始坐标轴，保证投影方向与 OBJ 一致。
+    extent = vertices.max(axis=0) - vertices.min(axis=0)
+    axes = np.sort(np.argsort(extent)[-2:])
+    axis_names = ("X", "Y", "Z")
+    projected_vertices = vertices[:, axes]
+    projected_root = root_points[:, axes]
     stride = max(1, len(faces) // 18000)
     polygons = [projected_vertices[face] for face in faces[::stride]]
-    figure, axis = plt.subplots(figsize=(12, 10), dpi=180, layout="constrained")
-    axis.add_collection(PolyCollection(polygons, facecolor="#d6d9df", edgecolor="#9aa0aa", linewidth=0.08, alpha=0.78))
+
+    figure, axis = plt.subplots(figsize=(13.5, 10), dpi=180)
+    figure.subplots_adjust(left=0.07, right=0.75, top=0.92, bottom=0.08)
+    axis.add_collection(
+        PolyCollection(polygons, facecolor="#d6d9df", edgecolor="#9aa0aa", linewidth=0.08, alpha=0.78)
+    )
     branches = _branch_runs(np.asarray(sampled.branch_ids, dtype=np.int64))
     colors = plt.get_cmap("tab10")
+
     for branch_id, start, end in branches:
         branch = projected_root[start:end]
         color = colors(branch_id % 10)
-        axis.plot(branch[:, 0], branch[:, 1], color=color, linewidth=1.8, zorder=4)
-        axis.scatter([branch[0, 0], branch[-1, 0]], [branch[0, 1], branch[-1, 1]], color=["#1565c0", "#c62828"], s=28, zorder=5)
-        axis.annotate(f"B{branch_id} start: {start}", branch[0], xytext=(5, 6), textcoords="offset points", fontsize=8, color="#1565c0")
-        axis.annotate(f"B{branch_id} end: {end - 1}", branch[-1], xytext=(5, -14), textcoords="offset points", fontsize=8, color="#c62828")
+        axis.plot(branch[:, 0], branch[:, 1], color=color, linewidth=2.2, zorder=4)
+        # 起点圆点、终点方点；不写文字，避免端点重合时互相覆盖。
+        axis.scatter(
+            branch[0, 0], branch[0, 1], marker="o", s=34, color=color,
+            edgecolors="white", linewidths=0.7, zorder=6,
+        )
+        axis.scatter(
+            branch[-1, 0], branch[-1, 1], marker="s", s=34, color=color,
+            edgecolors="white", linewidths=0.7, zorder=6,
+        )
+        # 分支中点标 B0/B1...；垂直分支方向偏移，并在分支间做轻微错位。
+        middle = (start + end - 1) // 2
+        previous = projected_root[max(start, middle - 1)]
+        following = projected_root[min(end - 1, middle + 1)]
+        direction = following - previous
+        direction_norm = float(np.linalg.norm(direction))
+        if direction_norm > 1e-12:
+            normal = np.array([-direction[1], direction[0]]) / direction_norm
+        else:
+            normal = np.array([0.0, 1.0])
+        offset = 10.0 + 3.0 * (branch_id % 3)
+        axis.annotate(
+            f"B{branch_id}",
+            projected_root[middle],
+            xytext=(normal[0] * offset, normal[1] * offset),
+            textcoords="offset points",
+            fontsize=8,
+            color=color,
+            fontweight="bold",
+            zorder=7,
+            bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.75, "pad": 0.8},
+        )
+
     low = projected_vertices.min(axis=0)
     high = projected_vertices.max(axis=0)
     margin = max(float(np.max(high - low)) * 0.04, 1e-6)
     axis.set_xlim(low[0] - margin, high[0] + margin)
     axis.set_ylim(low[1] - margin, high[1] + margin)
     axis.set_aspect("equal")
-    axis.set_title(f"{title_prefix} workpiece projection with root_line branch endpoints")
-    axis.set_xlabel("PCA projection axis 1 (normalized units)")
-    axis.set_ylabel("PCA projection axis 2 (normalized units)")
+    axis.set_title(
+        f"{title_prefix} workpiece projection ({axis_names[axes[0]]}-{axis_names[axes[1]]}, {units})\n"
+        "circle = branch start, square = branch end; coordinates match the case OBJ"
+    )
+    axis.set_xlabel(f"{axis_names[axes[0]]} ({units})")
+    axis.set_ylabel(f"{axis_names[axes[1]]} ({units})")
     axis.grid(True, linewidth=0.4, alpha=0.35)
+
+    # 右侧栏：分支起止编号表。端点重合时也能可靠区分每条分支。
+    figure.text(0.77, 0.90, "branch   start   end   count", fontsize=9, fontweight="bold", family="monospace")
+    for row, (branch_id, start, end) in enumerate(branches):
+        y = 0.865 - row * 0.028
+        figure.text(0.77, y, f"B{branch_id:<2d}", fontsize=8, color=colors(branch_id % 10), family="monospace", fontweight="bold")
+        figure.text(0.805, y, f"{start:>5d}   {end - 1:>5d}   {end - start:>4d}", fontsize=8, family="monospace")
+    figure.text(0.77, 0.865 - len(branches) * 0.028 - 0.02, "markers: o start, s end", fontsize=8, color="#444444")
+    figure.legend(
+        handles=[
+            Line2D([0], [0], marker="o", color="none", markerfacecolor="#555555", markersize=7, label="branch start"),
+            Line2D([0], [0], marker="s", color="none", markerfacecolor="#555555", markersize=7, label="branch end"),
+        ],
+        loc="lower left",
+        bbox_to_anchor=(0.77, 0.02),
+        fontsize=8,
+        frameon=False,
+    )
     figure.savefig(path, facecolor="white")
     plt.close(figure)
 
@@ -600,7 +686,11 @@ def main() -> int:
     wheel_records = _export_random_wheels(wheels_obj_path, sampled, audits, branches, normalization, radius, width, arguments.cylinder_segments)
     # 按项目规范，PNG 只在显式传入 --png 时生成；OBJ/MTL/JSON 始终输出。
     if arguments.png:
-        _plot_leaf_projection(png_path, workpiece, sampled, title_prefix=case_name)
+        _plot_leaf_projection(
+            png_path, workpiece, sampled,
+            normalization=normalization,
+            title_prefix=case_name,
+        )
     feasible_count = sum(int(np.count_nonzero(a.result.feasible)) for a in audits)
     candidate_count = sum(len(a.result.feasible) for a in audits)
     normal_diagnostics_path.write_text(json.dumps({
