@@ -349,19 +349,31 @@ def _export_center_domains(path: Path, sampled: object, audits: list[PointAudit]
 
 
 def _export_random_wheels(path: Path, sampled: object, audits: list[PointAudit], branches: list[tuple[int, int, int]], normalization: dict[str, object], radius: float, width: float, cylinder_segments: int, seed: int = 20261018, per_state: int = 2) -> list[dict[str, object]]:
-    """每个分支随机抽取少量可行/碰撞姿态，输出完整标准圆柱。"""
+    """每个分支随机抽取少量可行/碰撞姿态，输出完整标准圆柱。
+
+    可行状态从该分支的可行候选中抽取；碰撞状态从该分支的**不可行候选**
+    中抽取。注意不能要求“该点所有角度都不可行”，否则只要点还有任意一个
+    可行角，就会错误地跳过红色砂轮。
+    """
     material_path = path.with_suffix(".mtl")
     _write_materials(material_path)
     rng = np.random.default_rng(seed)
     selected: list[tuple[int, int, bool]] = []
     for _branch_id, start, end in branches:
         for feasible_state in (True, False):
-            pool = [point for point in range(start, end) if bool(np.any(audits[point].result.feasible) == feasible_state)]
-            for point_index in np.atleast_1d(rng.choice(pool, size=min(per_state, len(pool)), replace=False)) if pool else []:
-                flags = np.asarray(audits[int(point_index)].result.feasible, dtype=bool)
+            # 收集该分支内所有 (目标点, 候选角) 对，再从中随机抽 per_state 个。
+            pairs: list[tuple[int, int]] = []
+            for point_index in range(start, end):
+                flags = np.asarray(audits[point_index].result.feasible, dtype=bool)
                 local_pool = np.flatnonzero(flags if feasible_state else ~flags)
-                if len(local_pool):
-                    selected.append((int(point_index), int(rng.choice(local_pool)), feasible_state))
+                for local_index in local_pool:
+                    pairs.append((point_index, int(local_index)))
+            if not pairs:
+                continue
+            chosen = rng.choice(len(pairs), size=min(per_state, len(pairs)), replace=False)
+            for pair_index in np.atleast_1d(chosen).astype(int):
+                point_index, local_index = pairs[int(pair_index)]
+                selected.append((int(point_index), int(local_index), feasible_state))
     records: list[dict[str, object]] = []
     scale = float(normalization.get("scale", 1.0))
     with path.open("w", encoding="ascii", newline="\n") as handle:
