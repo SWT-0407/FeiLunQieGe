@@ -65,7 +65,9 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     # 先按 PLY edge 拆分分支，再按弧长规则获得目标采样点和切线。
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
     normal_config = config.get("normal_estimation", {})
-    normal_method = str(normal_config.get("method", "two_face_angle_bisector"))
+    normal_method = str(normal_config.get("method", "surface_patch_continuity"))
+    nominal_radius = float(config["wheel"]["radius"])
+    max_patch_radius = float(normal_config.get("max_patch_radius_ratio", 1.0)) * nominal_radius
     surface_normals = estimate_surface_normals(
         sampled.points,
         workpiece,
@@ -86,6 +88,10 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         surface_patch_distance_factor=float(normal_config.get("surface_patch_distance_factor", 3.0)),
         surface_patch_coherence_degrees=float(normal_config.get("surface_patch_coherence_degrees", 25.0)),
         max_bisector_deviation_degrees=float(normal_config.get("max_bisector_deviation_degrees", 3.5)),
+        surface_patch_min_faces=int(normal_config.get("min_patch_faces", 10)),
+        surface_patch_max_radius=max_patch_radius,
+        surface_patch_fit_min_points=int(normal_config.get("fit_min_points", 8)),
+        surface_patch_fit_residual_ratio=float(normal_config.get("fit_residual_ratio", 0.02)),
         continuity_repair_degrees=float(normal_config.get("continuity_repair_degrees", 30.0)),
         continuity_repair_iterations=int(normal_config.get("continuity_repair_iterations", 3)),
     )

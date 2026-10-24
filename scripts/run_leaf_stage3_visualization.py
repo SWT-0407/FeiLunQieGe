@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -584,7 +585,7 @@ def main() -> int:
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
     normal_config = config.get("normal_estimation", {})
     normal_kwargs = {key: normal_config[key] for key in ("neighbor_count", "candidate_count", "side_count", "coherence_angle_degrees", "offset_epsilon", "weight_distance_floor") if key in normal_config}
-    normal_method = str(arguments.normal_method or normal_config.get("method", "two_face_angle_bisector"))
+    normal_method = str(arguments.normal_method or normal_config.get("method", "surface_patch_continuity"))
     normal_kwargs.update(
         {
             "normal_method": normal_method,
@@ -627,6 +628,14 @@ def main() -> int:
     )
     width = float(arguments.width if arguments.width is not None else config["wheel"].get("width", 0.004))
     radius = float(arguments.radius if arguments.radius is not None else config["wheel"]["radius"])
+    normal_kwargs.update(
+        {
+            "surface_patch_min_faces": int(normal_config.get("min_patch_faces", 10)),
+            "surface_patch_max_radius": float(normal_config.get("max_patch_radius_ratio", 1.0)) * radius,
+            "surface_patch_fit_min_points": int(normal_config.get("fit_min_points", 8)),
+            "surface_patch_fit_residual_ratio": float(normal_config.get("fit_residual_ratio", 0.02)),
+        }
+    )
     delta = float(config["wheel"].get("delta", 0.0))
     if not (0.0 <= delta < radius):
         raise ValueError("wheel.delta must satisfy 0 <= delta < radius")
@@ -642,6 +651,7 @@ def main() -> int:
         sampled.points,
         workpiece,
         flash_points=flash_points,
+        branch_ids=sampled.branch_ids,
         return_diagnostics=True,
         **normal_kwargs,
     )
@@ -775,14 +785,53 @@ def main() -> int:
         "points_axis_vs_patch_gt_5deg": int(np.sum(axis_vs_patch_array > 5.0)),
         "points_axis_vs_patch_gt_10deg": int(np.sum(axis_vs_patch_array > 10.0)),
     }
+    fit_residual_values = [
+        float(item["surface_patch_fit_residual"])
+        for item in normal_diagnostics
+        if item.get("surface_patch_fit_residual") is not None
+    ]
+    normal_audit.update(
+        {
+            "surface_fit_point_count": int(sum(item.get("normal_source") == "surface_fit" for item in normal_diagnostics)),
+            "surface_patch_average_point_count": int(
+                sum(item.get("normal_source") == "surface_patch_average" for item in normal_diagnostics)
+            ),
+            "low_support_point_count": int(
+                sum(bool(item.get("surface_patch_low_support", False)) for item in normal_diagnostics)
+            ),
+            "low_confidence_point_count": int(
+                sum(bool(item.get("low_confidence", False)) for item in normal_diagnostics)
+            ),
+            "min_patch_face_count": int(
+                min(int(item.get("surface_patch_face_count", 0)) for item in normal_diagnostics)
+            ),
+            "max_patch_face_count": int(
+                max(int(item.get("surface_patch_face_count", 0)) for item in normal_diagnostics)
+            ),
+            "max_fit_residual": float(np.max(fit_residual_values)) if fit_residual_values else None,
+        }
+    )
     normal_diagnostics_path.write_text(json.dumps({
         "point_count": len(normal_diagnostics),
         "branch_count": len(branches),
-        "continuity_threshold_degrees": normal_config.get("continuity_jump_threshold_degrees", 20.0),
-        "low_confidence_point_count": sum(bool(item.get("continuity_state", {}).get("low_confidence", False)) for item in normal_diagnostics),
+        "continuity_threshold_degrees": float(normal_kwargs["continuity_repair_degrees"]),
+        "legacy_continuity_jump_threshold_degrees": normal_config.get("continuity_jump_threshold_degrees", 20.0),
+        "low_confidence_point_count": int(
+            sum(bool(item.get("low_confidence", False)) for item in normal_diagnostics)
+        ),
+        "low_confidence_reason_counts": dict(
+            Counter(
+                reason
+                for item in normal_diagnostics
+                for reason in item.get("low_confidence_reasons", [])
+            )
+        ),
+        "normal_source_counts": dict(
+            Counter(str(item.get("normal_source", "unknown")) for item in normal_diagnostics)
+        ),
         "normal_audit": normal_audit,
         "points": normal_diagnostics,
-        "orientation_rule": "per_face_choose_normal_with_positive_dot_OF",
+        "orientation_rule": "closed_mesh: signed volume; open_mesh: flash point or local",
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     summary = {
         "case_name": case_name, "stage": "stage_3_batch_visualization", "units": "normalized",
@@ -826,6 +875,10 @@ def main() -> int:
             "surface_patch_neighbors": normal_kwargs["surface_patch_neighbors"],
             "surface_patch_distance_factor": normal_kwargs["surface_patch_distance_factor"],
             "surface_patch_coherence_degrees": normal_kwargs["surface_patch_coherence_degrees"],
+            "min_patch_faces": normal_kwargs["surface_patch_min_faces"],
+            "max_patch_radius": normal_kwargs["surface_patch_max_radius"],
+            "fit_min_points": normal_kwargs["surface_patch_fit_min_points"],
+            "fit_residual_ratio": normal_kwargs["surface_patch_fit_residual_ratio"],
             "max_bisector_deviation_degrees": normal_kwargs["max_bisector_deviation_degrees"],
             "tangent_normal_threshold": tangent_normal_threshold,
             "continuity_repair_degrees": normal_kwargs["continuity_repair_degrees"],

@@ -691,8 +691,17 @@ def check_finite_cylinder_candidates_exact(
                 continue
             witness = state.witness
             if allow_target_contact and witness is not None and np.linalg.norm(witness - contact) <= target_contact_tolerance:
-                target_contact_seen = True
-                continue
+                # 不能只看一个 witness 点就跳过整片三角形。目标接触豁免
+                # 必须同时约束整个相交状态的穿透深度和目标点附近的 patch
+                # 范围；否则三角形其余部分可能有明显穿透仍被判为可行。
+                target_depth_ok = float(state.penetration) <= float(max_contact_penetration) + epsilon
+                target_patch_ok = (
+                    not contact_patch_enabled
+                    or float(state.patch_max_distance) <= contact_patch_radius_value + epsilon
+                )
+                if target_depth_ok and target_patch_ok:
+                    target_contact_seen = True
+                    continue
             if contact_patch_enabled:
                 # 接触斑允许条件：浅穿透 + 位于目标 patch 内 + 法向接近
                 # 砂轮端面法向。三个条件必须同时满足。

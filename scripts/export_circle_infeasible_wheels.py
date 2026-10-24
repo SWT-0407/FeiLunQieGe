@@ -128,7 +128,8 @@ def main() -> int:
     flash_cloud = load_labeled_flash_cloud(case_root / "original_flash_cloud.obj")
     root_line, workpiece, normalization = _normalize_case_geometry(root_line, workpiece, config)
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
-    normal_config = config.get("normal_estimation", {})
+    normal_config = {**config.get("normal_estimation", {}), **source_summary.get("normal_estimation", {})}
+    source_radius = float(source_summary.get("radius", config["wheel"]["radius"]))
     normal_kwargs = {
         key: normal_config[key]
         for key in ("neighbor_count", "candidate_count", "side_count", "coherence_angle_degrees",
@@ -142,11 +143,16 @@ def main() -> int:
         sampled.points,
         workpiece,
         flash_points=flash_points,
-        normal_method=str(normal_config.get("method", "two_face_angle_bisector")),
+        branch_ids=sampled.branch_ids,
+        normal_method=str(normal_config.get("method", "surface_patch_continuity")),
         surface_patch_neighbors=int(normal_config.get("surface_patch_neighbors", 32)),
         surface_patch_distance_factor=float(normal_config.get("surface_patch_distance_factor", 3.0)),
         surface_patch_coherence_degrees=float(normal_config.get("surface_patch_coherence_degrees", 25.0)),
         max_bisector_deviation_degrees=float(normal_config.get("max_bisector_deviation_degrees", 3.5)),
+        surface_patch_min_faces=int(normal_config.get("min_patch_faces", 10)),
+        surface_patch_max_radius=float(normal_config.get("max_patch_radius_ratio", 1.0)) * source_radius,
+        surface_patch_fit_min_points=int(normal_config.get("fit_min_points", 8)),
+        surface_patch_fit_residual_ratio=float(normal_config.get("fit_residual_ratio", 0.02)),
         continuity_repair_degrees=float(normal_config.get("continuity_repair_degrees", 30.0)),
         continuity_repair_iterations=int(normal_config.get("continuity_repair_iterations", 3)),
         **normal_kwargs,

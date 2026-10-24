@@ -336,3 +336,30 @@ def test_checker_flat_and_clipped_modes_agree_on_coplanar_cap() -> None:
     assert "analytic_closest_point_flat" in flat.method
     assert "clipped_polygon" in clipped.method
     assert "analytic_closest_point_flat" in default.method
+
+
+def test_target_contact_exemption_requires_shallow_penetration() -> None:
+    """目标接触豁免不能只看一个 witness 点而放过整片深穿透三角形。"""
+
+    mesh = SimpleNamespace(
+        vertices=np.array([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 2.0, 0.0]], dtype=float),
+        faces=np.array([[0, 1, 2]], dtype=np.int64),
+    )
+    candidate = _candidate(np.array([1.0, 0.0, 0.9]), radius=1.0)
+    common = dict(
+        width=2.0,
+        inner_radius=0.0,
+        allow_target_contact=True,
+        target_contact_tolerance=1e-4,
+        contact_patch_enabled=True,
+        contact_patch_radius=2.5,
+        contact_normal_tolerance_degrees=30.0,
+    )
+    shallow_limit = check_finite_cylinder_candidates_exact(
+        candidate, mesh, max_contact_penetration=0.01, **common
+    )
+    deep_limit = check_finite_cylinder_candidates_exact(
+        candidate, mesh, max_contact_penetration=0.2, **common
+    )
+    assert not bool(shallow_limit.feasible[0])
+    assert bool(deep_limit.feasible[0])

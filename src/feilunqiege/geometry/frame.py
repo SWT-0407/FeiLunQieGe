@@ -289,20 +289,39 @@ def _point_triangle_distance(point: np.ndarray, triangle: np.ndarray) -> float:
     return abs(float(np.dot(point - a, normal))) / normal_length
 
 
-def _estimate_tangents_for_normal_projection(points: np.ndarray) -> np.ndarray:
-    """用与曲线模块一致的差分切线投影最终法向。"""
+def _estimate_tangents_for_normal_projection(points: np.ndarray, branch_ids: Any | None = None) -> np.ndarray:
+    """用与曲线模块一致的差分切线投影最终法向。
 
+    传入 ``branch_ids`` 时按分支分段差分，分支端点只使用本分支内的邻居，
+    避免跨分支差分污染端点切线。
+    """
+
+    points = np.asarray(points, dtype=float)
     tangents = np.empty_like(points)
-    if len(points) == 1:
-        tangents[0] = np.array([1.0, 0.0, 0.0])
+    if branch_ids is None:
+        runs = [(0, len(points))]
     else:
-        tangents[0] = points[1] - points[0]
-        tangents[-1] = points[-1] - points[-2]
-        if len(points) > 2:
-            tangents[1:-1] = points[2:] - points[:-2]
-    lengths = np.linalg.norm(tangents, axis=1)
-    tangents[lengths > 1e-12] /= lengths[lengths > 1e-12, None]
-    tangents[lengths <= 1e-12] = np.array([1.0, 0.0, 0.0])
+        branch_array = np.asarray(branch_ids, dtype=np.int64).reshape(-1)
+        if len(branch_array) != len(points):
+            raise ValueError("branch_ids length must match points")
+        runs = _branch_runs_from_ids(branch_array, len(points))
+    for start, end in runs:
+        if end <= start:
+            continue
+        segment = points[start:end]
+        if len(segment) == 1:
+            tangents[start] = np.array([1.0, 0.0, 0.0])
+            continue
+        tangents[start] = segment[1] - segment[0]
+        tangents[end - 1] = segment[-1] - segment[-2]
+        if len(segment) > 2:
+            tangents[start + 1 : end - 1] = segment[2:] - segment[:-2]
+        lengths = np.linalg.norm(tangents[start:end], axis=1)
+        valid = lengths > 1e-12
+        if np.any(valid):
+            tangents[start:end][valid] /= lengths[valid, None]
+        if np.any(~valid):
+            tangents[start:end][~valid] = np.array([1.0, 0.0, 0.0])
     return tangents
 
 
@@ -317,6 +336,7 @@ def _estimate_surface_normals_local(
     offset_epsilon: float = 1e-5,
     weight_distance_floor: float = 1e-5,
     flash_points: Any | None = None,
+    branch_ids: Any | None = None,
     return_diagnostics: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, list[dict[str, Any]]]:
     """估计 root_line 两侧面的法向及其内角平分法向。
@@ -365,17 +385,7 @@ def _estimate_surface_normals_local(
     broad_count = min(int(candidate_count or max(64, neighbor_count * 4)), len(valid_centroids))
     normal_cosine = float(np.cos(np.deg2rad(coherence_angle_degrees)))
 
-    tangents = np.empty_like(points)
-    if len(points) == 1:
-        tangents[0] = np.array([1.0, 0.0, 0.0])
-    else:
-        tangents[0] = points[1] - points[0]
-        tangents[-1] = points[-1] - points[-2]
-        if len(points) > 2:
-            tangents[1:-1] = points[2:] - points[:-2]
-    tangent_lengths = np.linalg.norm(tangents, axis=1)
-    tangents[tangent_lengths > 1e-12] /= tangent_lengths[tangent_lengths > 1e-12, None]
-    tangents[tangent_lengths <= 1e-12] = np.array([1.0, 0.0, 0.0])
+    tangents = _estimate_tangents_for_normal_projection(points, branch_ids)
 
     # 下面两个局部函数只处理已经通过精确点-三角形距离筛选的候选面。
     # 面片网格可能是 triangle soup，不能假设相邻三角形共享顶点，因此
@@ -573,6 +583,25 @@ def _estimate_surface_normals_local(
     return result
 
 
+@dataclass(frozen=True)
+class SurfacePatchNormals:
+    """局部表面片估计结果，包含平均法向、拟合残差和置信信息。"""
+
+    average_normals: np.ndarray
+    fit_normals: np.ndarray
+    coherence_deg: np.ndarray
+    nearest_distance: np.ndarray
+    face_count: np.ndarray
+    patch_radius: np.ndarray
+    fit_residual: np.ndarray
+    fit_used: np.ndarray
+    low_support: np.ndarray
+    sign_consistency: np.ndarray
+    mesh_is_closed: bool
+    outward_sign: float
+    signed_volume: float
+
+
 def _surface_patch_normals(
     points: Any,
     mesh: Any,
@@ -580,56 +609,73 @@ def _surface_patch_normals(
     neighbor_count: int = 32,
     distance_factor: float = 3.0,
     distance_floor: float = 1e-5,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, bool, float, float]:
+    min_patch_faces: int = 10,
+    max_patch_radius: float = 0.01,
+    fit_min_points: int = 8,
+    fit_residual_ratio: float = 0.02,
+) -> SurfacePatchNormals:
     """从 root 点附近的网格面片估计局部表面法向。
 
-    与两侧角平分线不同，本函数不假设 root 点位于一条棱边上，而是先回答
-    “离这个 root 点最近的网格表面是什么”。它只保留距离在
-    ``max(d0 * distance_factor, distance_floor)`` 内的三角形，做距离加权
-    平均；在光滑面上得到该面的法向，在真正的棱边上最近面片会同时包含
-    两侧，``coherence`` 会很大，调用方据此退回两侧角平分线。
+    与旧版只做距离加权平均不同，本函数分四步：
 
-    返回：
-    - ``normals``: 每个点的局部面片法向；
-    - ``coherence_deg``: 被保留面片相对平均法向的最大夹角；
-    - ``nearest_distance``: 最近三角形距离；
-    - ``face_count``: 被保留的三角形数量；
-    - ``mesh_is_closed``: 网格是否拓扑封闭；
-    - ``outward_sign``: 由有向体积确定的全局外法向符号；
-    - ``signed_volume``: 网格有向体积。
+    1. **符号统一**：先用面积加权的原始面法向和确定多数方向，再把每个面
+       对齐到该方向；闭合网格最后用有向体积确定外法向。这样 ``abs(dot)``
+       聚类不会再让相反法向进入同一平均并发生抵消。
+    2. **最小支撑**：初始邻域不足 ``min_patch_faces`` 时，在
+       ``max_patch_radius`` 内按距离补足；仍不足则标记 ``low_support``，
+       不再把单三角形 ``coherence=0`` 当作高置信度。
+    3. **加权平均**：权重使用三角形面积和距离的组合，避免狭长小三角形
+       仅凭距离主导平均。
+    4. **局部二次曲面拟合**：用 patch 顶点拟合
+       ``w = a u^2 + b u v + c v^2 + d u + e v + f``，取 root 点处的
+       切平面法向；拟合残差过大时退回面积/距离加权平均。
+
+    返回值的数组长度均为采样点数。
     """
 
     points = np.asarray(points, dtype=float)
     vertices = np.asarray(mesh.vertices, dtype=float)
     faces = np.asarray(mesh.faces, dtype=np.int64)
     triangles = vertices[faces]
+    empty = SurfacePatchNormals(
+        average_normals=np.empty((0, 3), dtype=float),
+        fit_normals=np.empty((0, 3), dtype=float),
+        coherence_deg=np.empty(0, dtype=float),
+        nearest_distance=np.empty(0, dtype=float),
+        face_count=np.empty(0, dtype=np.int64),
+        patch_radius=np.empty(0, dtype=float),
+        fit_residual=np.empty(0, dtype=float),
+        fit_used=np.empty(0, dtype=bool),
+        low_support=np.empty(0, dtype=bool),
+        sign_consistency=np.empty(0, dtype=float),
+        mesh_is_closed=False,
+        outward_sign=1.0,
+        signed_volume=0.0,
+    )
     if len(points) == 0:
-        return (
-            np.empty((0, 3), dtype=float),
-            np.empty(0, dtype=float),
-            np.empty(0, dtype=float),
-            np.empty(0, dtype=np.int64),
-            False,
-            1.0,
-            0.0,
-        )
-    if neighbor_count < 1:
-        raise ValueError("surface_patch_neighbors 必须为正")
-    if distance_factor <= 1.0 or distance_floor <= 0.0:
-        raise ValueError("distance_factor 必须大于 1，distance_floor 必须为正")
+        return empty
+    if neighbor_count < 1 or min_patch_faces < 1 or fit_min_points < 3:
+        raise ValueError("neighbor_count、min_patch_faces、fit_min_points 必须为正")
+    if distance_factor <= 1.0 or distance_floor <= 0.0 or max_patch_radius <= 0.0:
+        raise ValueError("distance_factor 必须大于 1，distance_floor 和 max_patch_radius 必须为正")
+    if fit_residual_ratio <= 0.0:
+        raise ValueError("fit_residual_ratio 必须为正")
 
-    face_normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
-    lengths = np.linalg.norm(face_normals, axis=1)
+    raw_face_normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
+    lengths = np.linalg.norm(raw_face_normals, axis=1)
     valid = lengths > 1e-12
     if not np.any(valid):
         raise ValueError("Mesh has no valid triangles for surface-patch normals")
+    face_normals = raw_face_normals.copy()
     face_normals[valid] /= lengths[valid, None]
     valid_indices = np.flatnonzero(valid)
+    valid_faces = faces[valid]
     valid_triangles = triangles[valid]
     valid_centroids = valid_triangles.mean(axis=1)
+    valid_areas = 0.5 * lengths[valid]
 
-    # 闭合网格的有向体积给出全局外法向符号；圆环等非凸形状不能用“网格中心”
-    # 启发式，但有向体积仍能判断 winding 是朝外还是朝内。
+    # 闭合网格的有向体积给出全局外法向符号；局部 winding 翻转在下面
+    # 通过“对齐到多数方向”修正，而不是直接用逐面 abs(dot) 聚类。
     signed_volume = float(
         np.einsum(
             "ij,ij->i",
@@ -644,14 +690,20 @@ def _surface_patch_normals(
     outward_sign = 1.0
     if mesh_is_closed and signed_volume < 0.0:
         outward_sign = -1.0
-        face_normals *= -1.0
 
     tree = cKDTree(valid_centroids)
-    query_count = min(int(neighbor_count), len(valid_centroids))
-    normals = np.zeros((len(points), 3), dtype=float)
-    coherence = np.zeros(len(points), dtype=float)
-    nearest = np.zeros(len(points), dtype=float)
-    counts = np.zeros(len(points), dtype=np.int64)
+    query_count = min(max(int(neighbor_count), int(min_patch_faces)), len(valid_centroids))
+    point_count = len(points)
+    average_normals = np.zeros((point_count, 3), dtype=float)
+    fit_normals = np.zeros((point_count, 3), dtype=float)
+    coherence = np.zeros(point_count, dtype=float)
+    nearest = np.zeros(point_count, dtype=float)
+    face_counts = np.zeros(point_count, dtype=np.int64)
+    patch_radii = np.zeros(point_count, dtype=float)
+    fit_residuals = np.zeros(point_count, dtype=float)
+    fit_used = np.zeros(point_count, dtype=bool)
+    low_support = np.zeros(point_count, dtype=bool)
+    sign_consistency = np.ones(point_count, dtype=float)
 
     for index, point in enumerate(points):
         _, neighbor_indices = tree.query(point, k=query_count)
@@ -663,30 +715,128 @@ def _surface_patch_normals(
         order = np.argsort(distances)
         neighbor_indices = neighbor_indices[order]
         distances = distances[order]
-        cutoff = max(float(distances[0]) * float(distance_factor), float(distance_floor))
-        keep = distances <= cutoff
+        nearest[index] = float(distances[0])
+
+        initial_cutoff = max(float(distances[0]) * float(distance_factor), float(distance_floor))
+        keep = distances <= min(initial_cutoff, float(max_patch_radius))
+        if int(np.count_nonzero(keep)) < int(min_patch_faces):
+            eligible = distances <= float(max_patch_radius)
+            if int(np.count_nonzero(eligible)) >= int(min_patch_faces):
+                keep = np.zeros(len(distances), dtype=bool)
+                keep[: int(min_patch_faces)] = True
+            else:
+                keep = eligible
         if not np.any(keep):
             keep[0] = True
-        kept_normals = face_normals[valid][neighbor_indices[keep]].copy()
-        # 非闭合网格的局部 winding 可能不一致；以最近面为种子统一符号。
-        if not mesh_is_closed:
-            signs = np.sign(kept_normals @ kept_normals[0])
-            signs[signs == 0.0] = 1.0
-            kept_normals *= signs[:, None]
-        weights = 1.0 / np.maximum(distances[keep], float(distance_floor))
-        averaged = (kept_normals * weights[:, None]).sum(axis=0)
+
+        kept_indices = neighbor_indices[keep]
+        kept_distances = distances[keep]
+        kept_areas = valid_areas[kept_indices]
+        raw_kept = face_normals[valid][kept_indices].copy()
+        patch_radii[index] = float(np.max(kept_distances))
+        low_support[index] = bool(
+            int(np.count_nonzero(keep)) < int(min_patch_faces)
+            or float(np.max(kept_distances)) > float(max_patch_radius) + 1e-12
+        )
+
+        # 多数方向：面积加权的原始法向和；它比“最近单面”更能抵抗局部
+        # winding 翻转。闭合网格再用有向体积定向到外侧。
+        area_weighted_sum = (raw_kept * kept_areas[:, None]).sum(axis=0)
+        sum_norm = float(np.linalg.norm(area_weighted_sum))
+        if sum_norm <= 1e-12:
+            seed = raw_kept[0].copy()
+        else:
+            seed = area_weighted_sum / sum_norm
+        if mesh_is_closed:
+            seed *= outward_sign
+        signs = np.where(raw_kept @ seed >= 0.0, 1.0, -1.0)
+        sign_consistency[index] = abs(float(np.mean(signs)))
+        aligned_normals = raw_kept * signs[:, None]
+
+        weights = kept_areas / np.maximum(kept_distances, float(distance_floor))
+        if float(weights.sum()) <= 1e-18:
+            weights = np.ones(len(kept_distances), dtype=float)
+        weights = weights / float(weights.sum())
+        averaged = (aligned_normals * weights[:, None]).sum(axis=0)
         averaged_norm = float(np.linalg.norm(averaged))
         if averaged_norm <= 1e-12:
-            averaged = kept_normals[0].copy()
+            averaged = seed.copy()
             averaged_norm = float(np.linalg.norm(averaged))
         averaged /= max(averaged_norm, 1e-12)
-        cosines = np.clip(kept_normals @ averaged, -1.0, 1.0)
-        coherence[index] = float(np.degrees(np.arccos(np.min(cosines))))
-        normals[index] = averaged
-        nearest[index] = float(distances[0])
-        counts[index] = int(np.count_nonzero(keep))
+        average_normals[index] = averaged
+        face_counts[index] = int(np.count_nonzero(keep))
 
-    return normals, coherence, nearest, counts, mesh_is_closed, outward_sign, signed_volume
+        cosines = np.clip(aligned_normals @ averaged, -1.0, 1.0)
+        coherence[index] = float(np.degrees(np.arccos(np.min(cosines))))
+
+        # 局部二次曲面拟合；u/v 以 root 点为原点，因此 (0,0) 处的法向
+        # 就是接触点处的局部表面法向。
+        unique_vertices = np.unique(valid_faces[kept_indices].reshape(-1))
+        fit_normal = averaged.copy()
+        fit_residual = float("nan")
+        if len(unique_vertices) >= int(fit_min_points):
+            centered = vertices[unique_vertices] - point[None, :]
+            tangent_vectors = centered - (centered @ averaged)[:, None] * averaged[None, :]
+            if len(tangent_vectors) >= 2:
+                covariance = tangent_vectors.T @ tangent_vectors
+                eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+                u_axis = eigenvectors[:, int(np.argmax(eigenvalues))]
+                u_axis = u_axis - float(np.dot(u_axis, averaged)) * averaged
+                u_norm = float(np.linalg.norm(u_axis))
+                if u_norm <= 1e-12:
+                    reference = np.array([1.0, 0.0, 0.0]) if abs(float(averaged[0])) < 0.9 else np.array([0.0, 1.0, 0.0])
+                    u_axis = np.cross(averaged, reference)
+                    u_norm = float(np.linalg.norm(u_axis))
+                if u_norm > 1e-12:
+                    u_axis = u_axis / u_norm
+                    v_axis = np.cross(averaged, u_axis)
+                    u = centered @ u_axis
+                    v = centered @ v_axis
+                    w = centered @ averaged
+                    design = np.column_stack(
+                        [u * u, u * v, v * v, u, v, np.ones_like(u)]
+                    )
+                    coefficients, _, rank, _ = np.linalg.lstsq(design, w, rcond=None)
+                    if int(rank) >= 5:
+                        residual = w - design @ coefficients
+                        fit_residual = float(np.sqrt(np.mean(residual**2)))
+                        candidate_fit = (
+                            -float(coefficients[3]) * u_axis
+                            - float(coefficients[4]) * v_axis
+                            + averaged
+                        )
+                        candidate_norm = float(np.linalg.norm(candidate_fit))
+                        if candidate_norm > 1e-12:
+                            candidate_fit = candidate_fit / candidate_norm
+                            if float(np.dot(candidate_fit, averaged)) < 0.0:
+                                candidate_fit = -candidate_fit
+                            fit_normal = candidate_fit
+        fit_normals[index] = fit_normal
+        fit_residuals[index] = fit_residual
+        fit_threshold = max(float(fit_residual_ratio) * max(float(patch_radii[index]), 1e-9), 1e-6)
+        fit_used[index] = bool(
+            np.isfinite(fit_residual)
+            and fit_residual <= fit_threshold
+            and len(unique_vertices) >= int(fit_min_points)
+            and sign_consistency[index] >= 0.6
+        )
+
+    chosen = np.where(fit_used[:, None], fit_normals, average_normals)
+    return SurfacePatchNormals(
+        average_normals=average_normals,
+        fit_normals=chosen,
+        coherence_deg=coherence,
+        nearest_distance=nearest,
+        face_count=face_counts,
+        patch_radius=patch_radii,
+        fit_residual=fit_residuals,
+        fit_used=fit_used,
+        low_support=low_support,
+        sign_consistency=sign_consistency,
+        mesh_is_closed=mesh_is_closed,
+        outward_sign=outward_sign,
+        signed_volume=signed_volume,
+    )
 
 
 def _branch_runs_from_ids(branch_ids: Any, point_count: int) -> list[tuple[int, int]]:
@@ -716,6 +866,10 @@ def _refine_normals_with_surface_patch(
     surface_patch_distance_factor: float = 3.0,
     surface_patch_coherence_degrees: float = 25.0,
     max_bisector_deviation_degrees: float = 3.5,
+    surface_patch_min_faces: int = 10,
+    surface_patch_max_radius: float = 0.01,
+    surface_patch_fit_min_points: int = 8,
+    surface_patch_fit_residual_ratio: float = 0.02,
     continuity_repair_degrees: float = 30.0,
     continuity_repair_iterations: int = 3,
 ) -> tuple[np.ndarray, list[dict[str, Any]]]:
@@ -745,12 +899,28 @@ def _refine_normals_with_surface_patch(
     if continuity_repair_iterations < 0:
         raise ValueError("continuity_repair_iterations 不能为负")
 
-    patch_normals, coherence, nearest, face_counts, mesh_is_closed, outward_sign, signed_volume = _surface_patch_normals(
+    patch_result = _surface_patch_normals(
         points_array,
         mesh,
         neighbor_count=surface_patch_neighbors,
         distance_factor=surface_patch_distance_factor,
+        min_patch_faces=surface_patch_min_faces,
+        max_patch_radius=surface_patch_max_radius,
+        fit_min_points=surface_patch_fit_min_points,
+        fit_residual_ratio=surface_patch_fit_residual_ratio,
     )
+    patch_normals = patch_result.fit_normals
+    patch_average = patch_result.average_normals
+    coherence = patch_result.coherence_deg
+    nearest = patch_result.nearest_distance
+    face_counts = patch_result.face_count
+    patch_radii = patch_result.patch_radius
+    fit_residuals = patch_result.fit_residual
+    fit_used = patch_result.fit_used
+    low_support = patch_result.low_support
+    sign_consistency = patch_result.sign_consistency
+    mesh_is_closed = patch_result.mesh_is_closed
+    signed_volume = patch_result.signed_volume
 
     flash_tree = None
     flash_array = None
@@ -763,8 +933,9 @@ def _refine_normals_with_surface_patch(
     coherence_threshold = float(surface_patch_coherence_degrees)
     result = np.zeros_like(local_result)
     normal_sources: list[str] = []
-    patch_used = np.zeros(len(points_array), dtype=bool)
     bisector_deviations = np.zeros(len(points_array), dtype=float)
+    low_confidence = np.zeros(len(points_array), dtype=bool)
+    low_confidence_reasons: list[list[str]] = [[] for _ in range(len(points_array))]
 
     for index, (point, tangent) in enumerate(zip(points_array, tangents_array, strict=True)):
         tangent = np.asarray(tangent, dtype=float)
@@ -774,12 +945,12 @@ def _refine_normals_with_surface_patch(
         else:
             tangent = tangent / tangent_norm
 
-        local_normal = local_result[index]
+        local_normal = np.asarray(local_result[index], dtype=float)
         local_norm = float(np.linalg.norm(local_normal))
-        patch_normal = patch_normals[index]
+        patch_normal = np.asarray(patch_normals[index], dtype=float)
         if local_norm <= 1e-12:
             bisector_deviation = 180.0
-            local_normal = patch_normal
+            local_normal = patch_normal.copy()
             local_norm = float(np.linalg.norm(local_normal))
         else:
             bisector_deviation = float(
@@ -794,50 +965,51 @@ def _refine_normals_with_surface_patch(
                 )
             )
         bisector_deviations[index] = bisector_deviation
-        # 两侧角平分线在光滑面上通常也是该面片的支撑法向；只有当它明显
-        # 偏离局部表面片（端点/短分支/底面倒角等）时才改用表面片法向。
-        # 这样既修复 90° 错误，又保留原方法中“轮面不会切入相邻面片”的
-        # 支撑性。
-        if float(coherence[index]) <= coherence_threshold and bisector_deviation > max_bisector_deviation_degrees:
+
+        is_crease = bool(coherence[index] > coherence_threshold)
+        # 光滑面片：使用局部二次曲面拟合/稳健平均，不再用角平分线。
+        # 真实棱边：保留角平分线；若两侧符号一致性差或角平分线与 patch
+        # 明显矛盾，则退回 patch/fit。
+        if not is_crease:
             normal = patch_normal.copy()
-            source = "surface_patch"
-            patch_used[index] = True
-            # 开放网格没有可靠的全局外法向；用飞边方向或局部结果定符号。
-            # 闭合网格已由有向体积定好外法向，不能再让“面上几乎为零”的
-            # n·OF 随机翻转它。
-            if not mesh_is_closed:
-                if flash_tree is not None:
-                    _, flash_index = flash_tree.query(point, k=1)
-                    of = flash_array[int(flash_index)] - point
-                    if abs(float(np.dot(normal, of))) > 1e-3:
-                        if float(np.dot(normal, of)) < 0.0:
-                            normal = -normal
-                    elif float(np.dot(normal, local_result[index])) < 0.0:
-                        normal = -normal
-                elif float(np.dot(normal, local_result[index])) < 0.0:
-                    normal = -normal
-        else:
-            # 支撑性角平分线：光滑面上它与局部面片接近，保留它可以避免
-            # 轮面切入相邻三角面片；真棱边也继续使用两侧内角平分线。
+            source = "surface_fit" if bool(fit_used[index]) else "surface_patch_average"
+            if bool(low_support[index]):
+                low_confidence[index] = True
+                low_confidence_reasons[index].append("low_patch_support")
+            if float(sign_consistency[index]) < 0.6:
+                low_confidence[index] = True
+                low_confidence_reasons[index].append("low_sign_consistency")
+        elif local_norm > 1e-12 and bisector_deviation <= 60.0 and float(sign_consistency[index]) >= 0.5:
             normal = local_normal.copy()
             source = "two_side_bisector"
-            if mesh_is_closed:
-                # 闭合网格的 patch 法向是外法向参考；用它统一符号。
-                if float(np.dot(normal, patch_normals[index])) < 0.0:
-                    normal = -normal
-            elif flash_tree is not None:
+        else:
+            normal = patch_normal.copy()
+            source = "surface_fit" if bool(fit_used[index]) else "surface_patch_average"
+            low_confidence[index] = True
+            low_confidence_reasons[index].append("ambiguous_crease")
+
+        # 开放网格：闭合网格已在 patch 估计中由有向体积定好外法向。
+        if not mesh_is_closed:
+            if flash_tree is not None:
                 _, flash_index = flash_tree.query(point, k=1)
                 of = flash_array[int(flash_index)] - point
-                if float(np.dot(normal, of)) < 0.0:
+                if abs(float(np.dot(normal, of))) > 1e-3:
+                    if float(np.dot(normal, of)) < 0.0:
+                        normal = -normal
+                elif float(np.dot(normal, local_normal)) < 0.0:
                     normal = -normal
+            elif float(np.dot(normal, local_normal)) < 0.0:
+                normal = -normal
 
         normal_norm = float(np.linalg.norm(normal))
         if normal_norm <= 1e-12:
-            normal = patch_normals[index] if not patch_used[index] else local_result[index]
+            normal = patch_average[index]
             normal_norm = float(np.linalg.norm(normal))
         if normal_norm <= 1e-12:
             normal = np.cross(tangent, np.array([1.0, 0.0, 0.0]))
             normal_norm = float(np.linalg.norm(normal))
+            low_confidence[index] = True
+            low_confidence_reasons[index].append("degenerate_normal")
         result[index] = normal / max(normal_norm, 1e-12)
         normal_sources.append(source)
 
@@ -930,14 +1102,24 @@ def _refine_normals_with_surface_patch(
         local_diagnostics[index]["selected_normal"] = result[index].tolist()
         local_diagnostics[index]["tangent_corrected"] = corrected_tangents[index].tolist()
         local_diagnostics[index]["normal_method"] = (
-            "surface_patch_continuity" if normal_sources[index] == "surface_patch"
+            "surface_fit_continuity" if normal_sources[index] == "surface_fit"
+            else "surface_patch_average_continuity" if normal_sources[index] == "surface_patch_average"
             else "two_side_bisector_continuity"
         )
         local_diagnostics[index]["normal_source"] = normal_sources[index]
         local_diagnostics[index]["surface_patch_normal"] = patch_normals[index].tolist()
+        local_diagnostics[index]["surface_patch_average_normal"] = patch_average[index].tolist()
+        local_diagnostics[index]["surface_patch_fit_normal"] = patch_normals[index].tolist()
         local_diagnostics[index]["surface_patch_coherence_deg"] = float(coherence[index])
         local_diagnostics[index]["surface_patch_face_count"] = int(face_counts[index])
+        local_diagnostics[index]["surface_patch_patch_radius"] = float(patch_radii[index])
         local_diagnostics[index]["surface_patch_nearest_distance"] = float(nearest[index])
+        local_diagnostics[index]["surface_patch_fit_residual"] = (
+            float(fit_residuals[index]) if np.isfinite(fit_residuals[index]) else None
+        )
+        local_diagnostics[index]["surface_patch_fit_used"] = bool(fit_used[index])
+        local_diagnostics[index]["surface_patch_low_support"] = bool(low_support[index])
+        local_diagnostics[index]["surface_patch_sign_consistency"] = float(sign_consistency[index])
         local_diagnostics[index]["bisector_deviation_deg"] = float(bisector_deviations[index])
         local_diagnostics[index]["outward_orientation"] = (
             "mesh_signed_volume" if mesh_is_closed else "flash_point_or_local"
@@ -945,6 +1127,8 @@ def _refine_normals_with_surface_patch(
         local_diagnostics[index]["mesh_signed_volume"] = float(signed_volume)
         local_diagnostics[index]["continuity_repaired"] = bool(repaired[index])
         local_diagnostics[index]["continuity_repair_angle_deg"] = float(np.degrees(repair_angles[index]))
+        local_diagnostics[index]["low_confidence"] = bool(low_confidence[index])
+        local_diagnostics[index]["low_confidence_reasons"] = list(low_confidence_reasons[index])
 
     return result, local_diagnostics
 
@@ -972,6 +1156,10 @@ def estimate_surface_normals(
     surface_patch_distance_factor: float = 3.0,
     surface_patch_coherence_degrees: float = 25.0,
     max_bisector_deviation_degrees: float = 3.5,
+    surface_patch_min_faces: int = 10,
+    surface_patch_max_radius: float = 0.01,
+    surface_patch_fit_min_points: int = 8,
+    surface_patch_fit_residual_ratio: float = 0.02,
     continuity_repair_degrees: float = 30.0,
     continuity_repair_iterations: int = 3,
     return_diagnostics: bool = False,
@@ -1003,6 +1191,7 @@ def estimate_surface_normals(
         offset_epsilon=offset_epsilon,
         weight_distance_floor=weight_distance_floor,
         flash_points=flash_points,
+        branch_ids=branch_ids,
         return_diagnostics=True,
     )
     if len(points_array) == 0:
@@ -1012,7 +1201,7 @@ def estimate_surface_normals(
         raise ValueError(f"不支持的 normal_method: {normal_method}")
 
     if normal_method == "surface_patch_continuity":
-        tangents = _estimate_tangents_for_normal_projection(points_array)
+        tangents = _estimate_tangents_for_normal_projection(points_array, branch_ids)
         result, diagnostics = _refine_normals_with_surface_patch(
             points_array,
             tangents,
@@ -1025,6 +1214,10 @@ def estimate_surface_normals(
             surface_patch_distance_factor=surface_patch_distance_factor,
             surface_patch_coherence_degrees=surface_patch_coherence_degrees,
             max_bisector_deviation_degrees=max_bisector_deviation_degrees,
+            surface_patch_min_faces=surface_patch_min_faces,
+            surface_patch_max_radius=surface_patch_max_radius,
+            surface_patch_fit_min_points=surface_patch_fit_min_points,
+            surface_patch_fit_residual_ratio=surface_patch_fit_residual_ratio,
             continuity_repair_degrees=continuity_repair_degrees,
             continuity_repair_iterations=continuity_repair_iterations,
         )
@@ -1035,7 +1228,7 @@ def estimate_surface_normals(
         # every point.  Do not send it through the historical dynamic program:
         # that program can exchange/flip signs to improve cross-point
         # smoothness and would therefore override the requested local rule.
-        tangents = _estimate_tangents_for_normal_projection(points_array)
+        tangents = _estimate_tangents_for_normal_projection(points_array, branch_ids)
         result = np.asarray(local_result, dtype=float).copy()
         flash = np.asarray(flash_points, dtype=float)
         flash_tree = cKDTree(flash)

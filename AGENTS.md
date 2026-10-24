@@ -20,7 +20,10 @@
 - 当前工具是**实心有限圆柱**，半径 `r`、轴向宽度 `w`；`delta` 只用于候选中心半径带 `[r-delta, r]`，不再参与碰撞体几何。
 - 窄相由 `collision.narrow_phase` 选择：默认 `analytic_closest_point_flat`（精确平端面裁剪 + 解析最近点法向）；`clipped_polygon` 是历史回归基线。胶囊/球端帽模型已移除，因为它会把共面端面接触误算成 `R-D` 的大穿透。
 - `build_frames(normal_is_reliable=True)` **始终固定法向**，并把曲线切线投影到法向的切平面内，保证 `t·n≈0`；不再用 `tangent_normal_threshold` 决定是否旋转法向。这样短分支/端点的差分切线不会把正确的表面法向旋转数度。
-- `max_bisector_deviation_degrees=3.5` 是**法向一致性容差**：光滑面片上，两侧角平分线与局部 patch normal 偏差超过 3.5° 时使用 patch normal；真正的棱边仍保留角平分线。它不是工艺公差。
+- 局部面片估计使用 `min_patch_faces=10`、`max_patch_radius_ratio=1.0`；先统一有向符号，再做面积/距离加权平均，并用局部二次曲面拟合求接触点法向（`fit_min_points=8`、`fit_residual_ratio=0.02`）。光滑面片优先使用拟合/平均法向；只有 `coherence > 25°` 的真实棱边才使用两侧角平分线。
+- 面片支撑不足、符号一致性差或棱边分组不明确的点标记 `low_confidence`，不再把单三角形 `coherence=0` 当作高置信度。
+- `max_bisector_deviation_degrees=3.5` 仅作为棱边处角平分线的 sanity 阈值；不再是光滑面片的主切换条件。
+- `--wheels-only-infeasible` 时第三个 OBJ 只输出存在不可行角的 root 点各一个红色砂轮；若没有不可行候选，OBJ 只保留根部线并在文件头说明。
 - 接触斑模型由 `collision.contact_patch_*` 控制：只有浅穿透、法向接近砂轮端面、且位于目标点附近 patch 内的相交才允许为接触；其余仍为碰撞。
 - `r` 不是全项目固定常数。批量运行可扫描多个归一化候选半径并按覆盖规则为每个案例选择主半径，也可通过 `radius_selection.case_overrides` 人工指定；扫描表、规则、最终值和源坐标等效值必须写入 JSON。
 - 默认碰撞对象是 `mesh_without_flash.obj`，但实现前需用小案例人工核对。

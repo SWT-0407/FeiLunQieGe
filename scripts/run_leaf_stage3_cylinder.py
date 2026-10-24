@@ -314,6 +314,7 @@ def main() -> int:
     if not 0 <= arguments.point_index < len(sampled.points):
         raise ValueError(f"point-index 必须在 [0, {len(sampled.points) - 1}] 内")
     normal_config = config.get("normal_estimation", {})
+    nominal_radius = float(config["wheel"]["radius"])
     center_source = np.asarray(normalization.get("center", [0.0, 0.0, 0.0]), dtype=float)
     scale_source = float(normalization.get("scale", 1.0))
     flash_points = (flash_cloud.flash_points - center_source) / scale_source
@@ -326,11 +327,16 @@ def main() -> int:
         offset_epsilon=float(normal_config.get("offset_epsilon", 1e-5)),
         weight_distance_floor=float(normal_config.get("weight_distance_floor", 1e-5)),
         flash_points=flash_points,
-        normal_method=str(normal_config.get("method", "two_face_angle_bisector")),
+        branch_ids=sampled.branch_ids,
+        normal_method=str(normal_config.get("method", "surface_patch_continuity")),
         surface_patch_neighbors=int(normal_config.get("surface_patch_neighbors", 32)),
         surface_patch_distance_factor=float(normal_config.get("surface_patch_distance_factor", 3.0)),
         surface_patch_coherence_degrees=float(normal_config.get("surface_patch_coherence_degrees", 25.0)),
         max_bisector_deviation_degrees=float(normal_config.get("max_bisector_deviation_degrees", 3.5)),
+        surface_patch_min_faces=int(normal_config.get("min_patch_faces", 10)),
+        surface_patch_max_radius=float(normal_config.get("max_patch_radius_ratio", 1.0)) * nominal_radius,
+        surface_patch_fit_min_points=int(normal_config.get("fit_min_points", 8)),
+        surface_patch_fit_residual_ratio=float(normal_config.get("fit_residual_ratio", 0.02)),
         continuity_repair_degrees=float(normal_config.get("continuity_repair_degrees", 30.0)),
         continuity_repair_iterations=int(normal_config.get("continuity_repair_iterations", 3)),
     )
@@ -338,7 +344,7 @@ def main() -> int:
         sampled.points,
         sampled.tangents,
         normals,
-        normal_is_reliable=(str(normal_config.get("method", "two_face_angle_bisector")) == "surface_patch_continuity"),
+        normal_is_reliable=(str(normal_config.get("method", "surface_patch_continuity")) == "surface_patch_continuity"),
         tangent_normal_threshold=float(normal_config.get("tangent_normal_threshold", 0.2)),
     )
     width = float(arguments.width if arguments.width is not None else config["wheel"].get("width", 0.004))
