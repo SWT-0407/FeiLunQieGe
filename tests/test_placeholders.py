@@ -263,3 +263,41 @@ def test_interactive_demo_contains_selected_points_and_local_script() -> None:
     assert "selectPoint" in html
     assert "selected_points" in html
     assert "${point.index}" in html
+
+
+def test_reliable_normal_forces_tangent_perpendicular_and_preserves_axis() -> None:
+    """可信法向必须原样保留，切线必须被投影到法向切平面。"""
+
+    points = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+    tangents = np.array([[1.0, 0.5, 0.0], [1.0, 0.0, 0.3]])
+    normals = np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
+    frames = build_frames(points, tangents, normals, normal_is_reliable=True)
+    for frame in frames:
+        assert abs(float(np.dot(frame.tangent, frame.axis))) < 1e-12
+        assert np.allclose(frame.axis, [0.0, 0.0, 1.0], atol=1e-12)
+        assert abs(float(np.linalg.norm(frame.tangent)) - 1.0) < 1e-12
+
+
+def test_reliable_normal_does_not_rotate_axis_for_short_branch_tangent() -> None:
+    """短分支切线带法向分量时，最终砂轮轴仍应等于输入法向。"""
+
+    tangent = np.array([-0.0535, 0.1257, -0.9906])
+    normal = np.array([-0.9078, 0.4194, -0.0071])
+    frame = build_frames(
+        np.zeros((1, 3)), tangent[None, :], normal[None, :], normal_is_reliable=True
+    )[0]
+    normal_unit = normal / np.linalg.norm(normal)
+    assert np.allclose(frame.axis, normal_unit, atol=1e-12)
+    assert abs(float(np.dot(frame.tangent, frame.axis))) < 1e-12
+
+
+def test_reliable_normal_handles_tangent_parallel_to_normal() -> None:
+    """切线与法向几乎平行时，标架仍需退化安全并保持正交。"""
+
+    frame = build_frames(
+        np.zeros((1, 3)), np.array([[0.0, 0.0, 1.0]]), np.array([[0.0, 0.0, 1.0]]),
+        normal_is_reliable=True,
+    )[0]
+    assert np.allclose(frame.axis, [0.0, 0.0, 1.0], atol=1e-12)
+    assert abs(float(np.dot(frame.tangent, frame.axis))) < 1e-12
+    assert abs(float(np.linalg.norm(frame.tangent)) - 1.0) < 1e-12

@@ -87,7 +87,7 @@ def main() -> int:
         surface_patch_neighbors=int(normal_config.get("surface_patch_neighbors", 32)),
         surface_patch_distance_factor=float(normal_config.get("surface_patch_distance_factor", 3.0)),
         surface_patch_coherence_degrees=float(normal_config.get("surface_patch_coherence_degrees", 25.0)),
-        max_bisector_deviation_degrees=float(normal_config.get("max_bisector_deviation_degrees", 10.0)),
+        max_bisector_deviation_degrees=float(normal_config.get("max_bisector_deviation_degrees", 3.5)),
         continuity_repair_degrees=float(normal_config.get("continuity_repair_degrees", 30.0)),
         continuity_repair_iterations=int(normal_config.get("continuity_repair_iterations", 3)),
         **normal_kwargs,

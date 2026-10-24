@@ -19,6 +19,8 @@
 - 在采样点 `x_i` 处，曲线切线为 `t_i`，工件表面法向为 `n_i`。砂轮中心偏移方向 `e_i` 在局部切平面内，砂轮轴向取 `n_i`；砂轮圆盘平面与切平面平行、与法平面垂直。`e_i` 不再强制与 `t_i` 垂直。
 - 当前工具是**实心有限圆柱**，半径 `r`、轴向宽度 `w`；`delta` 只用于候选中心半径带 `[r-delta, r]`，不再参与碰撞体几何。
 - 窄相由 `collision.narrow_phase` 选择：默认 `analytic_closest_point_flat`（精确平端面裁剪 + 解析最近点法向）；`clipped_polygon` 是历史回归基线。胶囊/球端帽模型已移除，因为它会把共面端面接触误算成 `R-D` 的大穿透。
+- `build_frames(normal_is_reliable=True)` **始终固定法向**，并把曲线切线投影到法向的切平面内，保证 `t·n≈0`；不再用 `tangent_normal_threshold` 决定是否旋转法向。这样短分支/端点的差分切线不会把正确的表面法向旋转数度。
+- `max_bisector_deviation_degrees=3.5` 是**法向一致性容差**：光滑面片上，两侧角平分线与局部 patch normal 偏差超过 3.5° 时使用 patch normal；真正的棱边仍保留角平分线。它不是工艺公差。
 - 接触斑模型由 `collision.contact_patch_*` 控制：只有浅穿透、法向接近砂轮端面、且位于目标点附近 patch 内的相交才允许为接触；其余仍为碰撞。
 - `r` 不是全项目固定常数。批量运行可扫描多个归一化候选半径并按覆盖规则为每个案例选择主半径，也可通过 `radius_selection.case_overrides` 人工指定；扫描表、规则、最终值和源坐标等效值必须写入 JSON。
 - 默认碰撞对象是 `mesh_without_flash.obj`，但实现前需用小案例人工核对。

@@ -12,6 +12,8 @@ For `226633`, the green pose example is fixed to independently reviewed candidat
 
 The older output-list and viewer notes below may mention `interactive_demo.html`; those references apply only to historical output directories. They do not describe the current pipeline contract.
 
+When delivering pose examples, `run_leaf_stage3_visualization.py --wheels-only-infeasible` exports one randomly selected infeasible wheel per root point that has any infeasible angle. If no infeasible candidates remain, the OBJ contains only the root line and a header note. Reliable-normal frames always fix the surface normal and project the curve tangent into its tangent plane (`t·n≈0`); the bisector/patch-normal consistency tolerance is 3.5°.
+
 砂轮切除铸件飞边的可行区域与路径规划研究。
 
 本仓库现在包含一个可运行的最小几何闭环。它用于验证数据读取、曲线切线、无厚度砂轮候选中心生成、保守碰撞筛选和总览图输出；结果仍属于 preliminary geometry run，不是实际加工结论。远程仓库原先为空，本地已从 `https://github.com/SWT-0407/FeiLunQieGe` 克隆。

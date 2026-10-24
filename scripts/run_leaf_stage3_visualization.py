@@ -103,6 +103,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--epsilon", type=float, default=1e-10)
     parser.add_argument("--target-contact-tolerance", type=float, default=1e-4)
     parser.add_argument("--cylinder-segments", type=int, default=64)
+    parser.add_argument(
+        "--wheels-only-infeasible",
+        action="store_true",
+        help="第三个 OBJ 只导出不可行砂轮；若没有不可行候选，则只保留根部线和说明",
+    )
     parser.add_argument("--png", action="store_true", help="显式请求额外生成 PNG；默认只输出 OBJ/MTL/JSON")
     return parser
 
@@ -348,36 +353,54 @@ def _export_center_domains(path: Path, sampled: object, audits: list[PointAudit]
                     next_vertex = _write_center_marker(handle, _to_source(centers[int(local_index)], normalization), marker_size, next_vertex)
 
 
-def _export_random_wheels(path: Path, sampled: object, audits: list[PointAudit], branches: list[tuple[int, int, int]], normalization: dict[str, object], radius: float, width: float, cylinder_segments: int, seed: int = 20261018, per_state: int = 2) -> list[dict[str, object]]:
+def _export_random_wheels(path: Path, sampled: object, audits: list[PointAudit], branches: list[tuple[int, int, int]], normalization: dict[str, object], radius: float, width: float, cylinder_segments: int, seed: int = 20261018, per_state: int = 2, include_feasible: bool = True) -> list[dict[str, object]]:
     """每个分支随机抽取少量可行/碰撞姿态，输出完整标准圆柱。
 
     可行状态从该分支的可行候选中抽取；碰撞状态从该分支的**不可行候选**
     中抽取。注意不能要求“该点所有角度都不可行”，否则只要点还有任意一个
     可行角，就会错误地跳过红色砂轮。
+
+    ``include_feasible=False`` 时只导出不可行砂轮，用于“仅不可行姿态”
+    交付。若某分支没有不可行候选，则跳过，不伪造红色砂轮。
     """
     material_path = path.with_suffix(".mtl")
     _write_materials(material_path)
     rng = np.random.default_rng(seed)
     selected: list[tuple[int, int, bool]] = []
-    for _branch_id, start, end in branches:
-        for feasible_state in (True, False):
-            # 收集该分支内所有 (目标点, 候选角) 对，再从中随机抽 per_state 个。
-            pairs: list[tuple[int, int]] = []
-            for point_index in range(start, end):
-                flags = np.asarray(audits[point_index].result.feasible, dtype=bool)
-                local_pool = np.flatnonzero(flags if feasible_state else ~flags)
-                for local_index in local_pool:
-                    pairs.append((point_index, int(local_index)))
-            if not pairs:
+    if not include_feasible:
+        # 仅不可行模式：每个真正存在不可行角的 root 点选一个随机不可行姿态，
+        # 保证 74/75/172/184 这类点都被覆盖，而不是只覆盖每个 branch。
+        for point_index, audit in enumerate(audits):
+            flags = np.asarray(audit.result.feasible, dtype=bool)
+            local_pool = np.flatnonzero(~flags)
+            if len(local_pool) == 0:
                 continue
-            chosen = rng.choice(len(pairs), size=min(per_state, len(pairs)), replace=False)
-            for pair_index in np.atleast_1d(chosen).astype(int):
-                point_index, local_index = pairs[int(pair_index)]
-                selected.append((int(point_index), int(local_index), feasible_state))
+            local_index = int(rng.choice(local_pool))
+            selected.append((int(point_index), local_index, False))
+    else:
+        states = (True, False)
+        for _branch_id, start, end in branches:
+            for feasible_state in states:
+                # 收集该分支内所有 (目标点, 候选角) 对，再从中随机抽 per_state 个。
+                pairs: list[tuple[int, int]] = []
+                for point_index in range(start, end):
+                    flags = np.asarray(audits[point_index].result.feasible, dtype=bool)
+                    local_pool = np.flatnonzero(flags if feasible_state else ~flags)
+                    for local_index in local_pool:
+                        pairs.append((point_index, int(local_index)))
+                if not pairs:
+                    continue
+                chosen = rng.choice(len(pairs), size=min(per_state, len(pairs)), replace=False)
+                for pair_index in np.atleast_1d(chosen).astype(int):
+                    point_index, local_index = pairs[int(pair_index)]
+                    selected.append((int(point_index), int(local_index), feasible_state))
     records: list[dict[str, object]] = []
     scale = float(normalization.get("scale", 1.0))
     with path.open("w", encoding="ascii", newline="\n") as handle:
         handle.write("# stage 3 random complete wheel shapes\n# coordinate_frame: source_obj\n")
+        handle.write(f"# mode: {'infeasible_only' if not include_feasible else 'feasible_and_infeasible'}\n")
+        if not selected:
+            handle.write("# no infeasible wheel candidates at the sampled angles\n")
         handle.write(f"# random_seed: {seed}\nmtllib {material_path.name}\n")
         next_vertex = _write_root_line(handle, sampled, branches, normalization)
         for serial, (point_index, local_index, is_feasible) in enumerate(selected):
@@ -583,7 +606,7 @@ def main() -> int:
             "max_bisector_deviation_degrees": float(
                 arguments.max_bisector_deviation_degrees
                 if arguments.max_bisector_deviation_degrees is not None
-                else normal_config.get("max_bisector_deviation_degrees", 10.0)
+                else normal_config.get("max_bisector_deviation_degrees", 3.5)
             ),
             "continuity_repair_degrees": float(
                 arguments.continuity_repair_degrees
@@ -689,13 +712,21 @@ def main() -> int:
     output_root.mkdir(parents=True, exist_ok=False)
     centers_obj_path = output_root / f"{case_name}_rootline_circle_centers.obj"
     domains_obj_path = output_root / f"{case_name}_feasible_center_domains.obj"
-    wheels_obj_path = output_root / f"{case_name}_random_wheel_shapes.obj"
+    wheels_obj_path = output_root / (
+        f"{case_name}_infeasible_wheel_shapes.obj"
+        if arguments.wheels_only_infeasible
+        else f"{case_name}_random_wheel_shapes.obj"
+    )
     png_path = output_root / f"{case_name}_rootline_projection.png"
     summary_path = output_root / "stage3_visualization_summary.json"
     normal_diagnostics_path = output_root / "normal_continuity_diagnostics.json"
     _export_circle_centers(centers_obj_path, sampled, audits, branches, normalization, radius)
     _export_center_domains(domains_obj_path, sampled, audits, branches, normalization, radius)
-    wheel_records = _export_random_wheels(wheels_obj_path, sampled, audits, branches, normalization, radius, width, arguments.cylinder_segments)
+    wheel_records = _export_random_wheels(
+        wheels_obj_path, sampled, audits, branches, normalization, radius, width,
+        arguments.cylinder_segments,
+        include_feasible=not arguments.wheels_only_infeasible,
+    )
     # 按项目规范，PNG 只在显式传入 --png 时生成；OBJ/MTL/JSON 始终输出。
     if arguments.png:
         _plot_leaf_projection(
@@ -705,11 +736,51 @@ def main() -> int:
         )
     feasible_count = sum(int(np.count_nonzero(a.result.feasible)) for a in audits)
     candidate_count = sum(len(a.result.feasible) for a in audits)
+
+    # 标架审计：最终砂轮轴与 patch normal 的夹角、切线-法向正交性。
+    def _angle_deg(first: np.ndarray, second: np.ndarray) -> float:
+        first = np.asarray(first, dtype=float)
+        second = np.asarray(second, dtype=float)
+        denominator = float(np.linalg.norm(first) * np.linalg.norm(second))
+        if denominator <= 1e-12:
+            return 0.0
+        cosine = float(np.clip(np.dot(first, second) / denominator, -1.0, 1.0))
+        return float(np.degrees(np.arccos(cosine)))
+
+    axis_vs_patch = []
+    frame_rotation = []
+    tangent_dot_axis = []
+    for index, item in enumerate(normal_diagnostics):
+        frame = frames[index]
+        raw_normal = np.asarray(item.get("selected_normal", frame.axis), dtype=float)
+        patch_normal = np.asarray(item.get("surface_patch_normal", frame.axis), dtype=float)
+        item["frame_axis"] = np.asarray(frame.axis, dtype=float).tolist()
+        item["frame_tangent"] = np.asarray(frame.tangent, dtype=float).tolist()
+        item["tangent_dot_axis"] = abs(float(np.dot(frame.tangent, frame.axis)))
+        item["frame_rotation_deg"] = _angle_deg(raw_normal, frame.axis)
+        item["axis_vs_patch_normal_deg"] = _angle_deg(frame.axis, patch_normal)
+        axis_vs_patch.append(item["axis_vs_patch_normal_deg"])
+        frame_rotation.append(item["frame_rotation_deg"])
+        tangent_dot_axis.append(item["tangent_dot_axis"])
+    axis_vs_patch_array = np.asarray(axis_vs_patch, dtype=float)
+    frame_rotation_array = np.asarray(frame_rotation, dtype=float)
+    tangent_dot_array = np.asarray(tangent_dot_axis, dtype=float)
+    normal_audit = {
+        "max_tangent_dot_axis": float(np.max(tangent_dot_array)) if len(tangent_dot_array) else 0.0,
+        "max_frame_rotation_deg": float(np.max(frame_rotation_array)) if len(frame_rotation_array) else 0.0,
+        "median_frame_rotation_deg": float(np.median(frame_rotation_array)) if len(frame_rotation_array) else 0.0,
+        "max_axis_vs_patch_normal_deg": float(np.max(axis_vs_patch_array)) if len(axis_vs_patch_array) else 0.0,
+        "median_axis_vs_patch_normal_deg": float(np.median(axis_vs_patch_array)) if len(axis_vs_patch_array) else 0.0,
+        "points_axis_vs_patch_gt_2deg": int(np.sum(axis_vs_patch_array > 2.0)),
+        "points_axis_vs_patch_gt_5deg": int(np.sum(axis_vs_patch_array > 5.0)),
+        "points_axis_vs_patch_gt_10deg": int(np.sum(axis_vs_patch_array > 10.0)),
+    }
     normal_diagnostics_path.write_text(json.dumps({
         "point_count": len(normal_diagnostics),
         "branch_count": len(branches),
         "continuity_threshold_degrees": normal_config.get("continuity_jump_threshold_degrees", 20.0),
         "low_confidence_point_count": sum(bool(item.get("continuity_state", {}).get("low_confidence", False)) for item in normal_diagnostics),
+        "normal_audit": normal_audit,
         "points": normal_diagnostics,
         "orientation_rule": "per_face_choose_normal_with_positive_dot_OF",
     }, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -762,11 +833,26 @@ def main() -> int:
         },
         "workpiece_mesh": str(workpiece_path),
         "workpiece_triangle_count": int(len(workpiece.faces)),
-        "wheel_visualization": {"center_material": "circle_center_yellow", "feasible_material": "feasible_green", "collision_material": "collision_red", "random_seed": 20261018, "random_wheel_count": len(wheel_records)},
+        "normal_audit": normal_audit,
+        "wheel_visualization": {
+            "mode": "infeasible_only" if arguments.wheels_only_infeasible else "feasible_and_infeasible",
+            "center_material": "circle_center_yellow",
+            "feasible_material": "feasible_green",
+            "collision_material": "collision_red",
+            "random_seed": 20261018,
+            "random_wheel_count": len(wheel_records),
+            "feasible_wheel_count": int(sum(1 for record in wheel_records if record["feasible"])),
+            "infeasible_wheel_count": int(sum(1 for record in wheel_records if not record["feasible"])),
+        },
         "orientation": {"method": "nearest_labelled_flash_point_per_face", "formula": "choose sign(n) so dot(n, F-O) >= 0", "source": str(flash_cloud.source_path), "reference_mesh": str(reference_path) if reference_path is not None else None, "reference_mesh_vertex_count": flash_reference_vertices, "flash_point_count": int(len(flash_points)), "body_point_count": int(len(body_points))},
         "branch_representatives": representatives,
         "random_wheels": wheel_records,
-        "outputs": {"circle_centers_obj": str(centers_obj_path.relative_to(REPO_ROOT)), "center_domains_obj": str(domains_obj_path.relative_to(REPO_ROOT)), "random_wheels_obj": str(wheels_obj_path.relative_to(REPO_ROOT)), "normal_diagnostics": str(normal_diagnostics_path.relative_to(REPO_ROOT)), "summary": str(summary_path.relative_to(REPO_ROOT))},
+        "outputs": {"circle_centers_obj": str(centers_obj_path.relative_to(REPO_ROOT)), "center_domains_obj": str(domains_obj_path.relative_to(REPO_ROOT)), "wheel_shapes_obj": str(wheels_obj_path.relative_to(REPO_ROOT)), "random_wheels_obj": str(wheels_obj_path.relative_to(REPO_ROOT)), "normal_diagnostics": str(normal_diagnostics_path.relative_to(REPO_ROOT)), "summary": str(summary_path.relative_to(REPO_ROOT))},
+        "notes": (
+            ["当前角度网格下没有不可行砂轮，第三个 OBJ 只包含根部线和空模式说明。"]
+            if arguments.wheels_only_infeasible and not wheel_records
+            else []
+        ),
         "human_review_status": "waiting_for_manual_review",
         "limitations": ["OBJ 使用多边形面表达标准圆柱曲面，但每个砂轮对象只有一种材质颜色。", "连续碰撞结果仍受当前网格封闭性、容差和固定角度候选集限制。"],
     }

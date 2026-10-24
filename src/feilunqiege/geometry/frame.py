@@ -38,10 +38,12 @@ def build_frames(
     未传入表面法向时使用一个稳定的合成法向，仅用于旧单元测试；正式流程
     必须通过 ``estimate_surface_normals`` 从工件三角网格提供法向。
 
-    ``normal_is_reliable=True`` 时，法向是可信的输入，标架改为“先固定法向，
-    再把曲线切线投影到该法向的切平面内”。这与默认的“先固定切线、再投影
-    法向”相反；分支端点的单边差分切线可能有较大误差，固定切线会把正确
-    的表面法向旋转几十度，而固定法向可以避免这一问题。
+    ``normal_is_reliable=True`` 时，法向是可信的输入，标架**始终先固定法向**，
+    再把曲线切线投影到该法向的切平面内，保证 ``t·n=0``。历史实现只在
+    ``|t·n|`` 超过阈值时才这样做；短分支/端点切线可能带有法向分量但未超过
+    阈值，导致正确的表面法向被旋转数度（circle 点 383 约 6.2°）。现在不再
+    依赖该阈值判断切线可信度。``tangent_normal_threshold`` 只保留给
+    ``normal_is_reliable=False`` 的历史路径。
     """
 
     if not 0.0 <= float(tangent_normal_threshold) < 1.0:
@@ -73,28 +75,46 @@ def build_frames(
                 raise ValueError(f"第 {index} 个表面法向与曲线切线退化或平行")
             normal = normal / normal_norm
         elif normal_is_reliable:
-            # 法向可信，但切线是否可信要单独判断：|t·n| 很大说明单边差分
-            # 切线混入了表面法向分量，此时必须固定法向、把切线投影到切平面；
-            # |t·n| 很小时切线本来就在切平面内，沿用历史顺序以保留局部
-            # 支撑法向（它可能与最近面片法向差 1-2°）。
+            # 法向可信：始终保留法向，把切线投影到法向的切平面内。
+            # 这样最终轴不会被短分支/端点的差分切线旋转。
             normal = normal_array[index]
             normal_norm = np.linalg.norm(normal)
             if normal_norm <= 1e-12:
                 raise ValueError(f"第 {index} 个表面法向为零向量")
             normal = normal / normal_norm
-            contamination = abs(float(np.dot(t, normal)))
-            if contamination > tangent_normal_threshold:
-                t = t - np.dot(t, normal) * normal
-                t_norm = np.linalg.norm(t)
+            t_projected = t - float(np.dot(t, normal)) * normal
+            t_norm = float(np.linalg.norm(t_projected))
+            if t_norm <= 1e-8:
+                # 切线几乎与法向平行：优先沿用相邻点的切平面方向。
+                for candidate_tangent in (
+                    frames[-1].tangent if frames else None,
+                    tangent_array[index + 1] if index + 1 < len(tangent_array) else None,
+                    tangent_array[index - 1] if index > 0 else None,
+                ):
+                    if candidate_tangent is None:
+                        continue
+                    candidate = np.asarray(candidate_tangent, dtype=float)
+                    candidate_norm = float(np.linalg.norm(candidate))
+                    if candidate_norm <= 1e-12:
+                        continue
+                    candidate = candidate / candidate_norm
+                    candidate = candidate - float(np.dot(candidate, normal)) * normal
+                    candidate_norm = float(np.linalg.norm(candidate))
+                    if candidate_norm > 1e-8:
+                        t_projected = candidate
+                        t_norm = candidate_norm
+                        break
+            if t_norm <= 1e-8:
+                # 最后退化处理：选择一个与法向不平行的固定参考方向。
+                reference = np.array([1.0, 0.0, 0.0]) if abs(float(normal[0])) < 0.9 else np.array([0.0, 1.0, 0.0])
+                t_projected = np.cross(normal, reference)
+                t_norm = float(np.linalg.norm(t_projected))
                 if t_norm <= 1e-12:
-                    raise ValueError(f"第 {index} 个曲线切线与表面法向退化或平行")
-                t = t / t_norm
-            else:
-                normal = normal - np.dot(normal, t) * t
-                normal_norm = np.linalg.norm(normal)
-                if normal_norm <= 1e-12:
-                    raise ValueError(f"第 {index} 个表面法向与曲线切线退化或平行")
-                normal = normal / normal_norm
+                    raise ValueError(f"第 {index} 个局部标架退化")
+            t = t_projected / t_norm
+            # 保持与原始切线同向，避免分支内切向翻转。
+            if float(np.dot(t, tangent)) < 0.0:
+                t = -t
         else:
             # 历史顺序：固定切线，把法向投影掉切向分量。
             normal = normal_array[index]
@@ -695,7 +715,7 @@ def _refine_normals_with_surface_patch(
     surface_patch_neighbors: int = 32,
     surface_patch_distance_factor: float = 3.0,
     surface_patch_coherence_degrees: float = 25.0,
-    max_bisector_deviation_degrees: float = 10.0,
+    max_bisector_deviation_degrees: float = 3.5,
     continuity_repair_degrees: float = 30.0,
     continuity_repair_iterations: int = 3,
 ) -> tuple[np.ndarray, list[dict[str, Any]]]:
@@ -951,7 +971,7 @@ def estimate_surface_normals(
     surface_patch_neighbors: int = 32,
     surface_patch_distance_factor: float = 3.0,
     surface_patch_coherence_degrees: float = 25.0,
-    max_bisector_deviation_degrees: float = 10.0,
+    max_bisector_deviation_degrees: float = 3.5,
     continuity_repair_degrees: float = 30.0,
     continuity_repair_iterations: int = 3,
     return_diagnostics: bool = False,
