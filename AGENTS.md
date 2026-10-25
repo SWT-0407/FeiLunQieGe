@@ -24,6 +24,8 @@
 - 面片支撑不足、符号一致性差或棱边分组不明确的点标记 `low_confidence`，不再把单三角形 `coherence=0` 当作高置信度。
 - `max_bisector_deviation_degrees=3.5` 仅作为棱边处角平分线的 sanity 阈值；不再是光滑面片的主切换条件。
 - `--wheels-only-infeasible` 时第三个 OBJ 只输出存在不可行角的 root 点各一个红色砂轮；若没有不可行候选，OBJ 只保留根部线并在文件头说明。
+- 当前交付默认用原始 `mesh_without_flash.obj` 做碰撞；简化工件对照代码保留为注释，需要对照时显式传 `--workpiece-mesh mesh_without_flash_simplified.obj`。
+- `--inspection-auto` 从不可行、低支撑、branch 7 和已知问题点中挑选检查点，每点最多输出一个红色不可行姿态和一个绿色可行姿态；`--inspection-points` 可显式指定编号。
 - 接触斑模型由 `collision.contact_patch_*` 控制：只有浅穿透、法向接近砂轮端面、且位于目标点附近 patch 内的相交才允许为接触；其余仍为碰撞。
 - `r` 不是全项目固定常数。批量运行可扫描多个归一化候选半径并按覆盖规则为每个案例选择主半径，也可通过 `radius_selection.case_overrides` 人工指定；扫描表、规则、最终值和源坐标等效值必须写入 JSON。
 - 默认碰撞对象是 `mesh_without_flash.obj`，但实现前需用小案例人工核对。

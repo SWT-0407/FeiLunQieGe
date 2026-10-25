@@ -14,6 +14,8 @@ The older output-list and viewer notes below may mention `interactive_demo.html`
 
 When delivering pose examples, `run_leaf_stage3_visualization.py --wheels-only-infeasible` exports one randomly selected infeasible wheel per root point that has any infeasible angle. If no infeasible candidates remain, the OBJ contains only the root line and a header note. Reliable-normal frames always fix the surface normal and project the curve tangent into its tangent plane (`t·n≈0`). The surface-patch estimator now uses at least 10 faces within 1.0r, aligns face-normal signs before averaging, and fits a local quadratic surface (`fit_min_points=8`, `fit_residual_ratio=0.02`); smooth patches use the fit/average normal, and only genuine creases use the two-side bisector.
 
+The current delivery uses the original `mesh_without_flash.obj` for collision; the simplified-mesh comparison is kept as a commented code path and can be enabled with `--workpiece-mesh mesh_without_flash_simplified.obj`. `--inspection-auto` selects inspection points from infeasible, low-support, branch-7, and known-problem categories, then exports up to one red infeasible and one green feasible wheel per selected point.
+
 砂轮切除铸件飞边的可行区域与路径规划研究。
 
 本仓库现在包含一个可运行的最小几何闭环。它用于验证数据读取、曲线切线、无厚度砂轮候选中心生成、保守碰撞筛选和总览图输出；结果仍属于 preliminary geometry run，不是实际加工结论。远程仓库原先为空，本地已从 `https://github.com/SWT-0407/FeiLunQieGe` 克隆。

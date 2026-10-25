@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -109,6 +109,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="第三个 OBJ 只导出不可行砂轮；若没有不可行候选，则只保留根部线和说明",
     )
+    parser.add_argument(
+        "--inspection-points",
+        default=None,
+        help="逗号分隔的点编号；第三个 OBJ 输出这些点的可行/不可行砂轮姿态",
+    )
+    parser.add_argument(
+        "--inspection-auto",
+        action="store_true",
+        help="自动从不可行、低支撑、branch 7 和已知问题点中挑选检查点",
+    )
+    parser.add_argument("--inspection-max-points", type=int, default=12)
+    parser.add_argument("--inspection-per-point", type=int, default=2)
     parser.add_argument("--png", action="store_true", help="显式请求额外生成 PNG；默认只输出 OBJ/MTL/JSON")
     return parser
 
@@ -412,6 +424,152 @@ def _export_random_wheels(path: Path, sampled: object, audits: list[PointAudit],
     return records
 
 
+def _select_inspection_points(
+    audits: list[PointAudit],
+    normal_diagnostics: list[dict[str, object]],
+    branches: list[tuple[int, int, int]],
+    max_points: int,
+) -> tuple[list[int], dict[int, list[str]]]:
+    """从不可行、低支撑、branch 7 和已知问题点中挑选需要人工检查的点。
+
+    先保证每一类至少有一个代表，再用其余候选按编号均匀补足。这样不会
+    因为不可行点太多而把低支撑/棱边点全部挤掉。
+    """
+
+    if max_points < 1:
+        raise ValueError("inspection_max_points 必须为正")
+    reasons: dict[int, list[str]] = defaultdict(list)
+    for audit in audits:
+        flags = np.asarray(audit.result.feasible, dtype=bool)
+        if np.any(~flags):
+            reasons[int(audit.point_index)].append("infeasible")
+    for index, item in enumerate(normal_diagnostics):
+        if bool(item.get("surface_patch_low_support", False)):
+            reasons[index].append("low_support")
+        if bool(item.get("low_confidence", False)):
+            reasons[index].append("low_confidence")
+    for branch_id, start, end in branches:
+        if int(branch_id) == 7:
+            for index in range(start, end):
+                reasons[index].append("branch7")
+    for index in (74, 75, 172, 184):
+        if 0 <= index < len(audits):
+            reasons[index].append("previous_problem")
+
+    candidates = sorted(reasons)
+    priority = ("infeasible", "branch7", "low_support", "previous_problem", "low_confidence")
+    selected: list[int] = []
+    for category in priority:
+        for index in candidates:
+            if index in selected:
+                continue
+            if category in reasons[index]:
+                selected.append(index)
+                break
+    remaining = [index for index in candidates if index not in selected]
+    if len(selected) < max_points and remaining:
+        count = min(max_points - len(selected), len(remaining))
+        positions = np.linspace(0, len(remaining) - 1, count, dtype=int)
+        for position in positions:
+            index = remaining[int(position)]
+            if index not in selected:
+                selected.append(index)
+    selected = selected[:max_points]
+    return selected, {index: list(reasons[index]) for index in selected}
+
+
+def _export_inspection_wheels(
+    path: Path,
+    sampled: object,
+    audits: list[PointAudit],
+    branches: list[tuple[int, int, int]],
+    normalization: dict[str, object],
+    radius: float,
+    width: float,
+    cylinder_segments: int,
+    point_indices: list[int],
+    *,
+    per_point: int = 2,
+) -> list[dict[str, object]]:
+    """导出需要人工检查的点的砂轮姿态。
+
+    每个点优先输出一个不可行姿态（如果有）和一个可行姿态（如果有），
+    分别用红色/绿色；同一 OBJ 内可同时看到边界两侧。没有不可行候选的
+    点只输出可行姿态。
+    """
+
+    if per_point < 1:
+        raise ValueError("inspection_per_point 必须为正")
+    material_path = path.with_suffix(".mtl")
+    _write_materials(material_path)
+    branch_by_point: dict[int, int] = {}
+    for branch_id, start, end in branches:
+        for index in range(start, end):
+            branch_by_point[index] = int(branch_id)
+    scale = float(normalization.get("scale", 1.0))
+    marker_size = max(radius * scale * 0.35, 1e-8)
+    records: list[dict[str, object]] = []
+    with path.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write("# inspection wheel poses selected from infeasible/low-support/branch7 points\n")
+        handle.write("# coordinate_frame: source_obj\n")
+        handle.write("# red = infeasible pose; green = feasible pose; blue = target/contact point\n")
+        handle.write(f"mtllib {material_path.name}\n")
+        handle.write("o root_line\nusemtl root_line_gray\n")
+        next_vertex = _write_root_line(handle, sampled, branches, normalization)
+        for point_index in point_indices:
+            audit = audits[int(point_index)]
+            flags = np.asarray(audit.result.feasible, dtype=bool)
+            feasible_indices = np.flatnonzero(flags)
+            infeasible_indices = np.flatnonzero(~flags)
+            choices: list[tuple[int, bool]] = []
+            if len(infeasible_indices):
+                choices.append((int(infeasible_indices[0]), False))
+            if len(feasible_indices) and (not len(infeasible_indices) or per_point >= 2):
+                choices.append((int(feasible_indices[0]), True))
+            if not choices:
+                continue
+            for local_index, is_feasible in choices[:per_point]:
+                candidate = audit.candidates
+                angle_deg = float(np.degrees(candidate.angles[local_index]))
+                state = "feasible" if is_feasible else "infeasible"
+                material = "feasible_green" if is_feasible else "collision_red"
+                reason = str(audit.result.reason[local_index])
+                handle.write(
+                    f"# point={point_index} branch={branch_by_point.get(int(point_index), -1)} "
+                    f"angle_deg={angle_deg:.3f} state={state} reason={reason}\n"
+                )
+                handle.write(
+                    f"o wheel_{state}_point_{int(point_index):04d}_angle_{angle_deg:.1f}\nusemtl {material}\n"
+                )
+                next_vertex = _write_cylinder(
+                    handle,
+                    _to_source(candidate.centers[local_index], normalization),
+                    candidate.radius_directions[local_index],
+                    candidate.axis_directions[local_index],
+                    float(candidate.radial_values[local_index]) * scale,
+                    width * scale,
+                    next_vertex,
+                    cylinder_segments,
+                )
+                handle.write(f"o contact_point_{int(point_index):04d}\nusemtl contact_blue\n")
+                next_vertex = _write_center_marker(
+                    handle,
+                    _to_source(candidate.contact_points[local_index], normalization),
+                    marker_size,
+                    next_vertex,
+                )
+                records.append(
+                    {
+                        "point_index": int(point_index),
+                        "branch_id": int(branch_by_point.get(int(point_index), -1)),
+                        "angle_deg": angle_deg,
+                        "feasible": bool(is_feasible),
+                        "reason": reason,
+                    }
+                )
+    return records
+
+
 def _plot_centers(path: Path, sampled: object, audits: list[PointAudit]) -> None:
     points = np.asarray(sampled.points, dtype=float)
     branch_ids = np.asarray(sampled.branch_ids, dtype=np.int64)
@@ -566,6 +724,10 @@ def main() -> int:
     case_root = (config_path.parent / config["data_root"]).resolve() / case_name
     if not case_root.is_dir():
         raise FileNotFoundError(f"案例目录不存在: {case_root}")
+    # 原始工件（当前使用）：config inputs.workpiece_mesh = mesh_without_flash.obj。
+    # 简化工件对照代码保留如下，当前不执行；需要对照时再显式传入
+    # --workpiece-mesh mesh_without_flash_simplified.obj。
+    # workpiece_name = "mesh_without_flash_simplified.obj"
     workpiece_name = str(arguments.workpiece_mesh or config["inputs"]["workpiece_mesh"])
     workpiece_path = case_root / workpiece_name
     if not workpiece_path.is_file():
@@ -722,21 +884,44 @@ def main() -> int:
     output_root.mkdir(parents=True, exist_ok=False)
     centers_obj_path = output_root / f"{case_name}_rootline_circle_centers.obj"
     domains_obj_path = output_root / f"{case_name}_feasible_center_domains.obj"
-    wheels_obj_path = output_root / (
-        f"{case_name}_infeasible_wheel_shapes.obj"
-        if arguments.wheels_only_infeasible
-        else f"{case_name}_random_wheel_shapes.obj"
-    )
+
+    inspection_mode = bool(arguments.inspection_auto or arguments.inspection_points)
+    inspection_points: list[int] = []
+    inspection_reasons: dict[int, list[str]] = {}
+    if arguments.inspection_points:
+        inspection_points = [
+            int(value) for value in str(arguments.inspection_points).split(",") if value.strip()
+        ]
+        if any(index < 0 or index >= len(audits) for index in inspection_points):
+            raise ValueError("inspection-points 包含越界点")
+    elif arguments.inspection_auto:
+        inspection_points, inspection_reasons = _select_inspection_points(
+            audits, normal_diagnostics, branches, int(arguments.inspection_max_points)
+        )
+
+    if inspection_mode:
+        wheels_obj_path = output_root / f"{case_name}_inspection_wheels.obj"
+    elif arguments.wheels_only_infeasible:
+        wheels_obj_path = output_root / f"{case_name}_infeasible_wheel_shapes.obj"
+    else:
+        wheels_obj_path = output_root / f"{case_name}_random_wheel_shapes.obj"
     png_path = output_root / f"{case_name}_rootline_projection.png"
     summary_path = output_root / "stage3_visualization_summary.json"
     normal_diagnostics_path = output_root / "normal_continuity_diagnostics.json"
     _export_circle_centers(centers_obj_path, sampled, audits, branches, normalization, radius)
     _export_center_domains(domains_obj_path, sampled, audits, branches, normalization, radius)
-    wheel_records = _export_random_wheels(
-        wheels_obj_path, sampled, audits, branches, normalization, radius, width,
-        arguments.cylinder_segments,
-        include_feasible=not arguments.wheels_only_infeasible,
-    )
+    if inspection_mode:
+        wheel_records = _export_inspection_wheels(
+            wheels_obj_path, sampled, audits, branches, normalization, radius, width,
+            arguments.cylinder_segments, inspection_points,
+            per_point=int(arguments.inspection_per_point),
+        )
+    else:
+        wheel_records = _export_random_wheels(
+            wheels_obj_path, sampled, audits, branches, normalization, radius, width,
+            arguments.cylinder_segments,
+            include_feasible=not arguments.wheels_only_infeasible,
+        )
     # 按项目规范，PNG 只在显式传入 --png 时生成；OBJ/MTL/JSON 始终输出。
     if arguments.png:
         _plot_leaf_projection(
@@ -888,7 +1073,11 @@ def main() -> int:
         "workpiece_triangle_count": int(len(workpiece.faces)),
         "normal_audit": normal_audit,
         "wheel_visualization": {
-            "mode": "infeasible_only" if arguments.wheels_only_infeasible else "feasible_and_infeasible",
+            "mode": (
+                "inspection_points" if inspection_mode
+                else "infeasible_only" if arguments.wheels_only_infeasible
+                else "feasible_and_infeasible"
+            ),
             "center_material": "circle_center_yellow",
             "feasible_material": "feasible_green",
             "collision_material": "collision_red",
@@ -896,14 +1085,19 @@ def main() -> int:
             "random_wheel_count": len(wheel_records),
             "feasible_wheel_count": int(sum(1 for record in wheel_records if record["feasible"])),
             "infeasible_wheel_count": int(sum(1 for record in wheel_records if not record["feasible"])),
+            "inspection_points": inspection_points if inspection_mode else [],
+            "inspection_reasons": inspection_reasons if inspection_mode else {},
         },
         "orientation": {"method": "nearest_labelled_flash_point_per_face", "formula": "choose sign(n) so dot(n, F-O) >= 0", "source": str(flash_cloud.source_path), "reference_mesh": str(reference_path) if reference_path is not None else None, "reference_mesh_vertex_count": flash_reference_vertices, "flash_point_count": int(len(flash_points)), "body_point_count": int(len(body_points))},
         "branch_representatives": representatives,
         "random_wheels": wheel_records,
+        "inspection_wheels": wheel_records if inspection_mode else [],
         "outputs": {"circle_centers_obj": str(centers_obj_path.relative_to(REPO_ROOT)), "center_domains_obj": str(domains_obj_path.relative_to(REPO_ROOT)), "wheel_shapes_obj": str(wheels_obj_path.relative_to(REPO_ROOT)), "random_wheels_obj": str(wheels_obj_path.relative_to(REPO_ROOT)), "normal_diagnostics": str(normal_diagnostics_path.relative_to(REPO_ROOT)), "summary": str(summary_path.relative_to(REPO_ROOT))},
         "notes": (
-            ["当前角度网格下没有不可行砂轮，第三个 OBJ 只包含根部线和空模式说明。"]
-            if arguments.wheels_only_infeasible and not wheel_records
+            ["检查点模式已启用，但所选点没有生成任何砂轮姿态。"]
+            if inspection_mode and not wheel_records
+            else ["当前角度网格下没有不可行砂轮，第三个 OBJ 只包含根部线和空模式说明。"]
+            if arguments.wheels_only_infeasible and not wheel_records and not inspection_mode
             else []
         ),
         "human_review_status": "waiting_for_manual_review",
