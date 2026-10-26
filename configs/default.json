@@ -33,7 +33,7 @@
     "radial_samples": 3
   },
   "normal_estimation": {
-    "method": "p1",
+    "method": "surface_patch_continuity",
     "surface_patch_neighbors": 32,
     "surface_patch_distance_factor": 3.0,
     "surface_patch_coherence_degrees": 25.0,

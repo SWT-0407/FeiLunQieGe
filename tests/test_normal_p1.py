@@ -67,7 +67,40 @@ def test_p1_plane_normals_are_unit_and_axis_aligned() -> None:
     assert np.all(np.isfinite(normals))
     assert np.allclose(np.linalg.norm(normals, axis=1), 1.0, atol=1e-9)
     assert np.max(np.abs(normals[:, 2])) > 0.99
+    # 平面真值：normal = ±Z；允许方向符号，但方向误差应很小。
+    errors = np.degrees(np.arccos(np.clip(np.abs(normals[:, 2]), 0.0, 1.0)))
+    assert float(np.max(errors)) < 2.0
     assert len(diagnostics) == len(points)
+
+
+def _cylinder_mesh(radius: float = 0.5, height: float = 1.0, segments: int = 24) -> SimpleNamespace:
+    vertices = []
+    for z in (-height / 2, height / 2):
+        for index in range(segments):
+            angle = 2.0 * np.pi * index / segments
+            vertices.append([radius * np.cos(angle), radius * np.sin(angle), z])
+    faces = []
+    for index in range(segments):
+        nxt = (index + 1) % segments
+        faces.append([index, nxt, segments + nxt])
+        faces.append([index, segments + nxt, segments + index])
+    return SimpleNamespace(vertices=np.asarray(vertices, dtype=float), faces=np.asarray(faces, dtype=np.int64))
+
+
+def test_p1_cylinder_lateral_normal_error() -> None:
+    mesh = _cylinder_mesh()
+    points = []
+    truth = []
+    for angle in np.linspace(0.0, 2.0 * np.pi, 12, endpoint=False):
+        truth.append([np.cos(angle), np.sin(angle), 0.0])
+        points.append([0.5 * np.cos(angle), 0.5 * np.sin(angle), 0.1])
+    points = np.asarray(points, dtype=float)
+    truth = np.asarray(truth, dtype=float)
+    normals = estimate_normals_experimental(points, mesh, method="p1", config={}, return_diagnostics=False)
+    dots = np.clip(np.abs(np.sum(normals * truth, axis=1)), -1.0, 1.0)
+    errors = np.degrees(np.arccos(dots))
+    assert float(np.median(errors)) < 10.0
+
 
 
 def test_p1_edge_mesh_returns_finite_unit_normals() -> None:

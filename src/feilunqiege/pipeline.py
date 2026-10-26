@@ -72,7 +72,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     }
     nominal_radius = float(config["wheel"]["radius"])
     max_patch_radius = float(normal_config.get("max_patch_radius_ratio", 1.0)) * nominal_radius
-    surface_normals = estimate_surface_normals(
+    surface_normals, normal_diagnostics = estimate_surface_normals(
         sampled.points,
         workpiece,
         neighbor_count=int(normal_config.get("neighbor_count", 24)),
@@ -99,7 +99,17 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         continuity_repair_degrees=float(normal_config.get("continuity_repair_degrees", 30.0)),
         continuity_repair_iterations=int(normal_config.get("continuity_repair_iterations", 3)),
         p1_config=normal_config.get("p1"),
+        return_diagnostics=True,
     )
+    normal_confidence = [
+        str(
+            item.get(
+                "normal_confidence",
+                "low" if item.get("low_confidence") else "high",
+            )
+        )
+        for item in normal_diagnostics
+    ]
     frames = build_frames(
         sampled.points,
         sampled.tangents,
@@ -252,6 +262,7 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         pose_examples,
         width,
         pose_obj_path,
+        normal_confidence,
     )
     summary_path = output_root / config["outputs"]["summary_json"]
     summary_path.parent.mkdir(parents=True, exist_ok=True)
@@ -276,6 +287,7 @@ def _build_summary(
     pose_examples: dict[str, int],
     width: float,
     pose_obj_path: Path,
+    normal_confidence: list[str] | None = None,
 ) -> dict[str, Any]:
     """生成可审计的 JSON 摘要。"""
 
@@ -301,6 +313,11 @@ def _build_summary(
                 "feasible_angle_count": int(angle_mask.sum()),
                 "minimum_candidate_clearance": float(distances.min()) if len(distances) else None,
                 "feasible_angle_intervals_degree": _angle_intervals(angle_mask),
+                "normal_confidence": (
+                    normal_confidence[point_index]
+                    if normal_confidence is not None and point_index < len(normal_confidence)
+                    else "unknown"
+                ),
             }
         )
     # 汇总全局计数，并保留 OBJ 顶点语义，避免把点云误解为砂轮实体。
@@ -332,6 +349,22 @@ def _build_summary(
             "formula": "choose sign(n) so dot(n, F-O) >= 0",
             "dynamic_programming": "not applied when labelled flash points are available",
         },
+        "normal_confidence_counts": {
+            str(key): int(value)
+            for key, value in zip(
+                *np.unique(np.asarray(normal_confidence or ["unknown"], dtype=object), return_counts=True),
+                strict=True,
+            )
+        },
+        "low_confidence_point_indices": [
+            index
+            for index, value in enumerate(normal_confidence or [])
+            if value == "low"
+        ],
+        "normal_confidence_note": (
+            "low-confidence normals are retained as best-effort geometry and explicitly flagged; "
+            "they must not be counted as accepted normal truth without review"
+        ),
         "parameters": {
             "radius": candidates.radius,
             "delta": float(config["wheel"]["delta"]),

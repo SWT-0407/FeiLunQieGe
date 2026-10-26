@@ -18,7 +18,7 @@ The current delivery uses the original `mesh_without_flash.obj` for collision; t
 
 ## P1 normal experiment backend
 
-`src/feilunqiege/geometry/normal_p1.py` is the P1 normal backend. `configs/default.json` now selects `normal_estimation.method = "p1"`; the historical `surface_patch_continuity` method remains available for comparison by setting the method back explicitly. Supported experimental methods:
+`src/feilunqiege/geometry/normal_p1.py` is the P1 normal backend. `configs/default.json` keeps `normal_estimation.method = "surface_patch_continuity"` as the production default because the full 415-point P1 run did not improve the global feasible count (26924 vs 26929); P1 is enabled explicitly for branch-7/feature experiments. The historical `surface_patch_continuity` method remains the baseline for comparison. Supported experimental methods:
 
 - `p1` — orientation repair + normal clustering + shape-aware patch + jet fit + crease gate (recommended combination);
 - `zhong2021` — shape-aware patch with l0-style trimming (Zhong et al. 2021);
@@ -40,6 +40,8 @@ python scripts/visualize_p1_method_comparison.py
 The comparison runner computes normal metrics for all selected points and exact collision counts for the default branch 4/7 points. It writes `p1_method_comparison.json`, `p1_method_comparison.csv`, and `p1_method_summary.json` under a new `results/cases/circle/p1_method_comparison_*` directory. The visualization script writes `p1_summary_dashboard.png`, per-method `p1_<method>_branch7.png`, and per-method `p1_<method>_normals.obj/.mtl` (source_obj coordinates). These are experiment outputs, not a production acceptance or process conclusion.
 
 The latest merged experiment report is `results/cases/circle/p1_method_comparison_final_20261026_115832_236433/p1_experiment_report.md`, with visualizations under `visualizations_v3/`.
+
+P1 safety fixes: `shape_aware_patch` no longer falls back to the complete mixed neighborhood for a jet fit. If no cluster meets the minimum patch support, it rebuilds from the largest single coherent cluster; if that still fails, the patch is marked invalid and jet fitting is disabled. `pipeline.py` now requests and preserves P1 diagnostics: per-point `normal_confidence`, `normal_confidence_counts`, and `low_confidence_point_indices` are written to the summary so low-confidence best-effort normals are not silently treated as accepted truth. The full P1 delivery exporter (`scripts/export_p1_full_delivery.py`) writes the three OBJ files plus one `<point_index>.obj` for every point with any infeasible angle; each per-point OBJ colors the selected patch faces (two colors when two sides exist) and draws face, cluster, and final normals as solid 3D arrows rather than lines.
 
 
 砂轮切除铸件飞边的可行区域与路径规划研究。

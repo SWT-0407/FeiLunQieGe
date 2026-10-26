@@ -79,6 +79,8 @@ class PatchInfo:
     patch_scale: float
     patch_radius_current: float
     low_support: bool
+    valid_patch: bool = True
+    fallback_reason: str | None = None
 
 
 @dataclass
@@ -485,8 +487,27 @@ def shape_aware_patch(
             best_score = score
             best = patch
     if best is None:
+        # 不再把完整混合邻域直接当作一个 patch。优先用支持最大的单一
+        # 法向簇重建 patch；若该簇仍不足 min_patch_support，则标记为无效
+        # patch，后续禁止 jet 拟合，避免把两个不同表面混在一起。
         clusters = cluster_normals(candidates, distances, mesh, angle_deg=cluster_angle_deg, min_support=1)
-        best = _patch_stats(point, candidates, distances, mesh, clusters)
+        primary = max(clusters, key=lambda cluster: cluster.support) if clusters else None
+        if primary is not None and primary.support >= int(min_patch_support):
+            mask = np.isin(candidates, primary.indices)
+            selected_indices = candidates[mask]
+            selected_distances = distances[mask]
+            clusters = cluster_normals(
+                selected_indices,
+                selected_distances,
+                mesh,
+                angle_deg=cluster_angle_deg,
+                min_support=1,
+            )
+            best = _patch_stats(point, selected_indices, selected_distances, mesh, clusters)
+        else:
+            best = _patch_stats(point, candidates, distances, mesh, clusters)
+            best.valid_patch = False
+            best.fallback_reason = "no_cluster_meets_min_patch_support"
     return best
 
 
@@ -628,6 +649,8 @@ def _confidence_from_patch(
     trim_angle: float,
 ) -> tuple[bool, list[str]]:
     reasons: list[str] = []
+    if not patch.valid_patch:
+        reasons.append("invalid_patch")
     if patch.primary.support < min_support_faces:
         reasons.append("primary_support_too_small")
     if patch.patch_scale <= 1e-9:
@@ -783,7 +806,7 @@ def estimate_normals_experimental(
             if patch.secondary is not None:
                 robust_secondary, _ = robust_cluster_normal(patch.secondary, mesh_data)
         fit = None
-        if _method_uses_jet(method):
+        if _method_uses_jet(method) and patch.valid_patch:
             fit = jet_fit(
                 point,
                 patch.indices,
@@ -842,6 +865,14 @@ def estimate_normals_experimental(
                 "primary_normal": patch.primary.mean.tolist(),
                 "secondary_normal": patch.secondary.mean.tolist() if patch.secondary is not None else None,
                 "patch_face_indices": patch.indices.astype(int).tolist(),
+                "primary_face_indices": patch.primary.indices.astype(int).tolist(),
+                "secondary_face_indices": (
+                    patch.secondary.indices.astype(int).tolist()
+                    if patch.secondary is not None
+                    else []
+                ),
+                "patch_valid": bool(patch.valid_patch),
+                "patch_fallback_reason": patch.fallback_reason,
                 "patch_average_normal": patch.primary.mean.tolist(),
                 "patch_scale": patch.patch_scale,
                 "patch_radius_current": patch.patch_radius_current,
