@@ -66,6 +66,10 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
     sampled = split_and_resample(root_line, int(config["sampling"]["curve_points"]))
     normal_config = config.get("normal_estimation", {})
     normal_method = str(normal_config.get("method", "surface_patch_continuity"))
+    experimental_normal_methods = {
+        "p1", "zhong2021", "zhang2015", "cazals2005", "li2010",
+        "zhong+cazals", "zhang+cazals", "li+zhong", "all",
+    }
     nominal_radius = float(config["wheel"]["radius"])
     max_patch_radius = float(normal_config.get("max_patch_radius_ratio", 1.0)) * nominal_radius
     surface_normals = estimate_surface_normals(
@@ -94,12 +98,13 @@ def run_from_config(config_path: str | Path, *, case_name: str | None = None) ->
         surface_patch_fit_residual_ratio=float(normal_config.get("fit_residual_ratio", 0.02)),
         continuity_repair_degrees=float(normal_config.get("continuity_repair_degrees", 30.0)),
         continuity_repair_iterations=int(normal_config.get("continuity_repair_iterations", 3)),
+        p1_config=normal_config.get("p1"),
     )
     frames = build_frames(
         sampled.points,
         sampled.tangents,
         surface_normals,
-        normal_is_reliable=(normal_method == "surface_patch_continuity"),
+        normal_is_reliable=(normal_method == "surface_patch_continuity" or normal_method in experimental_normal_methods),
         tangent_normal_threshold=float(normal_config.get("tangent_normal_threshold", 0.2)),
     )
 

@@ -589,6 +589,7 @@ class SurfacePatchNormals:
 
     average_normals: np.ndarray
     fit_normals: np.ndarray
+    raw_fit_normals: np.ndarray
     coherence_deg: np.ndarray
     nearest_distance: np.ndarray
     face_count: np.ndarray
@@ -640,6 +641,7 @@ def _surface_patch_normals(
     empty = SurfacePatchNormals(
         average_normals=np.empty((0, 3), dtype=float),
         fit_normals=np.empty((0, 3), dtype=float),
+        raw_fit_normals=np.empty((0, 3), dtype=float),
         coherence_deg=np.empty(0, dtype=float),
         nearest_distance=np.empty(0, dtype=float),
         face_count=np.empty(0, dtype=np.int64),
@@ -825,6 +827,7 @@ def _surface_patch_normals(
     return SurfacePatchNormals(
         average_normals=average_normals,
         fit_normals=chosen,
+        raw_fit_normals=fit_normals.copy(),
         coherence_deg=coherence,
         nearest_distance=nearest,
         face_count=face_counts,
@@ -1109,7 +1112,8 @@ def _refine_normals_with_surface_patch(
         local_diagnostics[index]["normal_source"] = normal_sources[index]
         local_diagnostics[index]["surface_patch_normal"] = patch_normals[index].tolist()
         local_diagnostics[index]["surface_patch_average_normal"] = patch_average[index].tolist()
-        local_diagnostics[index]["surface_patch_fit_normal"] = patch_normals[index].tolist()
+        local_diagnostics[index]["surface_patch_fit_normal"] = patch_result.raw_fit_normals[index].tolist()
+        local_diagnostics[index]["surface_patch_chosen_normal"] = patch_normals[index].tolist()
         local_diagnostics[index]["surface_patch_coherence_deg"] = float(coherence[index])
         local_diagnostics[index]["surface_patch_face_count"] = int(face_counts[index])
         local_diagnostics[index]["surface_patch_patch_radius"] = float(patch_radii[index])
@@ -1162,6 +1166,7 @@ def estimate_surface_normals(
     surface_patch_fit_residual_ratio: float = 0.02,
     continuity_repair_degrees: float = 30.0,
     continuity_repair_iterations: int = 3,
+    p1_config: dict[str, Any] | None = None,
     return_diagnostics: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, list[dict[str, Any]]]:
     """在局部两侧面法向基础上执行 root_line 分支级连续性修正。
@@ -1173,6 +1178,37 @@ def estimate_surface_normals(
     候选解释的异常会保留诊断标记，不静默伪装成高置信度结果。
     """
     points_array = np.asarray(points, dtype=float)
+    if normal_method in {
+        "p1",
+        "zhong2021",
+        "zhang2015",
+        "cazals2005",
+        "li2010",
+        "zhong+cazals",
+        "zhang+cazals",
+        "li+zhong",
+        "all",
+    }:
+        # P1/文献实验后端放在独立模块，避免改变历史 surface_patch_continuity
+        # 的行为；只有显式选择这些 method 时才走新逻辑。
+        from feilunqiege.geometry.normal_p1 import estimate_normals_experimental
+
+        config = dict(p1_config or {})
+        config.setdefault("candidate_faces", max(int(surface_patch_neighbors), 64))
+        config.setdefault("candidate_radius", float(surface_patch_max_radius))
+        if "candidate_radius_ratio" in config:
+            config["candidate_radius"] = float(config["candidate_radius_ratio"]) * float(surface_patch_max_radius)
+        config.setdefault("min_patch_faces", int(surface_patch_min_faces))
+        config.setdefault("fit_residual_ratio", float(surface_patch_fit_residual_ratio))
+        config.setdefault("orientation_repair", True)
+        result, diagnostics = estimate_normals_experimental(
+            points_array,
+            mesh,
+            method=normal_method,
+            config=config,
+            return_diagnostics=True,
+        )
+        return (result, diagnostics) if return_diagnostics else result
     if side_direction_hints is not None:
         side_hints = np.asarray(side_direction_hints, dtype=float)
         if side_hints.shape != points_array.shape:

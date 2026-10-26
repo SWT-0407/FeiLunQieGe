@@ -65,7 +65,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--normal-method",
         default=None,
-        choices=("two_face_angle_bisector", "surface_patch_continuity"),
+        choices=(
+            "two_face_angle_bisector",
+            "surface_patch_continuity",
+            "p1",
+            "zhong2021",
+            "zhang2015",
+            "cazals2005",
+            "li2010",
+            "zhong+cazals",
+            "zhang+cazals",
+            "li+zhong",
+            "all",
+        ),
         help="法向估计方法；默认读取 normal_estimation.method",
     )
     parser.add_argument("--surface-patch-neighbors", type=int, default=None)
@@ -796,6 +808,7 @@ def main() -> int:
             "surface_patch_max_radius": float(normal_config.get("max_patch_radius_ratio", 1.0)) * radius,
             "surface_patch_fit_min_points": int(normal_config.get("fit_min_points", 8)),
             "surface_patch_fit_residual_ratio": float(normal_config.get("fit_residual_ratio", 0.02)),
+            "p1_config": normal_config.get("p1"),
         }
     )
     delta = float(config["wheel"].get("delta", 0.0))
@@ -821,7 +834,13 @@ def main() -> int:
         sampled.points,
         sampled.tangents,
         normals,
-        normal_is_reliable=(normal_method == "surface_patch_continuity"),
+        normal_is_reliable=(
+            normal_method == "surface_patch_continuity"
+            or normal_method in {
+                "p1", "zhong2021", "zhang2015", "cazals2005", "li2010",
+                "zhong+cazals", "zhang+cazals", "li+zhong", "all",
+            }
+        ),
         tangent_normal_threshold=tangent_normal_threshold,
     )
     angles = np.linspace(0.0, 2.0 * np.pi, arguments.angle_count, endpoint=False)
@@ -946,6 +965,20 @@ def main() -> int:
     frame_rotation = []
     tangent_dot_axis = []
     for index, item in enumerate(normal_diagnostics):
+        # P1/实验后端使用另一套诊断字段；这里做只读适配，保证摘要仍可读。
+        if "selected_normal" not in item and "normal" in item:
+            item["selected_normal"] = item["normal"]
+        if "surface_patch_normal" not in item and "patch_average_normal" in item:
+            item["surface_patch_normal"] = item["patch_average_normal"]
+        if "surface_patch_fit_residual" not in item and isinstance(item.get("fit"), dict):
+            item["surface_patch_fit_residual"] = item["fit"].get("residual")
+        if "surface_patch_low_support" not in item:
+            item["surface_patch_low_support"] = bool(
+                item.get("normal_confidence") == "low"
+                or item.get("low_confidence")
+            )
+        if "surface_patch_face_count" not in item and "patch_face_indices" in item:
+            item["surface_patch_face_count"] = int(len(item["patch_face_indices"]))
         frame = frames[index]
         raw_normal = np.asarray(item.get("selected_normal", frame.axis), dtype=float)
         patch_normal = np.asarray(item.get("surface_patch_normal", frame.axis), dtype=float)
@@ -977,9 +1010,9 @@ def main() -> int:
     ]
     normal_audit.update(
         {
-            "surface_fit_point_count": int(sum(item.get("normal_source") == "surface_fit" for item in normal_diagnostics)),
+            "surface_fit_point_count": int(sum(item.get("normal_source") in {"surface_fit", "jet_fit"} for item in normal_diagnostics)),
             "surface_patch_average_point_count": int(
-                sum(item.get("normal_source") == "surface_patch_average" for item in normal_diagnostics)
+                sum(item.get("normal_source") in {"surface_patch_average", "shape_patch_mean", "primary_cluster_mean"} for item in normal_diagnostics)
             ),
             "low_support_point_count": int(
                 sum(bool(item.get("surface_patch_low_support", False)) for item in normal_diagnostics)

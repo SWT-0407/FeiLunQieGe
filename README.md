@@ -16,6 +16,32 @@ When delivering pose examples, `run_leaf_stage3_visualization.py --wheels-only-i
 
 The current delivery uses the original `mesh_without_flash.obj` for collision; the simplified-mesh comparison is kept as a commented code path and can be enabled with `--workpiece-mesh mesh_without_flash_simplified.obj`. `--inspection-auto` selects inspection points from infeasible, low-support, branch-7, and known-problem categories, then exports up to one red infeasible and one green feasible wheel per selected point.
 
+## P1 normal experiment backend
+
+`src/feilunqiege/geometry/normal_p1.py` is the P1 normal backend. `configs/default.json` now selects `normal_estimation.method = "p1"`; the historical `surface_patch_continuity` method remains available for comparison by setting the method back explicitly. Supported experimental methods:
+
+- `p1` — orientation repair + normal clustering + shape-aware patch + jet fit + crease gate (recommended combination);
+- `zhong2021` — shape-aware patch with l0-style trimming (Zhong et al. 2021);
+- `zhang2015` — guidance patch + bilateral normal filtering (Zhang et al. 2015);
+- `cazals2005` — PCA/weighted quadratic jet fitting with condition/coverage checks (Cazals & Pouget 2005);
+- `li2010` — robust sharp-feature clusters (Li et al. 2010);
+- `zhong+cazals`, `zhang+cazals`, `li+zhong`, `all` — combinations.
+
+The historical `surface_patch_continuity` path is retained unchanged for comparison. P1 parameters live under `normal_estimation.p1` in `configs/default.json`: crease angle 10°, support ratio 0.35, minimum side support 6, fit condition reject 1e6, hull coverage 0.1, q90 patch scale, and orientation repair enabled. `max_bisector_deviation_degrees` is not used as a hard P1 gate because P0 showed it is not monotonic with correctness.
+
+`frame.py` now dispatches these method names to the new backend and records both `surface_patch_fit_normal` (raw fit) and `surface_patch_chosen_normal` (fit or average). Comparison and visualization entry points:
+
+```powershell
+python scripts/run_p1_method_comparison.py --normal-metrics-only
+python scripts/run_p1_method_comparison.py
+python scripts/visualize_p1_method_comparison.py
+```
+
+The comparison runner computes normal metrics for all selected points and exact collision counts for the default branch 4/7 points. It writes `p1_method_comparison.json`, `p1_method_comparison.csv`, and `p1_method_summary.json` under a new `results/cases/circle/p1_method_comparison_*` directory. The visualization script writes `p1_summary_dashboard.png`, per-method `p1_<method>_branch7.png`, and per-method `p1_<method>_normals.obj/.mtl` (source_obj coordinates). These are experiment outputs, not a production acceptance or process conclusion.
+
+The latest merged experiment report is `results/cases/circle/p1_method_comparison_final_20261026_115832_236433/p1_experiment_report.md`, with visualizations under `visualizations_v3/`.
+
+
 砂轮切除铸件飞边的可行区域与路径规划研究。
 
 本仓库现在包含一个可运行的最小几何闭环。它用于验证数据读取、曲线切线、无厚度砂轮候选中心生成、保守碰撞筛选和总览图输出；结果仍属于 preliminary geometry run，不是实际加工结论。远程仓库原先为空，本地已从 `https://github.com/SWT-0407/FeiLunQieGe` 克隆。

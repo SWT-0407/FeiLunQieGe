@@ -33,7 +33,7 @@
     "radial_samples": 3
   },
   "normal_estimation": {
-    "method": "surface_patch_continuity",
+    "method": "p1",
     "surface_patch_neighbors": 32,
     "surface_patch_distance_factor": 3.0,
     "surface_patch_coherence_degrees": 25.0,
@@ -54,7 +54,24 @@
     "continuity_jump_threshold_degrees": 20.0,
     "continuity_normal_weight": 1.0,
     "continuity_patch_weight": 0.15,
-    "continuity_distance_weight": 0.1
+    "continuity_distance_weight": 0.1,
+    "p1": {
+      "candidate_faces": 96,
+      "candidate_radius_ratio": 1.0,
+      "min_patch_faces": 10,
+      "min_cluster_support": 4,
+      "normal_cluster_angle_degrees": 15.0,
+      "min_crease_angle_degrees": 10.0,
+      "min_side_support_ratio": 0.35,
+      "min_side_support_faces": 6,
+      "l0_trim_angle_degrees": 25.0,
+      "fit_residual_ratio": 0.02,
+      "max_fit_condition": 1000000.0,
+      "min_hull_area_ratio": 0.1,
+      "guided_sigma_scale": 0.008,
+      "guided_sigma_angle_degrees": 15.0,
+      "orientation_repair": true
+    }
   },
   "visualization": {
     "max_surface_faces": 20000,
