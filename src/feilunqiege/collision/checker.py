@@ -37,6 +37,7 @@ class CollisionResult:
     contact_max_penetration: Any | None = None
     contact_patch_max_distance: Any | None = None
     contact_triangle_count: Any | None = None
+    penetration: Any | None = None
 
 
 @dataclass(frozen=True)

@@ -18,7 +18,7 @@ The current delivery uses the original `mesh_without_flash.obj` for collision; t
 
 ## P1 normal experiment backend
 
-`src/feilunqiege/geometry/normal_p1.py` is the P1 normal backend. `configs/default.json` keeps `normal_estimation.method = "surface_patch_continuity"` as the production default because the full 415-point P1 run did not improve the global feasible count (26924 vs 26929); P1 is enabled explicitly for branch-7/feature experiments. The historical `surface_patch_continuity` method remains the baseline for comparison. Supported experimental methods:
+`src/feilunqiege/geometry/normal_p1.py` is the P1 normal backend. Per the user's selection, `configs/default.json` now uses `normal_estimation.method = "p1"` as the production default; the historical `surface_patch_continuity` method remains available as a baseline. After the collision penetration/patch fixes, the full 415-point P1 run gives 26914 feasible candidates vs baseline 26929, so P1 remains a branch-7/feature-oriented choice rather than a global-feasibility improvement. Supported experimental methods:
 
 - `p1` — orientation repair + normal clustering + shape-aware patch + jet fit + crease gate (recommended combination);
 - `zhong2021` — shape-aware patch with l0-style trimming (Zhong et al. 2021);

@@ -363,3 +363,28 @@ def test_target_contact_exemption_requires_shallow_penetration() -> None:
     )
     assert not bool(shallow_limit.feasible[0])
     assert bool(deep_limit.feasible[0])
+
+
+def test_penetration_uses_closest_radial_point_not_only_vertices() -> None:
+    """三角形内部覆盖轴线时，径向穿透不能只用顶点半径估计。"""
+
+    radius = 0.02
+    width = 0.004
+    half = width / 2.0
+    z = -half + 0.0006
+    triangle = np.array([
+        [0.0195, 0.0, z],
+        [-0.00975, 0.01689, z],
+        [-0.00975, -0.01689, z],
+    ], dtype=float)
+    state = triangle_cylinder_contact_state_analytic(
+        triangle,
+        np.zeros(3),
+        np.array([0.0, 0.0, 1.0]),
+        radius,
+        width,
+        contact_point=np.array([0.0, 0.0, z]),
+    )
+    assert state.hit
+    # 真实近端面穿透约 0.0006；修复后应至少达到该量级，而不是 0.0005。
+    assert state.penetration >= 0.0006 - 1e-9
