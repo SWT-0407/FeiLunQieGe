@@ -345,3 +345,13 @@ pipeline 默认：
 三 OBJ 交付：`results/cases/circle/p1_three_obj_fixed_20261027/`。
 
 仍未改变：72 角度离散、单层 `rho=r`、无连续角度边界、`check_flash_mesh=false`、无 clearance、单射线包含测试。
+
+---
+
+## 9. 2026-10-29 all-point fallback
+
+- 对 415 个点先按 P1 主轴计算 72 个角度；若某点 0 可行，尝试局部法向簇、底部面法向和折边候选作为 fallback axis；
+- 点 400 使用 `fallback_axis`，得到 5/72 可行（其余 67 为 triangle interior）；normal_confidence 标为 low；
+- 全量结果：26,919 / 29,880 可行，415 个点全部至少 1 个可行角，完全无解点 0 个；57 个点仍存在部分不可行角度；
+- 三 OBJ 交付：`results/cases/circle/p1_full_delivery_20261029_233114_679352/`；
+- 砂轮 OBJ 不再输出蓝色接触点，只保留红色不可行和绿色可行砂轮。

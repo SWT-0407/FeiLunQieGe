@@ -22,7 +22,7 @@
 - `build_frames(normal_is_reliable=True)` **始终固定法向**，并把曲线切线投影到法向的切平面内，保证 `t·n≈0`；不再用 `tangent_normal_threshold` 决定是否旋转法向。这样短分支/端点的差分切线不会把正确的表面法向旋转数度。
 - 局部面片估计使用 `min_patch_faces=10`、`max_patch_radius_ratio=1.0`；先统一有向符号，再做面积/距离加权平均，并用局部二次曲面拟合求接触点法向（`fit_min_points=8`、`fit_residual_ratio=0.02`）。光滑面片优先使用拟合/平均法向；只有 `coherence > 25°` 的真实棱边才使用两侧角平分线。
 - P1 实验后端位于 `src/feilunqiege/geometry/normal_p1.py`；按用户选择，`configs/default.json` 的 `normal_estimation.method` 现为 `p1`，历史 `surface_patch_continuity` 保留为 baseline。碰撞 penetration/patch 修复后 full 415 点 P1 为 26914 可行，baseline 26929，因此 P1 不是全局可行率提升，而是 branch 7/特征导向的选择。P1 使用法向聚类/两侧支持平衡（angle12≥10°、support ratio≥0.35、side support≥6）替代 `coherence` 单判据，使用 q90 patch scale、jet 条件数/凸包覆盖检查和 source-specific 低置信度；`max_bisector_deviation_degrees` 不作为硬门。文献方法名包括 `zhong2021`、`zhang2015`、`cazals2005`、`li2010` 及其组合。
-- P1 patch 失败时不得把完整混合邻域继续用于 jet fit：优先用最大一致簇重建；仍不足最小支持则标记 `patch_valid=false` 并禁用拟合。`pipeline.py` 请求并保存逐点 `normal_confidence`；低置信度法向只作为 best-effort 几何，不得静默当作法向真值。`scripts/export_p1_full_delivery.py` 输出三个 OBJ 以及每个不可行点的 `<point_index>.obj`（面片分色，法向为 3D 箭头几何）。
+- P1 patch 失败时不得把完整混合邻域继续用于 jet fit：优先用最大一致簇重建；仍不足最小支持则标记 `patch_valid=false` 并禁用拟合。`pipeline.py` 请求并保存逐点 `normal_confidence`；低置信度法向只作为 best-effort 几何，不得静默当作法向真值。`scripts/export_p1_full_delivery.py --three-obj-only` 输出三个 OBJ；若某点 0 可行，会尝试局部簇法向、底部面法向和折边候选作为 fallback axis，选择有可行角的轴并标记 `fallback_axis`/low confidence。砂轮 OBJ 省略蓝色接触点，只保留红色不可行、绿色可行砂轮。全点最少一可行的最新交付见 `results/cases/circle/p1_full_delivery_20261029_233114_679352/`。
 - 面片支撑不足、符号一致性差或棱边分组不明确的点标记 `low_confidence`，不再把单三角形 `coherence=0` 当作高置信度。
 - `max_bisector_deviation_degrees=3.5` 仅作为棱边处角平分线的 sanity 阈值；不再是光滑面片的主切换条件。
 - `--wheels-only-infeasible` 时第三个 OBJ 只输出存在不可行角的 root 点各一个红色砂轮；若没有不可行候选，OBJ 只保留根部线并在文件头说明。

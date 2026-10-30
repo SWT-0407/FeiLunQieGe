@@ -34,8 +34,10 @@ from feilunqiege.collision.cylinder_exact import (  # noqa: E402
 from feilunqiege.geometry.curve import split_and_resample  # noqa: E402
 from feilunqiege.geometry.frame import build_frames  # noqa: E402
 from feilunqiege.geometry.normal_p1 import (  # noqa: E402
+    cluster_normals,
     estimate_normals_experimental,
     prepare_mesh,
+    query_candidates,
 )
 from feilunqiege.io.mesh import load_mesh  # noqa: E402
 from feilunqiege.io.root_line import load_root_line  # noqa: E402
@@ -313,6 +315,116 @@ illum 0
 
 
 # ----------------------------- main -----------------------------
+def _unique_axes(axes: list[np.ndarray]) -> list[np.ndarray]:
+    result: list[np.ndarray] = []
+    for axis in axes:
+        axis = np.asarray(axis, dtype=float)
+        norm = float(np.linalg.norm(axis))
+        if norm <= 1e-12:
+            continue
+        axis = axis / norm
+        if all(float(np.dot(axis, other)) < math.cos(math.radians(1.0)) for other in result):
+            result.append(axis)
+    return result
+
+
+def _fallback_axes(
+    point: np.ndarray,
+    diagnostic: dict,
+    mesh_data,
+    *,
+    radius: float,
+    min_faces: int,
+) -> list[np.ndarray]:
+    """为完全无解点收集局部可行轴候选。"""
+
+    axes = [
+        np.asarray(diagnostic.get("normal", [0.0, 0.0, 1.0]), dtype=float),
+        np.asarray(diagnostic.get("primary_normal", [0.0, 0.0, 1.0]), dtype=float),
+    ]
+    secondary = diagnostic.get("secondary_normal")
+    if secondary is not None:
+        secondary = np.asarray(secondary, dtype=float)
+        axes.append(secondary)
+        axes.append(np.asarray(diagnostic["primary_normal"], dtype=float) + secondary)
+    candidates, distances = query_candidates(
+        point,
+        mesh_data,
+        k=96,
+        radius=radius,
+        min_faces=min_faces,
+    )
+    if len(candidates):
+        clusters = cluster_normals(
+            candidates,
+            distances,
+            mesh_data,
+            angle_deg=15.0,
+            min_support=2,
+        )
+        axes.extend(cluster.mean for cluster in clusters)
+        face_normals = mesh_data.normals[candidates]
+        bottom_like = face_normals[face_normals[:, 2] < -0.9]
+        if len(bottom_like):
+            bottom_mean = bottom_like.mean(axis=0)
+            if float(np.linalg.norm(bottom_mean)) > 1e-12:
+                axes.append(bottom_mean)
+    return _unique_axes(axes)
+
+
+def _evaluate_axis(
+    point: np.ndarray,
+    tangent: np.ndarray,
+    axis: np.ndarray,
+    point_index: int,
+    *,
+    radius: float,
+    width: float,
+    angles: np.ndarray,
+    workpiece,
+    cylinder_index,
+    collision_config: dict,
+    contact_patch: dict,
+) -> dict[str, object]:
+    frame = build_frames(
+        np.asarray([point]),
+        np.asarray([tangent]),
+        np.asarray([axis]),
+        normal_is_reliable=True,
+    )[0]
+    candidates = _candidate_set(point, frame, radius, width, angles, point_index, 1.0)
+    result = check_finite_cylinder_candidates_exact(
+        candidates,
+        workpiece,
+        width,
+        inner_radius=0.0,
+        clearance=float(collision_config.get("clearance", 0.0)),
+        allow_target_contact=bool(collision_config.get("allow_target_contact", True)),
+        target_contact_tolerance=float(collision_config.get("target_contact_tolerance", 1e-4)),
+        contact_patch_enabled=bool(contact_patch.get("enabled", True)),
+        contact_patch_radius=float(contact_patch.get("radius", 2.0 * radius)),
+        max_contact_penetration=float(contact_patch.get("max_penetration", 0.025 * radius)),
+        contact_normal_tolerance_degrees=float(contact_patch.get("normal_tolerance_degrees", 30.0)),
+        narrow_phase=str(collision_config.get("narrow_phase", "analytic_closest_point_flat")),
+        cylinder_index=cylinder_index,
+    )
+    return {
+        "point_index": int(point_index),
+        "contact_points": np.asarray(candidates.contact_points),
+        "centers": np.asarray(candidates.centers),
+        "radius_directions": np.asarray(candidates.radius_directions),
+        "tangent_directions": np.asarray(candidates.tangent_directions),
+        "axis_directions": np.asarray(candidates.axis_directions),
+        "point_indices": np.asarray(candidates.point_indices),
+        "radial_values": np.asarray(candidates.radial_values),
+        "angles": np.asarray(candidates.angles),
+        "radius": float(candidates.radius),
+        "feasible": np.asarray(result.feasible, dtype=bool),
+        "reason": np.asarray(result.reason, dtype=object),
+        "contact_max_penetration": np.asarray(result.contact_max_penetration),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="P1 全量三 OBJ + 每点 patch/法向箭头")
     parser.add_argument("--config", default="configs/default.json")
@@ -320,6 +432,7 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--max-points", type=int, default=None)
     parser.add_argument("--points", default=None, help="逗号分隔的点编号，用于烟雾测试")
+    parser.add_argument("--three-obj-only", action="store_true", help="只输出三个主 OBJ，不输出逐点 patch OBJ")
     parser.add_argument("--output-dir", default=None)
     arguments = parser.parse_args()
 
@@ -367,6 +480,68 @@ def main() -> int:
             results[int(chunk_result["point_index"])] = chunk_result
             if len(results) % 25 == 0 or len(results) == len(point_indices):
                 print(f"collision_points={len(results)}/{len(point_indices)}", flush=True)
+
+    mesh_data = prepare_mesh(workpiece)
+    collision_config = dict(config.get("collision", {}))
+    contact_patch = {
+        "enabled": bool(collision_config.get("contact_patch_enabled", True)),
+        "radius": float(collision_config.get("contact_patch_radius_ratio", 2.0)) * radius,
+        "max_penetration": float(collision_config.get("contact_patch_max_penetration_ratio", 0.025)) * radius,
+        "normal_tolerance_degrees": float(collision_config.get("contact_patch_normal_tolerance_degrees", 30.0)),
+    }
+    fallback_points: list[dict[str, object]] = []
+    zero_indices = [
+        point_index for point_index in point_indices
+        if int(np.count_nonzero(np.asarray(results[point_index]["feasible"], dtype=bool))) == 0
+    ]
+    if zero_indices:
+        fallback_index = build_cylinder_triangle_index(workpiece)
+        for point_index in zero_indices:
+            axes = _fallback_axes(
+                np.asarray(sampled.points[point_index], dtype=float),
+                diagnostics[point_index],
+                mesh_data,
+                radius=radius,
+                min_faces=int(config.get("normal_estimation", {}).get("min_patch_faces", 10)),
+            )
+            best = None
+            best_count = -1
+            best_axis = None
+            for axis in axes:
+                evaluated = _evaluate_axis(
+                    np.asarray(sampled.points[point_index], dtype=float),
+                    np.asarray(sampled.tangents[point_index], dtype=float),
+                    axis,
+                    point_index,
+                    radius=radius,
+                    width=width,
+                    angles=angles,
+                    workpiece=workpiece,
+                    cylinder_index=fallback_index,
+                    collision_config=collision_config,
+                    contact_patch=contact_patch,
+                )
+                count = int(np.count_nonzero(np.asarray(evaluated["feasible"], dtype=bool)))
+                if count > best_count:
+                    best_count = count
+                    best = evaluated
+                    best_axis = axis
+            if best is not None and best_count > 0:
+                results[point_index] = best
+                diagnostics[point_index]["normal"] = np.asarray(best_axis, dtype=float).tolist()
+                diagnostics[point_index]["normal_source"] = "fallback_axis"
+                diagnostics[point_index]["normal_confidence"] = "low"
+                reasons = list(diagnostics[point_index].get("low_confidence_reasons", []))
+                if "zero_feasible_primary_axis" not in reasons:
+                    reasons.append("zero_feasible_primary_axis")
+                diagnostics[point_index]["low_confidence_reasons"] = reasons
+                fallback_points.append(
+                    {
+                        "point_index": point_index,
+                        "axis": np.asarray(best_axis, dtype=float).tolist(),
+                        "feasible_angle_count": best_count,
+                    }
+                )
 
     branches = _branch_runs(np.asarray(sampled.branch_ids, dtype=np.int64))
     audits: list[PointAudit | None] = [None] * len(sampled.points)
@@ -428,19 +603,20 @@ def main() -> int:
         int(config.get("visualization", {}).get("cylinder_segments", 64)),
         infeasible_points,
         per_point=2,
+        include_contact_points=False,
     )
 
-    _write_point_mtl(output_dir / "point_patches.mtl")
-    mesh_data = prepare_mesh(workpiece)
-    for point_index in infeasible_points:
-        _write_point_patch_obj(
-            output_dir / f"{point_index}.obj",
-            point_index,
-            diagnostics[point_index],
-            mesh_data,
-            sampled,
-            normalization,
-        )
+    if not arguments.three_obj_only:
+        _write_point_mtl(output_dir / "point_patches.mtl")
+        for point_index in infeasible_points:
+            _write_point_patch_obj(
+                output_dir / f"{point_index}.obj",
+                point_index,
+                diagnostics[point_index],
+                mesh_data,
+                sampled,
+                normalization,
+            )
 
     summary = {
         "case": arguments.case,
@@ -457,6 +633,8 @@ def main() -> int:
         "point_count": len(point_indices),
         "infeasible_point_count": len(infeasible_points),
         "infeasible_points": infeasible_points,
+        "fallback_axis_count": len(fallback_points),
+        "fallback_axis_points": fallback_points,
         "normal_confidence_counts": dict(Counter(str(row["normal_confidence"]) for row in point_records)),
         "point_records": point_records,
         "wheel_records": wheel_records,
@@ -464,29 +642,37 @@ def main() -> int:
             "centers_obj": str(centers_obj),
             "domains_obj": str(domains_obj),
             "wheels_obj": str(wheels_obj),
-            "point_patch_objs": [str(output_dir / f"{index}.obj") for index in infeasible_points],
-            "point_patches_mtl": str(output_dir / "point_patches.mtl"),
+            "point_patch_objs": (
+                [] if arguments.three_obj_only
+                else [str(output_dir / f"{index}.obj") for index in infeasible_points]
+            ),
+            "point_patches_mtl": (
+                None if arguments.three_obj_only
+                else str(output_dir / "point_patches.mtl")
+            ),
         },
-        "note": "Full P1 geometry visualization; not a process acceptance. Low-confidence normals are flagged in JSON/OBJ headers.",
+        "note": "Full P1 geometry visualization; not a process acceptance. Low-confidence/fallback normals are flagged in JSON/OBJ headers.",
     }
     (output_dir / "p1_full_summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    point_section = "" if arguments.three_obj_only else """
+- 逐点文件：
+  - `<point_index>.obj`：选中的 patch 面（两组颜色，若存在两侧）、每面法向箭头、组法向箭头、最终法向箭头、根点；
+  - `point_patches.mtl`：共享材质。
+"""
     (output_dir / "README.md").write_text(
-        f"""# P1 全量三 OBJ 与逐点面片/法向箭头
+        f"""# P1 三个 OBJ 交付
 
-- 方法：`p1`（与 `zhong+cazals` 同路径）
+- 方法：`p1`
 - 工件：`circle/mesh_without_flash.obj`（原始 full mesh）
 - 点：{len(point_indices)} 个 root-line 采样点；角度：72
-- 不可行点：{len(infeasible_points)} 个；每个点有 `<point_index>.obj`
+- 不可行点：{len(infeasible_points)} 个；其中 {len(fallback_points)} 个点使用了 fallback axis
 - 主文件：
   - `{centers_obj.name}`：根线 + 圆心；
   - `{domains_obj.name}`：可行/不可行中心域；
   - `{wheels_obj.name}`：不可行点的红色/绿色砂轮姿态；
-- 逐点文件：
-  - `<point_index>.obj`：选中的 patch 面（两组颜色，若存在两侧）、每面法向箭头、组法向箭头、最终法向箭头、根点；
-  - `point_patches.mtl`：共享材质。
-- 坐标：OBJ 为 `source_obj`；法向箭头是几何体，不是普通线段。
+{point_section}- 坐标：OBJ 为 `source_obj`。
 """,
         encoding="utf-8",
     )

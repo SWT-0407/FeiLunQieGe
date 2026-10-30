@@ -502,6 +502,7 @@ def _export_inspection_wheels(
     point_indices: list[int],
     *,
     per_point: int = 2,
+    include_contact_points: bool = True,
 ) -> list[dict[str, object]]:
     """导出需要人工检查的点的砂轮姿态。
 
@@ -524,7 +525,10 @@ def _export_inspection_wheels(
     with path.open("w", encoding="ascii", newline="\n") as handle:
         handle.write("# inspection wheel poses selected from infeasible/low-support/branch7 points\n")
         handle.write("# coordinate_frame: source_obj\n")
-        handle.write("# red = infeasible pose; green = feasible pose; blue = target/contact point\n")
+        if include_contact_points:
+            handle.write("# red = infeasible pose; green = feasible pose; blue = target/contact point\n")
+        else:
+            handle.write("# red = infeasible pose; green = feasible pose; contact points omitted\n")
         handle.write(f"mtllib {material_path.name}\n")
         handle.write("o root_line\nusemtl root_line_gray\n")
         next_vertex = _write_root_line(handle, sampled, branches, normalization)
@@ -563,13 +567,14 @@ def _export_inspection_wheels(
                     next_vertex,
                     cylinder_segments,
                 )
-                handle.write(f"o contact_point_{int(point_index):04d}\nusemtl contact_blue\n")
-                next_vertex = _write_center_marker(
-                    handle,
-                    _to_source(candidate.contact_points[local_index], normalization),
-                    marker_size,
-                    next_vertex,
-                )
+                if include_contact_points:
+                    handle.write(f"o contact_point_{int(point_index):04d}\nusemtl contact_blue\n")
+                    next_vertex = _write_center_marker(
+                        handle,
+                        _to_source(candidate.contact_points[local_index], normalization),
+                        marker_size,
+                        next_vertex,
+                    )
                 records.append(
                     {
                         "point_index": int(point_index),
