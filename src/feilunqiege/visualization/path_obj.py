@@ -83,6 +83,60 @@ def _write_center_marker(handle: Any, center: np.ndarray, size: float, first: in
     return first + 6
 
 
+def _write_tube(
+    handle: Any,
+    start: np.ndarray,
+    end: np.ndarray,
+    tube_radius: float,
+    first: int,
+    *,
+    segments: int = 8,
+) -> int:
+    """写一段细圆柱，把相邻路径中心连成 MeshLab 可见的实心线。
+
+    OBJ 的 ``l`` 元素在 MeshLab 中默认线宽很细、且不一定按材质显示；
+    为了让 ``·-·-·`` 在普通视图里可见，这里额外写一个多边形圆柱。
+    圆柱只用于显示，不参与碰撞或路径计算。
+    """
+
+    direction = np.asarray(end, dtype=float) - np.asarray(start, dtype=float)
+    length = float(np.linalg.norm(direction))
+    if length <= 1e-12:
+        return first
+    axis = direction / length
+    reference = np.array([1.0, 0.0, 0.0]) if abs(float(axis[0])) < 0.9 else np.array([0.0, 1.0, 0.0])
+    first_basis = np.cross(axis, reference)
+    first_basis /= max(float(np.linalg.norm(first_basis)), 1e-12)
+    second_basis = np.cross(axis, first_basis)
+    second_basis /= max(float(np.linalg.norm(second_basis)), 1e-12)
+
+    ring_start = first
+    ring_end = first + segments
+    for base in (np.asarray(start, dtype=float), np.asarray(end, dtype=float)):
+        for index in range(segments):
+            angle = 2.0 * np.pi * index / segments
+            point = base + float(tube_radius) * (
+                np.cos(angle) * first_basis + np.sin(angle) * second_basis
+            )
+            _write_vertex(handle, point)
+    # 侧面四边形
+    for index in range(segments):
+        nxt = (index + 1) % segments
+        handle.write(
+            f"f {ring_start + index} {ring_start + nxt} {ring_end + nxt} {ring_end + index}\n"
+        )
+    # 两端封口，避免在 MeshLab 中看起来像空心管
+    cap_start = ring_end + segments
+    cap_end = cap_start + 1
+    _write_vertex(handle, np.asarray(start, dtype=float))
+    _write_vertex(handle, np.asarray(end, dtype=float))
+    for index in range(segments):
+        nxt = (index + 1) % segments
+        handle.write(f"f {cap_start} {ring_start + index} {ring_start + nxt}\n")
+        handle.write(f"f {cap_end} {ring_end + nxt} {ring_end + index}\n")
+    return cap_end + 1
+
+
 def _material_for_side(lateral_side: int) -> tuple[str, str]:
     if lateral_side > 0:
         return "path_positive_blue", "path_node_positive"
@@ -107,11 +161,15 @@ def write_path_obj(
     material_path = path.with_suffix(".mtl")
     _write_mtl(material_path)
     scale = float(normalization.get("scale", 1.0))
-    marker_size = max(float(radius) * scale * 0.015, 1e-8)
+    # 点标记和线段都适当加粗，便于在 MeshLab 的普通视图里看到 ·-·-·。
+    marker_size = max(float(radius) * scale * 0.030, 1e-8)
+    tube_radius = max(float(radius) * scale * 0.020, 1e-9)
 
     with path.open("w", encoding="ascii", newline="\n") as handle:
         handle.write("# path planning visualization\n")
         handle.write("# coordinate_frame: source_obj\n")
+        handle.write("# rendering: adjacent selected centers are connected by l elements and thin tube faces\n")
+        handle.write("# rendering: marker_size and tube_radius are enlarged for visibility; not collision geometry\n")
         handle.write("# path_side_definition: lateral_side = sign(radius_direction . q), q = normalize(axis x tangent)\n")
         handle.write("# midline_candidates: theta=0/180 excluded from both lateral sides\n")
         handle.write("# cost: sum of Euclidean distances between consecutive selected wheel centers\n")
@@ -165,3 +223,18 @@ def write_path_obj(
             )
             for point in points_source:
                 next_vertex = _write_center_marker(handle, point, marker_size, next_vertex)
+
+            # 实心细管：MeshLab 对 OBJ l 元素的线宽支持有限，额外写入
+            # 圆柱面，使相邻中心在普通视图中也显示为连续线段。
+            if len(points_source) > 1:
+                handle.write(
+                    f"o path_tubes_{item.branch_label}_{side_name}\nusemtl {line_material}\n"
+                )
+                for first, second in zip(points_source[:-1], points_source[1:], strict=True):
+                    next_vertex = _write_tube(
+                        handle,
+                        first,
+                        second,
+                        tube_radius,
+                        next_vertex,
+                    )

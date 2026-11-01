@@ -91,3 +91,4 @@ The earlier interactive-demo notes in this file describe historical runs only. T
 - 同一 branch 有多条同长最优路径时，只导出最低候选索引的一条，并在 README/JSON 记录 branch 名称与最优路径条数（上限 2）。
 - 该交付的 72 角来自 `export_p1_full_delivery.py` 硬编码，不是 `configs/default.json` 的 `sampling.candidate_angles=180`；不得混用两组统计。
 - 文献依据与“本次采用/未采用”标记见 `docs/path_planning_literature_review_20261030.md` 第 3.4 节；任务/边界记录见 `docs/path_planning_task_plan_20261030.md`。
+- 2026-11-01 可视化修订：`circle_paths.obj` 的相邻选中中心除 `l` 线外，额外写成细圆柱面（tube），点标记和线径加粗；仅显示层变化，规划节点/角度/覆盖/JSON 未改。可用 `scripts/reexport_path_obj.py` 从既有 JSON/NPZ 重新导出。

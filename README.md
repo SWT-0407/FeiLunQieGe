@@ -149,6 +149,8 @@ results/cases/circle/p1_full_delivery_20261031_195757_314283/
 
 > 覆盖模型是一维弧长抽象：选中点覆盖 `[s-r, s+r]`；相邻选中点覆盖区间重叠即可跳过中间点；若某点在该侧完全无可行候选，覆盖区间不能跨过它。不是砂轮实体与工件表面的精确切除仿真。
 >
+> 2026-11-01 可视化修订：`circle_paths.obj` 的相邻选中中心除 `l` 线外，额外写成细圆柱面（tube），点标记和线径加粗；规划节点/角度/覆盖/JSON 未改。可用 `python scripts/reexport_path_obj.py --run-dir <run> --overwrite` 从既有 JSON/NPZ 重新导出。
+>
 > 全采样点 baseline 保留在 `results/cases/circle/p1_full_delivery_20261031_153521_498629/`，作为对照，不是最终覆盖优化结果。
 
 ---
