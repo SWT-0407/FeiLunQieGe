@@ -74,3 +74,20 @@
 - After the 12-case batch, stop for human inspection of PNG, JSON, OBJ/MTL coloring, and the source-coordinate alignment audit.
 
 The earlier interactive-demo notes in this file describe historical runs only. They are superseded for the current stage: the pipeline no longer creates HTML files.
+
+## 2026-10-31 路径规划交付（新增，不删除旧规则）
+
+- `scripts/export_p1_full_delivery.py --case circle --workers 16 --three-obj-only` 现在输出两个主 OBJ：
+  - `circle_feasible_center_domains.obj`：绿色可行/红色碰撞中心域；
+  - `circle_paths.obj`：`+q` 蓝色、`-q` 橙色路径 + 节点标记。
+- 同目录还输出 `p1_full_summary.json`、`path_planning_summary.json`、`path_candidates.npz`、`README.md`。这些文件只写入新的时间戳目录，不覆盖旧结果。
+- 圆心位置 OBJ 和砂轮姿态 OBJ 的**调用**已在 `scripts/export_p1_full_delivery.py` 中注释，并标记“保留，不要删除”；函数定义和依赖必须保留，以备复现。
+- 路径规划采用覆盖约束的分层有向图 + 动态规划；每点 72 个离散候选；`+q`/`-q` 两侧独立；branch 内强制 `q` 符号连续。
+- 覆盖模型：选中点 i 覆盖沿 branch 弧长的 `[s_i-r, s_i+r]`；相邻选中点覆盖区间重叠即可跳过中间采样点；起点/终点只需被覆盖，不强制选首末点。
+- 保守限制：若某采样点在该侧没有可行候选（现有全域碰撞结果），覆盖区间不能跨过它；边界取在该点与相邻可覆盖点的中点。
+- `max_angle_step_deg` 是砂轮端面圆周接触方向 θ 的变化（圆柱轴对称）；`max_axis_step_deg` 是实际砂轮轴向 a 的夹角，是姿态连续性指标。
+- 本轮**未做边级扫掠碰撞审计**；只检查节点级可行性。侧向一致性只要求砂轮中心在指定一侧。
+- `branch_07 +q` 为 `no_path`（396–403 在该侧无可行候选，覆盖区间不能跨过）；`-q` 可覆盖全部 10 点（覆盖优化可能只选 1 个点）。这是退化“往返”分支，不是工件不可加工。
+- 同一 branch 有多条同长最优路径时，只导出最低候选索引的一条，并在 README/JSON 记录 branch 名称与最优路径条数（上限 2）。
+- 该交付的 72 角来自 `export_p1_full_delivery.py` 硬编码，不是 `configs/default.json` 的 `sampling.candidate_angles=180`；不得混用两组统计。
+- 文献依据与“本次采用/未采用”标记见 `docs/path_planning_literature_review_20261030.md` 第 3.4 节；任务/边界记录见 `docs/path_planning_task_plan_20261030.md`。

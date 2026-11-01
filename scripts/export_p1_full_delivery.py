@@ -42,7 +42,14 @@ from feilunqiege.geometry.normal_p1 import (  # noqa: E402
 from feilunqiege.io.mesh import load_mesh  # noqa: E402
 from feilunqiege.io.root_line import load_root_line  # noqa: E402
 from feilunqiege.pipeline import _normalize_case_geometry  # noqa: E402
+from feilunqiege.planning.path_planning import (  # noqa: E402
+    LATERAL_TOLERANCE,
+    branch_runs,
+    classify_branch_lateral,
+    plan_branch_paths,
+)
 from feilunqiege.tooling.grinding_wheel import CandidateSet  # noqa: E402
+from feilunqiege.visualization.path_obj import write_path_obj  # noqa: E402
 from run_leaf_stage3_visualization import (  # noqa: E402
     PointAudit,
     _branch_runs,
@@ -186,6 +193,146 @@ def _arrow(handle, start: np.ndarray, direction: np.ndarray, length: float, radi
 
 def _source(point: np.ndarray, scale: float, center: np.ndarray) -> np.ndarray:
     return np.asarray(point, dtype=float) * scale + center
+
+
+def _export_path_candidates_npz(
+    path: Path,
+    sampled,
+    audits: list[PointAudit | None],
+    normalization: dict[str, object],
+) -> None:
+    """导出路径规划所需的逐角度数组，便于复现而不必重新跑碰撞。
+
+    该文件只包含现有 72 角候选，不改变任何判定；``reason`` 保留碰撞/接触
+    语义，``feasible`` 仍是当前 C 语义下的结果。
+    """
+
+    scale = float(normalization.get("scale", 1.0))
+    center = np.asarray(normalization.get("center", [0.0, 0.0, 0.0]), dtype=float)
+    # 侧向分类必须按 branch 顺序做符号连续化，不能逐点独立取 q；否则
+    # branch 7 这类“往返”分支会被拆成两段。
+    lateral_by_point: list[np.ndarray | None] = [None] * len(audits)
+    angle_by_point: list[np.ndarray | None] = [None] * len(audits)
+    for _branch_id, start, end in branch_runs(np.asarray(sampled.branch_ids, dtype=np.int64)):
+        branch_indices = np.arange(start, end, dtype=np.int64)
+        lateral_list, angle_list = classify_branch_lateral(branch_indices, audits)
+        for offset, point_index in enumerate(branch_indices):
+            lateral_by_point[int(point_index)] = lateral_list[offset]
+            angle_by_point[int(point_index)] = angle_list[offset]
+
+    point_norm = []
+    point_source = []
+    centers_norm = []
+    centers_source = []
+    feasible_rows = []
+    angle_rows = []
+    lateral_rows = []
+    reason_rows = []
+    tangent_rows = []
+    axis_rows = []
+    radial_rows = []
+    radial_values = []
+    for point_index, audit in enumerate(audits):
+        if audit is None:
+            raise ValueError(f"路径数据导出缺少点 {point_index} 的碰撞审计")
+        candidates = audit.candidates
+        angles = angle_by_point[point_index]
+        lateral = lateral_by_point[point_index]
+        if angles is None or lateral is None:
+            raise ValueError(f"点 {point_index} 缺少侧向分类结果")
+        centers = np.asarray(candidates.centers, dtype=float)
+        point = np.asarray(sampled.points[point_index], dtype=float)
+        point_norm.append(point)
+        point_source.append(point * scale + center)
+        centers_norm.append(centers)
+        centers_source.append(centers * scale + center)
+        feasible_rows.append(np.asarray(audit.result.feasible, dtype=bool))
+        angle_rows.append(angles)
+        lateral_rows.append(lateral)
+        reason_rows.append(np.asarray(audit.result.reason, dtype=str))
+        tangent_rows.append(np.asarray(candidates.tangent_directions, dtype=float))
+        axis_rows.append(np.asarray(candidates.axis_directions, dtype=float))
+        radial_rows.append(np.asarray(candidates.radius_directions, dtype=float))
+        radial_values.append(np.asarray(candidates.radial_values, dtype=float))
+
+    np.savez_compressed(
+        path,
+        point_index=np.arange(len(audits), dtype=np.int64),
+        branch_id=np.asarray(sampled.branch_ids, dtype=np.int64),
+        arc_length=np.asarray(getattr(sampled, "arc_lengths", np.zeros(len(audits))), dtype=float),
+        point_norm=np.asarray(point_norm, dtype=float),
+        point_source=np.asarray(point_source, dtype=float),
+        centers_norm=np.asarray(centers_norm, dtype=float),
+        centers_source=np.asarray(centers_source, dtype=float),
+        feasible=np.asarray(feasible_rows, dtype=bool),
+        angles_deg=np.asarray(angle_rows, dtype=float),
+        lateral_projection=np.asarray(lateral_rows, dtype=float),
+        reason=np.asarray(reason_rows, dtype=str),
+        tangent=np.asarray(tangent_rows, dtype=float),
+        axis=np.asarray(axis_rows, dtype=float),
+        radial=np.asarray(radial_rows, dtype=float),
+        radial_values=np.asarray(radial_values, dtype=float),
+        normalization_scale=np.asarray(scale, dtype=float),
+        normalization_center=np.asarray(center, dtype=float),
+    )
+
+
+def _write_path_summary(
+    path: Path,
+    *,
+    case: str,
+    side_paths: list[object],
+    normalization: dict[str, object],
+    parameters: dict[str, object],
+    status: str,
+) -> None:
+    """写出路径规划专用 JSON；节点记录同时含 normalized 与 source 坐标。"""
+
+    payload = {
+        "case": case,
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "coordinate_frames": {"computation": "normalized", "obj": "source_obj"},
+        "status": status,
+        "parameters": parameters,
+        "method": "coverage_constrained_layered_dynamic_programming",
+        "allow_skips": bool(parameters.get("allow_skips", False)),
+        "coverage_half_length": parameters.get("coverage_half_length"),
+        "side_definition": (
+            "lateral_side = sign(radius_direction . q), "
+            "q = normalize(axis x tangent); theta=0/180 are midline and excluded"
+        ),
+        "side_consistency_rule": "only the wheel center must lie on the chosen side; wheel body may cross",
+        "edge_collision_audit": "not_performed_this_round",
+        "cost": "sum of Euclidean distances between consecutive selected wheel centers (normalized units)",
+        "branch_paths": [item.to_record(normalization, include_nodes=True) for item in side_paths],
+        "no_path": [
+            {
+                "branch_id": int(item.branch_id),
+                "branch_label": item.branch_label,
+                "lateral_side": int(item.lateral_side),
+                "missing_point_indices": [int(value) for value in item.missing_point_indices],
+                "message": item.message,
+            }
+            for item in side_paths
+            if item.status != "ok"
+        ],
+        "references": [
+            "Zhang et al. 2026, Machines 14(1):65, doi:10.3390/machines14010065 (directed pose graph)",
+            "Chen, Xu, Tang 2015, JCDE, doi:10.1016/j.jcde.2015.06.001 (1-D orientation family)",
+            "Wu et al. 2025, IEEE/ASME TMech, doi:10.1109/TMECH.2024.3510852 (disconnected feasible domains)",
+            "Lu et al. 2021, JMSE, doi:10.1115/1.4047734 (path-length objective)",
+        ],
+        "notes": [
+            "Only 72 discrete angles from export_p1_full_delivery.py are used; config sampling.candidate_angles=180 is not used here.",
+            "Coverage model: each selected point covers [s-r, s+r] along branch arc length; consecutive selected points need s_next-s_prev <= 2r. Sample points may be skipped.",
+            "Coverage cannot cross a sample point with no feasible candidate on the same side in the existing all-point collision results.",
+            "Node-level feasibility only; no edge-level collision sweep was performed in this run.",
+            "No path is fabricated for a branch/side with missing feasible candidates or unsatisfiable coverage.",
+            "max_angle_step_deg is the contact-point direction theta on the axisymmetric wheel rim; max_axis_step_deg is the actual wheel-axis change.",
+            "Branches 3-8 are 10-point out-and-back sequences with a tangent reversal; q sign is kept continuous and selected points are not deduplicated.",
+        ],
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _write_point_patch_obj(
@@ -579,6 +726,21 @@ def main() -> int:
             }
         )
 
+    full_point_set = len(point_indices) == len(sampled.points) and all(audit is not None for audit in audits)
+    if full_point_set:
+        # 只在完整点集上规划，避免 --points/--max-points 烟雾测试产生
+        # “半个 branch”的伪路径。完整 branch 上的 no_path 仍会显式输出。
+        side_paths = plan_branch_paths(
+            sampled,
+            audits,
+            allow_skips=True,
+            coverage_half_length=radius,
+        )
+        path_planning_status = "ok"
+    else:
+        side_paths = []
+        path_planning_status = "skipped_incomplete_point_set"
+
     output_dir = (
         Path(arguments.output_dir).resolve()
         if arguments.output_dir is not None
@@ -588,23 +750,78 @@ def main() -> int:
     centers_obj = output_dir / f"{arguments.case}_rootline_circle_centers.obj"
     domains_obj = output_dir / f"{arguments.case}_feasible_center_domains.obj"
     wheels_obj = output_dir / f"{arguments.case}_inspection_wheels.obj"
+    paths_obj = output_dir / f"{arguments.case}_paths.obj"
+    path_summary_json = output_dir / "path_planning_summary.json"
+    path_candidates_npz = output_dir / "path_candidates.npz"
     valid_audits = [audit for audit in audits if audit is not None]
-    _export_circle_centers(centers_obj, sampled, valid_audits, branches, normalization, radius)
     _export_center_domains(domains_obj, sampled, valid_audits, branches, normalization, radius)
-    infeasible_points = [row["point_index"] for row in point_records if row["infeasible_angle_count"] > 0]
-    wheel_records = _export_inspection_wheels(
-        wheels_obj,
-        sampled,
-        audits,
-        branches,
-        normalization,
-        radius,
-        width,
-        int(config.get("visualization", {}).get("cylinder_segments", 64)),
-        infeasible_points,
-        per_point=2,
-        include_contact_points=False,
+
+    # 本次交付的第二个 OBJ：root_line 两侧路径。若某侧 no_path，OBJ 头部和
+    # JSON 会显式说明，不画伪造路径。
+    if full_point_set:
+        write_path_obj(paths_obj, sampled, branches, normalization, side_paths, radius=radius)
+        _export_path_candidates_npz(path_candidates_npz, sampled, audits, normalization)
+
+    path_parameters = {
+        "radius": radius,
+        "width": width,
+        "rho": radius,
+        "axial_side": 1.0,
+        "angle_count": 72,
+        "angle_count_source": "export_p1_full_delivery.py hardcoded 72",
+        "delta": float(config["wheel"].get("delta", 0.0)),
+        "lateral_tolerance": LATERAL_TOLERANCE,
+        "allow_skips": True,
+        "coverage_half_length": radius,
+        "coverage_model": (
+            "each selected point covers the continuous arc interval [s_i - r, s_i + r] "
+            "along the branch; consecutive selected points must satisfy s_next - s_prev <= 2r"
+        ),
+        "coverage_restriction": (
+            "coverage cannot cross a sample point that has no feasible candidate on the same side "
+            "in the existing all-point collision results"
+        ),
+        "contact_semantics": "C: allow target contact within contact_patch_radius = 2r",
+        "cost": "sum of Euclidean distances between consecutive selected wheel centers",
+    }
+    _write_path_summary(
+        path_summary_json,
+        case=arguments.case,
+        side_paths=side_paths,
+        normalization=normalization,
+        parameters=path_parameters,
+        status=path_planning_status,
     )
+
+    infeasible_points = [row["point_index"] for row in point_records if row["infeasible_angle_count"] > 0]
+
+    # ============================================================================
+    # 【保留，不要删除】以下两个 OBJ 交付逻辑按 2026-10-30/31 路径规划任务要求
+    # 暂停输出，但代码必须保留，以备后续复现：
+    #   1) 圆心位置 OBJ：circle_rootline_circle_centers.obj
+    #   2) 砂轮姿态 OBJ：circle_inspection_wheels.obj
+    # 恢复时取消下面调用的注释即可；不要删除 _export_circle_centers、
+    # _export_inspection_wheels 及其依赖。
+    # ============================================================================
+    #
+    # _export_circle_centers(centers_obj, sampled, valid_audits, branches, normalization, radius)
+    #
+    # wheel_records = _export_inspection_wheels(
+    #     wheels_obj,
+    #     sampled,
+    #     audits,
+    #     branches,
+    #     normalization,
+    #     radius,
+    #     width,
+    #     int(config.get("visualization", {}).get("cylinder_segments", 64)),
+    #     infeasible_points,
+    #     per_point=2,
+    #     include_contact_points=False,
+    # )
+    #
+    # 本轮只保留两个主 OBJ，因此 wheel_records 为空；字段保留以兼容旧 summary。
+    wheel_records: list[dict[str, object]] = []
 
     if not arguments.three_obj_only:
         _write_point_mtl(output_dir / "point_patches.mtl")
@@ -638,10 +855,53 @@ def main() -> int:
         "normal_confidence_counts": dict(Counter(str(row["normal_confidence"]) for row in point_records)),
         "point_records": point_records,
         "wheel_records": wheel_records,
+        "path_planning": {
+            "status": path_planning_status,
+            "method": "coverage_constrained_layered_dynamic_programming",
+            "allow_skips": True,
+            "coverage_half_length": radius,
+            "coverage_model": (
+                "selected point i covers [s_i-r, s_i+r] along branch arc length; "
+                "consecutive selected points need s_next - s_prev <= 2r"
+            ),
+            "coverage_restriction": (
+                "coverage cannot cross a sample point with no feasible candidate on the same side"
+            ),
+            "angle_count": 72,
+            "angle_count_source": "export_p1_full_delivery.py hardcoded 72",
+            "side_definition": (
+                "lateral_side = sign(radius_direction . q), "
+                "q = normalize(axis x tangent); theta=0/180 are midline and excluded"
+            ),
+            "side_consistency_rule": "only the wheel center must lie on the chosen side; wheel body may cross",
+            "edge_collision_audit": "not_performed_this_round",
+            "branch_count": len(branches),
+            "ok_path_count": sum(1 for item in side_paths if item.status == "ok"),
+            "no_path_count": sum(1 for item in side_paths if item.status != "ok"),
+            "branches": [item.to_record(normalization, include_nodes=False) for item in side_paths],
+            "references": [
+                "Zhang et al. 2026, Machines 14(1):65, doi:10.3390/machines14010065 (directed pose graph)",
+                "Chen, Xu, Tang 2015, JCDE, doi:10.1016/j.jcde.2015.06.001 (1-D orientation family)",
+                "Wu et al. 2025, IEEE/ASME TMech, doi:10.1109/TMECH.2024.3510852 (disconnected feasible domains)",
+                "Schneyer et al. 2023, IEEE RA-L, doi:10.1109/LRA.2023.3293309 (coverage planning / adaptive spacing)",
+                "Lu et al. 2021, JMSE, doi:10.1115/1.4047734 (path-length objective)",
+            ],
+        },
         "outputs": {
-            "centers_obj": str(centers_obj),
+            "centers_obj": None,
             "domains_obj": str(domains_obj),
-            "wheels_obj": str(wheels_obj),
+            "paths_obj": str(paths_obj) if full_point_set else None,
+            "wheels_obj": None,
+            "path_summary_json": str(path_summary_json),
+            "path_candidates_npz": str(path_candidates_npz) if full_point_set else None,
+            "disabled_outputs": {
+                "centers_obj": str(centers_obj),
+                "wheels_obj": str(wheels_obj),
+                "reason": (
+                    "2026-10-30/31 path-planning delivery: keep code, disable output; "
+                    "restore the commented calls in export_p1_full_delivery.py."
+                ),
+            },
             "point_patch_objs": (
                 [] if arguments.three_obj_only
                 else [str(output_dir / f"{index}.obj") for index in infeasible_points]
@@ -661,24 +921,61 @@ def main() -> int:
   - `<point_index>.obj`：选中的 patch 面（两组颜色，若存在两侧）、每面法向箭头、组法向箭头、最终法向箭头、根点；
   - `point_patches.mtl`：共享材质。
 """
+    no_path_section = "\n".join(
+        f"  - `{item.branch_label}` lateral_side={item.lateral_side:+d}: NO PATH；{item.message}"
+        for item in side_paths
+        if item.status != "ok"
+    ) or "  - 无"
+    path_section = "\n".join(
+        f"  - `{item.branch_label}` lateral_side={item.lateral_side:+d}: "
+        f"{'OK' if item.status == 'ok' else 'NO PATH'}；"
+        f"selected={len(item.nodes)}/{len(item.candidate_counts)}；"
+        f"skipped={len(item.skipped_point_indices)}；"
+        f"coverage_union_ok={item.coverage_union_ok}；"
+        f"length_norm={item.length_norm}；max_angle_step_deg={item.max_angle_step_deg}；"
+        f"max_axis_step_deg={item.max_axis_step_deg}；"
+        f"optimal_path_count_capped={item.optimal_path_count_capped}"
+        for item in side_paths
+    ) or "  - 未运行（点集不完整）"
+    multi_solution_section = "\n".join(
+        f"  - `{item.branch_label}` lateral_side={item.lateral_side:+d}: "
+        f"{item.optimal_path_count_capped} 条同长最优路径（上限 2），已按最低候选索引导出其中一条"
+        for item in side_paths
+        if item.status == "ok" and item.optimal_path_count_capped > 1
+    ) or "  - 无（或未检测到同长多解）"
     (output_dir / "README.md").write_text(
-        f"""# P1 三个 OBJ 交付
+        f"""# 路径规划两 OBJ 交付
 
-- 方法：`p1`
-- 工件：`circle/mesh_without_flash.obj`（原始 full mesh）
-- 点：{len(point_indices)} 个 root-line 采样点；角度：72
+- 方法：P1 法向 + 有限厚度圆柱碰撞 + 覆盖约束分层动态规划路径
+- 工件：`{arguments.case}/mesh_without_flash.obj`（原始 full mesh）
+- 点：{len(point_indices)} 个 root-line 采样点；角度：72（来自 `export_p1_full_delivery.py` 硬编码，不是 config 的 180）
 - 不可行点：{len(infeasible_points)} 个；其中 {len(fallback_points)} 个点使用了 fallback axis
-- 主文件：
-  - `{centers_obj.name}`：根线 + 圆心；
-  - `{domains_obj.name}`：可行/不可行中心域；
-  - `{wheels_obj.name}`：不可行点的红色/绿色砂轮姿态；
-{point_section}- 坐标：OBJ 为 `source_obj`。
+- 路径状态：`{path_planning_status}`（{sum(1 for item in side_paths if item.status == 'ok')} 条 `ok` / {sum(1 for item in side_paths if item.status != 'ok')} 条 `no_path`）
+- 主文件（本次只交付两个 OBJ）：
+  - `{domains_obj.name}`：根线 + 每个点的绿色可行/红色碰撞候选中心；
+  - `{paths_obj.name if full_point_set else '（未生成：点集不完整）'}`：根线 + `+q` 蓝色路径 + `-q` 橙色路径；
+  - `{path_summary_json.name}`：路径节点、角度、长度、无解点、参数；
+  - `{path_candidates_npz.name if full_point_set else '（未生成：点集不完整）'}`：415×72 候选数组，便于复现。
+- 无解说明：
+{no_path_section}
+- 每 branch/侧路径：
+{path_section}
+- 同长多解：
+{multi_solution_section}
+{point_section}- 坐标：OBJ 为 `source_obj`；路径长度在 normalized units 中记录，并给出 source 等效长度。
+- 覆盖模型：选中点 i 覆盖弧长 `[s_i-r, s_i+r]`；相邻选中点满足 `s_next-s_prev <= 2r` 时覆盖重叠，中间采样点可跳过；不强制选首末点。若某采样点在该侧完全无可行候选，不允许覆盖区间跨过它。
+- 角度诊断：`max_angle_step_deg` 是接触点在砂轮端面圆周上的方向 θ 变化（圆柱轴对称，θ 不是工具轴姿态）；`max_axis_step_deg` 是实际砂轮轴向 a 的夹角，是更有意义的姿态连续性指标。
+- 侧向定义：`lateral_side = sign(e·q)`，`q=normalize(a×t)`；`θ=0/180` 中线候选不参与两侧路径。
+- 侧向一致性：只要求砂轮中心在指定一侧；砂轮其他部分可以越过该侧（2026-10-31 用户确认）。
+- 碰撞边界：只做节点级可行性；本轮**未做**边级扫掠碰撞审计。
+- 方法借鉴：Zhang 2026 有向姿态图；Chen 2015 一维姿态族；Wu 2025 断开可行域；Schneyer 2023 覆盖规划；Lu 2021 路径长度目标。文献详情与“本次采用/未采用”标记见 `docs/path_planning_literature_review_20261030.md` 第 3.4/3.5 节。
+- 保留但停用：`{centers_obj.name}`（圆心位置）和 `{wheels_obj.name}`（砂轮姿态）的导出调用已注释，代码未删除，便于复现。
 """,
         encoding="utf-8",
     )
     print(f"output_dir={output_dir}")
     print(f"infeasible_points={len(infeasible_points)}")
-    print(f"centers={centers_obj}\ndomains={domains_obj}\nwheels={wheels_obj}")
+    print(f"domains={domains_obj}\npaths={paths_obj if full_point_set else 'not_generated'}")
     return 0
 
 
