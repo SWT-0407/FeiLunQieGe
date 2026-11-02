@@ -7,7 +7,11 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from feilunqiege.visualization.path_obj import write_path_obj
+from feilunqiege.visualization.path_obj import (
+    write_path_dots_obj,
+    write_path_obj,
+    write_path_wheels_obj,
+)
 
 
 def _node(point_index: int, center: np.ndarray) -> SimpleNamespace:
@@ -79,3 +83,84 @@ def test_path_obj_no_path_writes_comment_only(tmp_path: Path) -> None:
     assert "branch_07 lateral_side=+1: NO PATH" in text
     assert "o path_branch_07_pos" not in text
     assert "o path_nodes_branch_07_pos" not in text
+
+
+def _two_node_path() -> SimpleNamespace:
+    return SimpleNamespace(
+        branch_id=0,
+        branch_label="branch_00",
+        lateral_side=1,
+        status="ok",
+        nodes=[_node(0, [0.0, 0.02, 0.0]), _node(1, [0.01, 0.02, 0.0])],
+        length_norm=0.01,
+        skipped_point_indices=(),
+        missing_point_indices=(),
+    )
+
+
+def test_dots_obj_contains_only_yellow_markers(tmp_path: Path) -> None:
+    output = tmp_path / "dots.obj"
+    write_path_dots_obj(
+        output,
+        [_two_node_path()],
+        {"scale": 1.0, "center": [0.0, 0.0, 0.0]},
+        radius=0.02,
+    )
+    text = output.read_text(encoding="ascii")
+    assert "usemtl path_dot_yellow" in text
+    assert "o root_line\n" not in text
+    assert not any(line.startswith("l ") for line in text.splitlines())
+    assert "path_dot_yellow" in (tmp_path / "dots.mtl").read_text(encoding="ascii")
+
+
+def test_lines_obj_has_no_node_markers(tmp_path: Path) -> None:
+    sampled = SimpleNamespace(
+        points=np.array([[0.0, 0.0, 0.0], [0.01, 0.0, 0.0]], dtype=float),
+        branch_ids=np.array([0, 0], dtype=int),
+    )
+    output = tmp_path / "lines.obj"
+    write_path_obj(
+        output,
+        sampled,
+        [(0, 0, 2)],
+        {"scale": 1.0, "center": [0.0, 0.0, 0.0]},
+        [_two_node_path()],
+        radius=0.02,
+        include_nodes=False,
+    )
+    text = output.read_text(encoding="ascii")
+    assert "o root_line" in text
+    assert "l " in text
+    assert "o path_tubes_branch_00_pos" in text
+    assert "o path_nodes_" not in text
+
+
+def test_wheels_obj_writes_cylinder_at_selected_point(tmp_path: Path) -> None:
+    sampled = SimpleNamespace(
+        points=np.array([[0.0, 0.0, 0.0]], dtype=float),
+        branch_ids=np.array([0], dtype=int),
+    )
+    wheel = SimpleNamespace(
+        branch_label="branch_00",
+        lateral_side=1,
+        point_index=0,
+        center_norm=np.array([0.0, 0.02, 0.0]),
+        axis_norm=np.array([0.0, 0.0, 1.0]),
+        radial_norm=np.array([0.0, 1.0, 0.0]),
+    )
+    output = tmp_path / "wheels.obj"
+    write_path_wheels_obj(
+        output,
+        sampled,
+        [(0, 0, 1)],
+        {"scale": 1.0, "center": [0.0, 0.0, 0.0]},
+        [wheel],
+        radius=0.02,
+        width=0.004,
+        segments=8,
+    )
+    text = output.read_text(encoding="ascii")
+    assert "o wheel_branch_00_pos_point_0000" in text
+    assert "usemtl wheel_teal" in text
+    assert "f " in text
+    assert "wheel_teal" in (tmp_path / "wheels.mtl").read_text(encoding="ascii")

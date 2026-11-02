@@ -35,7 +35,11 @@ def _write_mtl(path: Path) -> None:
         "newmtl path_node_positive\n"
         "Ka 0.02 0.10 0.30\nKd 0.20 0.60 1.00\nKe 0.20 0.60 1.00\nillum 0\n"
         "newmtl path_node_negative\n"
-        "Ka 0.30 0.12 0.02\nKd 1.00 0.65 0.20\nKe 1.00 0.65 0.20\nillum 0\n",
+        "Ka 0.30 0.12 0.02\nKd 1.00 0.65 0.20\nKe 1.00 0.65 0.20\nillum 0\n"
+        "newmtl path_dot_yellow\n"
+        "Ka 1.00 1.00 0.00\nKd 1.00 1.00 0.00\nKe 1.00 1.00 0.00\nillum 0\n"
+        "newmtl wheel_teal\n"
+        "Ka 0.02 0.45 0.45\nKd 0.05 0.80 0.80\nKe 0.05 0.80 0.80\nillum 0\n",
         encoding="ascii",
     )
 
@@ -151,6 +155,10 @@ def write_path_obj(
     side_paths: list[Any],
     *,
     radius: float,
+    include_root_line: bool = True,
+    include_lines: bool = True,
+    include_tubes: bool = True,
+    include_nodes: bool = True,
 ) -> None:
     """写出 root_line + 两侧路径的 MeshLab OBJ。
 
@@ -194,8 +202,10 @@ def write_path_obj(
                     f"length_norm={item.length_norm}\n"
                 )
         handle.write(f"mtllib {material_path.name}\n")
-        handle.write("o root_line\nusemtl root_line_gray\n")
-        next_vertex = _write_root_line(handle, sampled, branches, normalization)
+        next_vertex = 1
+        if include_root_line:
+            handle.write("o root_line\nusemtl root_line_gray\n")
+            next_vertex = _write_root_line(handle, sampled, branches, normalization)
 
         for item in side_paths:
             if item.status != "ok" or not item.nodes:
@@ -206,27 +216,29 @@ def write_path_obj(
             points_source = np.asarray([_to_source(point, normalization) for point in points], dtype=float)
 
             # 折线：每个选中中心写一个顶点，然后按顺序连 l。
-            handle.write(
-                f"o path_{item.branch_label}_{side_name}\nusemtl {line_material}\n"
-            )
-            vertex_ids: list[int] = []
-            for point in points_source:
-                vertex_ids.append(next_vertex)
-                _write_vertex(handle, point)
-                next_vertex += 1
-            for first, second in zip(vertex_ids[:-1], vertex_ids[1:], strict=True):
-                handle.write(f"l {first} {second}\n")
+            if include_lines:
+                handle.write(
+                    f"o path_{item.branch_label}_{side_name}\nusemtl {line_material}\n"
+                )
+                vertex_ids: list[int] = []
+                for point in points_source:
+                    vertex_ids.append(next_vertex)
+                    _write_vertex(handle, point)
+                    next_vertex += 1
+                for first, second in zip(vertex_ids[:-1], vertex_ids[1:], strict=True):
+                    handle.write(f"l {first} {second}\n")
 
             # 节点标记：便于在 MeshLab 中看清每个采样点的选中中心。
-            handle.write(
-                f"o path_nodes_{item.branch_label}_{side_name}\nusemtl {node_material}\n"
-            )
-            for point in points_source:
-                next_vertex = _write_center_marker(handle, point, marker_size, next_vertex)
+            if include_nodes:
+                handle.write(
+                    f"o path_nodes_{item.branch_label}_{side_name}\nusemtl {node_material}\n"
+                )
+                for point in points_source:
+                    next_vertex = _write_center_marker(handle, point, marker_size, next_vertex)
 
             # 实心细管：MeshLab 对 OBJ l 元素的线宽支持有限，额外写入
             # 圆柱面，使相邻中心在普通视图中也显示为连续线段。
-            if len(points_source) > 1:
+            if include_tubes and len(points_source) > 1:
                 handle.write(
                     f"o path_tubes_{item.branch_label}_{side_name}\nusemtl {line_material}\n"
                 )
@@ -238,3 +250,143 @@ def write_path_obj(
                         tube_radius,
                         next_vertex,
                     )
+
+
+def write_path_dots_obj(
+    path: Path,
+    side_paths: list[Any],
+    normalization: dict[str, Any],
+    *,
+    radius: float,
+) -> None:
+    """只输出路径规划选得的中心点，亮黄色标记，不写 root_line/连线。"""
+
+    material_path = path.with_suffix(".mtl")
+    _write_mtl(material_path)
+    scale = float(normalization.get("scale", 1.0))
+    marker_size = max(float(radius) * scale * 0.035, 1e-8)
+    with path.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write("# path planning selected center dots only\n")
+        handle.write("# coordinate_frame: source_obj\n")
+        handle.write("# material: path_dot_yellow\n")
+        handle.write("# no root_line, no connecting lines\n")
+        for item in side_paths:
+            if item.status != "ok" or not item.nodes:
+                continue
+            handle.write(
+                f"# {item.branch_label} lateral_side={item.lateral_side:+d}: "
+                f"{len(item.nodes)} selected point(s)\n"
+            )
+        handle.write(f"mtllib {material_path.name}\n")
+        next_vertex = 1
+        for item in side_paths:
+            if item.status != "ok" or not item.nodes:
+                continue
+            side_name = "pos" if item.lateral_side > 0 else "neg"
+            handle.write(
+                f"o path_dots_{item.branch_label}_{side_name}\nusemtl path_dot_yellow\n"
+            )
+            for node in item.nodes:
+                center = _to_source(np.asarray(node.center_norm, dtype=float), normalization)
+                next_vertex = _write_center_marker(handle, center, marker_size, next_vertex)
+
+
+def _write_cylinder(
+    handle: Any,
+    center: np.ndarray,
+    radial: np.ndarray,
+    axis: np.ndarray,
+    radius: float,
+    width: float,
+    first: int,
+    *,
+    segments: int = 48,
+) -> int:
+    """写一个实心有限圆柱（平端面），用于显示选中路径点的砂轮姿态。"""
+
+    if segments < 3:
+        raise ValueError("cylinder segments 至少为 3")
+    axis = np.asarray(axis, dtype=float)
+    axis /= max(float(np.linalg.norm(axis)), 1e-12)
+    radial = np.asarray(radial, dtype=float)
+    radial = radial - float(np.dot(radial, axis)) * axis
+    radial_norm = float(np.linalg.norm(radial))
+    if radial_norm <= 1e-12:
+        reference = np.array([1.0, 0.0, 0.0]) if abs(float(axis[0])) < 0.9 else np.array([0.0, 1.0, 0.0])
+        radial = np.cross(axis, reference)
+        radial_norm = float(np.linalg.norm(radial))
+    radial /= max(radial_norm, 1e-12)
+    disk_basis = np.cross(axis, radial)
+    disk_basis /= max(float(np.linalg.norm(disk_basis)), 1e-12)
+    half = float(width) / 2.0
+    theta = np.linspace(0.0, 2.0 * np.pi, segments, endpoint=False)
+    rings: list[list[np.ndarray]] = []
+    for axial in (-half, half):
+        ring = [
+            np.asarray(center, dtype=float)
+            + axial * axis
+            + float(radius) * (np.cos(angle) * radial + np.sin(angle) * disk_basis)
+            for angle in theta
+        ]
+        rings.append(ring)
+    for ring in rings:
+        for point in ring:
+            _write_vertex(handle, point)
+    bottom_index = first + 2 * segments
+    top_index = bottom_index + 1
+    _write_vertex(handle, np.asarray(center, dtype=float) - half * axis)
+    _write_vertex(handle, np.asarray(center, dtype=float) + half * axis)
+    for index in range(segments):
+        following = (index + 1) % segments
+        bottom_0, bottom_1 = first + index, first + following
+        top_0, top_1 = first + segments + index, first + segments + following
+        handle.write(f"f {bottom_0} {bottom_1} {top_1} {top_0}\n")
+        handle.write(f"f {bottom_index} {bottom_1} {bottom_0}\n")
+        handle.write(f"f {top_index} {top_0} {top_1}\n")
+    return top_index + 1
+
+
+def write_path_wheels_obj(
+    path: Path,
+    sampled: Any,
+    branches: list[tuple[int, int, int]],
+    normalization: dict[str, Any],
+    wheels: list[Any],
+    *,
+    radius: float,
+    width: float,
+    segments: int = 48,
+) -> None:
+    """输出每个选中路径点上的砂轮有限圆柱；调用方只提供一侧的 wheels。"""
+
+    material_path = path.with_suffix(".mtl")
+    _write_mtl(material_path)
+    scale = float(normalization.get("scale", 1.0))
+    with path.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write("# path planning wheel poses (one lateral side per branch)\n")
+        handle.write("# coordinate_frame: source_obj\n")
+        handle.write(f"# wheel_radius_source: {float(radius) * scale:.12g}\n")
+        handle.write(f"# wheel_width_source: {float(width) * scale:.12g}\n")
+        handle.write(f"# wheel_count: {len(wheels)}\n")
+        handle.write("# side_policy: prefer +q; fallback to -q only when +q has no path\n")
+        handle.write("# edge_collision_audit: not performed in this run (node-level feasibility only)\n")
+        handle.write(f"mtllib {material_path.name}\n")
+        handle.write("o root_line\nusemtl root_line_gray\n")
+        next_vertex = _write_root_line(handle, sampled, branches, normalization)
+        for wheel in wheels:
+            side_name = "pos" if int(wheel.lateral_side) > 0 else "neg"
+            center = _to_source(np.asarray(wheel.center_norm, dtype=float), normalization)
+            handle.write(
+                f"o wheel_{wheel.branch_label}_{side_name}_point_{int(wheel.point_index):04d}\n"
+                "usemtl wheel_teal\n"
+            )
+            next_vertex = _write_cylinder(
+                handle,
+                center,
+                np.asarray(wheel.radial_norm, dtype=float),
+                np.asarray(wheel.axis_norm, dtype=float),
+                float(radius) * scale,
+                float(width) * scale,
+                next_vertex,
+                segments=segments,
+            )

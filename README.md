@@ -153,6 +153,40 @@ results/cases/circle/p1_full_delivery_20261031_195757_314283/
 >
 > 全采样点 baseline 保留在 `results/cases/circle/p1_full_delivery_20261031_153521_498629/`，作为对照，不是最终覆盖优化结果。
 
+### 2.4 四 OBJ 路径可视化（2026-11-02）
+
+目录：
+
+```text
+results/cases/circle/path_viz_4obj_20261102_125949/
+```
+
+文件：
+
+| 文件 | 内容 |
+|---|---|
+| `circle_feasible_center_domains.obj` | 从 `p1_full_delivery_20261031_195757_314283/` 原样复制；绿色可行/红色碰撞中心域，未重算 |
+| `circle_paths_dots.obj` | 只输出路径规划选得的 63 个中心点；亮黄色 `path_dot_yellow` |
+| `circle_paths_lines.obj` | root_line + 选中点连线（`l` + tube）；`+q` 蓝、`-q` 橙；不重复点标记 |
+| `circle_path_wheels.obj` | 每个 branch 只取一侧的选中点，画 32 个有限圆柱砂轮；`wheel_teal` |
+| 对应 `.mtl` | 材质 |
+| `README.md` | 文件说明、轮径/轮宽、侧向选择 |
+
+结果与边界：
+
+- 63 个选中点（两侧合计）；
+- 17 条路径连线（单点短分支在 lines OBJ 中只有孤立顶点，无线段）；
+- 32 个砂轮：branch 0/1/2 分别 6/9/11 个，branch 3–6、8 各 1 个，branch 7 因 `+q` 无解回退 `-q` 1 个；
+- 每个 branch 只输出一侧砂轮，另一侧不输出；
+- 坐标 `source_obj`；砂轮半径 `0.02` normalized、宽度 `0.004` normalized、圆柱 48 分段；
+- 只是显示几何，未做边级扫掠碰撞审计。
+
+生成命令：
+
+```powershell
+python scripts/export_path_visualizations.py --run-dir results/cases/circle/p1_full_delivery_20261031_195757_314283
+```
+
 ---
 
 ## 3. 输入数据与坐标
